@@ -8,7 +8,6 @@ use App\Contract\MapaDeHitos;
 use App\Contract\VinculoComercial;
 use App\Cotizacion\Entity\CotizacionConversacionEnlace;
 use App\Cotizacion\Entity\CotizacionFile;
-use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Message\Contract\MessageContextInterface;
 use App\Message\Enum\IdentidadTipo;
 
@@ -127,17 +126,15 @@ final readonly class CotizacionFileMessageContext implements MessageContextInter
     }
 
     /**
-     * Un expediente abierto es alguien a quien se le está vendiendo; cerrado o archivado, ya no.
+     * Interesado mientras se le vende; cliente en cuanto pagó algo; terminado al archivar o cerrar.
      *
-     * ⚠️ **No se marca `Cliente` desde aquí.** Eso lo dice el pago, no el estado del expediente,
-     * y ese dato vive en Finanzas — inventarlo en un adaptador es la clase de regla que después
-     * nadie encuentra.
+     * La regla vive en {@see \App\Cotizacion\Entity\CotizacionFile::vinculoComercial()}: en
+     * turismo lo dice el pago (`CotizacionPago`), no el estado del expediente. Hasta el 16/10/2026
+     * no había pagos que mirar, y por eso aquí ponía que `Cliente` no se marcaba nunca.
      */
     public function getVinculo(): VinculoComercial
     {
-        return $this->file->getEstado() === FileEstadoEnum::ABIERTO
-            ? VinculoComercial::Interesado
-            : VinculoComercial::Terminado;
+        return $this->file->vinculoComercial();
     }
 
     public function getAgencyId(): ?string

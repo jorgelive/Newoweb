@@ -34,6 +34,9 @@ final class PaxCrearTextosGuiaCommand extends Command
 
     private const array TEXTOS = [
         'gui_siguiente' => 'Siguiente',
+        // El hueco de `MediosPagoWidget` cuando no hay medio que ofrecer. Nunca se había creado:
+        // salía siempre el respaldo en español, también en una ficha en inglés (16/10/2026).
+        'gui_pago_consultanos' => 'Consúltanos los medios de pago por el chat',
     ];
 
     /**

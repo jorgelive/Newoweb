@@ -388,16 +388,22 @@ const limpiarFiltros = async (): Promise<void> => {
 // el MISMO `ReservaEditDrawer` que usa el chat, en modo lectura y sin calendario, y «atrás» lo
 // cierra devolviéndote a la tarjeta o a la ficha del cobro desde la que se abrió.
 //
-// Sólo `pms_reserva`: las cotizaciones aún no tienen resolver de origen (`FinOrigenCobro`) y
-// ningún cobro lleva su id. Cuando lo tengan, su panel entra aquí como otro caso.
+// Un pago de turismo (`cotizacion`, desde el 16/10/2026: `CotizacionPago`) lleva el id del
+// EXPEDIENTE y abre su ficha, que es donde viven sus pagos: no hay un panel lateral que montar.
+// Un cobro por enlace etiquetado «cotización» a mano no lleva id, y por eso no abre nada.
 // ============================================================================
 const reservaAbierta = ref<string | null>(null);
 
 const puedeAbrirDocumento = (origenTipo: string | null, origenId: string | null): boolean =>
-    origenTipo === 'pms_reserva' && !!origenId;
+    (origenTipo === 'pms_reserva' || origenTipo === 'cotizacion') && !!origenId;
 
 const abrirDocumento = (origenTipo: string | null, origenId: string | null): void => {
     if (!puedeAbrirDocumento(origenTipo, origenId) || reservaAbierta.value) return;
+
+    if (origenTipo === 'cotizacion' && origenId) {
+        void router.push({ name: 'file_detalle', params: { id: origenId } });
+        return;
+    }
 
     reservaAbierta.value = origenId;
     capas.abrir('reserva', () => { reservaAbierta.value = null; });

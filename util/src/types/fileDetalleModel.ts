@@ -312,3 +312,26 @@ export interface DocumentoSuelto {
         seguro: boolean;
     }[];
 }
+
+/**
+ * Un pago del cliente a cuenta del expediente (`CotizacionPago`), tal como viaja embebido en el
+ * detalle. Del esquema tal cual: no hay nada que estrechar.
+ */
+export type ApiCotizacionPago = NonNullable<ApiCotizacionFile['pagos']>[number];
+
+/**
+ * La cuenta del expediente: total de la propuesta que manda, lo pagado y el saldo, en USD.
+ * La calcula `CuentaDelExpediente::de()` (PHP); el adelanto en dinero sale de `montoDeAdelanto()`.
+ */
+export type ApiCuentaDelExpediente = NonNullable<ApiCotizacionFile['cuenta']>;
+
+/** Espejo de `App\Cotizacion\Enum\CotizacionMedioPagoEnum::label()`. Al tocar uno, tocar el otro. */
+export const MEDIO_PAGO_LABELS: Record<ApiCotizacionPago['medio'], string> = {
+    yape: 'Yape',
+    plin: 'Plin',
+    transferencia_bancaria: 'Transferencia bancaria',
+    tarjeta: 'Tarjeta',
+    western_union: 'Western Union',
+    efectivo: 'Efectivo',
+    paypal: 'PayPal',
+};

@@ -189,6 +189,9 @@ src/Pms/Finanzas/    ← el PMS implementa los DOS contratos de Finanzas
 ├── PmsReservaOrigenCobroResolver              cobrar una reserva
 └── PmsPagoMovimientoProvider                  sus pagos, de cualquier medio, en la caja
 
+src/Cotizacion/Finanzas/  ← turismo, de momento sólo la caja (16/10/2026)
+└── CotizacionPagoMovimientoProvider           los `CotizacionPago` de los expedientes
+
 util/  views/Finanzas/FinanzasView.vue, ReservaEnlacesPagoSection.vue,
        stores/finanzas/{enlacesPagoStore, cajaStore}.ts
 pax/   views/pago/PaxPagoView.vue, types/izipayKrypton.d.ts
@@ -737,6 +740,12 @@ enlaces, y juntarlos obligaría a implementar métodos vacíos.
 Mismo mecanismo de tags (`finanzas.movimiento_provider`, declarado en la interfaz). El del
 PMS es `PmsPagoMovimientoProvider`, que traduce `PmsPagoFinanciero` y expone **todos** los
 medios — efectivo, Yape, transferencia, tarjeta—, no sólo lo cobrado por pasarela.
+
+El segundo es `CotizacionPagoMovimientoProvider` (16/10/2026): los pagos de los expedientes de
+turismo, sin los anulados, con origen `cotizacion` y el id del EXPEDIENTE — en la Caja, el
+localizador abre su ficha en util (`FinanzasView::abrirDocumento()`). Es justo el caso que
+justificaba separar los contratos: Cotizaciones aparece en la caja **sin** resolver de cobro
+todavía (ver `docs/Cotizaciones.md` §6.a y el pendiente de Culqi).
 
 ### Dos límites conocidos, y por qué se aceptan
 

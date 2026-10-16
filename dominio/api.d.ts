@@ -944,6 +944,66 @@ export interface paths {
         patch: operations["api_salescotizacion_filepasajeros_id_patch"];
         trace?: never;
     };
+    "/platform/sales/cotizacion_pagos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a CotizacionPago resource.
+         * @description Creates a CotizacionPago resource.
+         */
+        post: operations["api_salescotizacion_pagos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_pagos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a CotizacionPago resource.
+         * @description Retrieves a CotizacionPago resource.
+         */
+        get: operations["api_salescotizacion_pagos_id_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/sales/cotizacion_pagos/{id}/anular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Updates the CotizacionPago resource.
+         * @description Updates the CotizacionPago resource.
+         */
+        patch: operations["api_salescotizacion_pagos_idanular_patch"];
+        trace?: never;
+    };
     "/platform/cotizacion/pedidos": {
         parameters: {
             query?: never;
@@ -3011,6 +3071,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3035,6 +3100,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.html": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3059,6 +3129,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.html-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3083,6 +3158,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.jsonld": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3107,6 +3187,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.jsonld-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3131,6 +3216,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.multipart": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3155,6 +3245,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         "ComoReservar.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3179,6 +3274,11 @@ export interface components {
             politicaDevoluciones?: {
                 [key: string]: string;
             };
+            /**
+             * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             */
+            pagadoUsd?: number;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
@@ -11550,6 +11650,12 @@ export interface components {
             readonly filepasajeros?: string[];
             /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
+            /**
+             * @description Lo que el cliente ha pagado a cuenta de este viaje, del más antiguo al más reciente. Los
+             *     anulados siguen aquí —no se borra, se marca—, y {@see CotizacionPago::cuenta()} dice cuáles
+             *     cuentan. El saldo lo calcula {@see \App\Cotizacion\Dto\CuentaDelExpediente}.
+             */
+            readonly pagos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
@@ -11666,6 +11772,7 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            cuenta?: components["schemas"]["CuentaDelExpediente"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -11704,6 +11811,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion-file.item.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.item.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo-file.item.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago-file.item.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo-file.item.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo-file.item.read"][];
             /**
@@ -11730,6 +11838,7 @@ export interface components {
                 faltan: string[];
             }[];
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente-file.item.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -11752,6 +11861,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo-file.read_file.item.read_timestamp.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago-file.read_file.item.read_timestamp.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo-file.read_file.item.read_timestamp.read"][];
             /**
@@ -11795,6 +11905,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente-file.read_file.item.read_timestamp.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12154,6 +12265,12 @@ export interface components {
             readonly filepasajeros?: string[];
             /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
+            /**
+             * @description Lo que el cliente ha pagado a cuenta de este viaje, del más antiguo al más reciente. Los
+             *     anulados siguen aquí —no se borra, se marca—, y {@see CotizacionPago::cuenta()} dice cuáles
+             *     cuentan. El saldo lo calcula {@see \App\Cotizacion\Dto\CuentaDelExpediente}.
+             */
+            readonly pagos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.html"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
@@ -12270,6 +12387,7 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            cuenta?: components["schemas"]["CuentaDelExpediente.html"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -12308,6 +12426,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.html-file.item.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.item.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.item.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.html-file.item.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.html-file.item.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.html-file.item.read"][];
             /**
@@ -12334,6 +12453,7 @@ export interface components {
                 faltan: string[];
             }[];
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.html-file.item.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12356,6 +12476,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.html-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.html-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.html-file.read_file.item.read_timestamp.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.html-file.read_file.item.read_timestamp.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.html-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.html-file.read_file.item.read_timestamp.read"][];
             /**
@@ -12399,6 +12520,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.html-file.read_file.item.read_timestamp.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12684,6 +12806,12 @@ export interface components {
             readonly filepasajeros?: string[];
             /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
+            /**
+             * @description Lo que el cliente ha pagado a cuenta de este viaje, del más antiguo al más reciente. Los
+             *     anulados siguen aquí —no se borra, se marca—, y {@see CotizacionPago::cuenta()} dice cuáles
+             *     cuentan. El saldo lo calcula {@see \App\Cotizacion\Dto\CuentaDelExpediente}.
+             */
+            readonly pagos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
@@ -12800,6 +12928,7 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            cuenta?: components["schemas"]["CuentaDelExpediente.jsonld"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -12839,6 +12968,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.item.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.item.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.item.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.jsonld-file.item.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.item.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.item.read"][];
             /**
@@ -12865,6 +12995,7 @@ export interface components {
                 faltan: string[];
             }[];
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.jsonld-file.item.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -12887,6 +13018,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.jsonld-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.jsonld-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.jsonld-file.read_file.item.read_timestamp.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.jsonld-file.read_file.item.read_timestamp.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.jsonld-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.jsonld-file.read_file.item.read_timestamp.read"][];
             /**
@@ -12930,6 +13062,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.jsonld-file.read_file.item.read_timestamp.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -13218,6 +13351,12 @@ export interface components {
             readonly filepasajeros?: string[];
             /** @description Los adjuntos del expediente. */
             filearchivos?: string[];
+            /**
+             * @description Lo que el cliente ha pagado a cuenta de este viaje, del más antiguo al más reciente. Los
+             *     anulados siguen aquí —no se borra, se marca—, y {@see CotizacionPago::cuenta()} dice cuáles
+             *     cuentan. El saldo lo calcula {@see \App\Cotizacion\Dto\CuentaDelExpediente}.
+             */
+            readonly pagos?: string[];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart"][];
             /** @description Los subgrupos de este expediente: salones, grupos, habitaciones, reservas aéreas. */
             grupos?: string[];
@@ -13334,6 +13473,7 @@ export interface components {
             readonly localizador?: string | null;
             /** @description Documentos del EXPEDIENTE visibles para el cliente en el visor público. */
             readonly documentosParaCliente?: string[];
+            cuenta?: components["schemas"]["CuentaDelExpediente.multipart"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             /**
@@ -13372,6 +13512,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.item.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.item.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.item.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.multipart-file.item.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart-file.item.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.item.read"][];
             /**
@@ -13398,6 +13539,7 @@ export interface components {
                 faltan: string[];
             }[];
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.multipart-file.item.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -13420,6 +13562,7 @@ export interface components {
             cotizaciones?: components["schemas"]["Cotizacion.multipart-file.read_file.item.read_timestamp.read"][];
             filepasajeros?: components["schemas"]["CotizacionFilepasajero.multipart-file.read_file.item.read_timestamp.read"][];
             filearchivos?: components["schemas"]["CotizacionFilearchivo.multipart-file.read_file.item.read_timestamp.read"][];
+            readonly pagos?: components["schemas"]["CotizacionPago.multipart-file.read_file.item.read_timestamp.read"][];
             readonly vuelos?: components["schemas"]["CotizacionVuelo.multipart-file.read_file.item.read_timestamp.read"][];
             grupos?: components["schemas"]["CotizacionFileGrupo.multipart-file.read_file.item.read_timestamp.read"][];
             /**
@@ -13463,6 +13606,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string | null;
             readonly localizador?: string | null;
+            cuenta?: components["schemas"]["CuentaDelExpediente.multipart-file.read_file.item.read_timestamp.read"];
             /** @description Atajos para que quien pregunte no tenga que conocer el enum. */
             readonly usaPadron?: boolean;
             readonly exigeIdentificacion?: boolean;
@@ -16968,6 +17112,608 @@ export interface components {
             fechanacimiento?: string | null;
             identificaciones?: components["schemas"]["CotizacionPasajeroIdentificacion.multipart-pax_file.read_pax_cotizacion.read"][];
         };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago-cotizacion_pago.anular.jsonMergePatch": {
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago-cotizacion_pago.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago-cotizacion_pago.write": {
+            /**
+             * Format: iri-reference
+             * @description Sin `CASCADE` a propósito: un pago es un documento contable, y un expediente con pagos no
+             *     debería poder borrarse sin que alguien decida antes qué pasa con ese dinero.
+             * @example https://example.com/
+             */
+            file: string;
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /**
+             * Format: iri-reference
+             * @description Quién pagó, en un grupo donde cada familia paga lo suyo. Opcional: un viaje de pareja no elige.
+             * @example https://example.com/
+             */
+            pasajero?: string | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+        };
+        "CotizacionPago-file.item.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        "CotizacionPago-file.read_file.item.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago.html-cotizacion_pago.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        "CotizacionPago.html-file.item.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        "CotizacionPago.html-file.read_file.item.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago.jsonld-cotizacion_pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        /** @description Un pago del cliente a cuenta de un expediente de turismo (16/10/2026). */
+        "CotizacionPago.multipart-cotizacion_pago.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        "CotizacionPago.multipart-file.item.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
+        "CotizacionPago.multipart-file.read_file.item.read_timestamp.read": {
+            /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
+            propuesta?: number | null;
+            /** @default 0.00 */
+            monto: string;
+            /**
+             * @default USD
+             * @enum {string}
+             */
+            moneda: "USD" | "PEN";
+            /** @description Soles por dólar el día del pago. Obligatorio en un pago en soles; ver {@see self::equivalenteUsd()}. */
+            tipoCambio?: string | null;
+            /**
+             * @default transferencia_bancaria
+             * @enum {string}
+             */
+            medio: "yape" | "plin" | "transferencia_bancaria" | "tarjeta" | "western_union" | "efectivo" | "paypal";
+            /**
+             * Format: date-time
+             * @description El día en que entró el dinero (hora de pared), no el día en que se apuntó.
+             */
+            fechaPago: string;
+            /** @description Nº de operación, voucher, código de Western Union. */
+            referencia?: string | null;
+            nota?: string | null;
+            /** @default false */
+            readonly anulado: boolean;
+            /**
+             * @description Sólo lo escribe el `Patch` de `/anular`: el procesador lee el motivo y llama a
+             *     {@see self::anular()}, que es quien cambia el estado. Un motivo suelto no anula nada.
+             */
+            motivoAnulacion?: string | null;
+            /** Format: date-time */
+            readonly anuladoEn?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Para la ficha: el nombre de quien pagó, sin exponer la relación entera. */
+            readonly pasajeroNombre?: string | null;
+            /** @description El id del pasajero, para preseleccionarlo; la relación entera no viaja. */
+            readonly pasajeroId?: string | null;
+            readonly registradoPorNombre?: string | null;
+            readonly anuladoPorNombre?: string | null;
+        };
         CotizacionPasajeroGrupo: {
             /**
              * Format: iri-reference
@@ -19650,6 +20396,246 @@ export interface components {
             updatedAt?: string | null;
             /** @description Los PNRs que viajan en este vuelo, como texto. */
             readonly pnrs?: string[];
+        };
+        CuentaDelExpediente: {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente-file.item.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente-file.read_file.item.read_timestamp.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.html": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.html-file.item.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.html-file.read_file.item.read_timestamp.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.jsonld": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.jsonld-file.item.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.jsonld-file.read_file.item.read_timestamp.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.multipart": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.multipart-file.item.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
+        };
+        "CuentaDelExpediente.multipart-file.read_file.item.read_timestamp.read": {
+            propuestaBase?: number | null;
+            estadoBase?: string | null;
+            /** @description Total de venta de la propuesta base, en USD; `null` sin base. */
+            totalUsd?: number | null;
+            /** @description El porcentaje de adelanto de la propuesta base; `null` sin base. */
+            porcentajeAdelanto?: number | null;
+            pagadoUsd?: number;
+            /** @description Lo que falta, en USD. Negativo si se cobró de más; `null` sin base. */
+            saldoUsd?: number | null;
+            /** @description Suma de lo que cuenta, por moneda y sin convertir. */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Hay pagos y la propuesta que se paga sigue pendiente o enviada. Registrar un pago NO la
+             *     confirma —confirmar arma la operativa y lo decide una persona—: esto es el aviso.
+             */
+            propuestaSinConfirmar?: number | null;
         };
         Diccionario: {
             nombreInterno?: string;
@@ -40280,6 +41266,182 @@ export interface operations {
                     "application/json": components["schemas"]["CotizacionFilepasajero-file.item.read_timestamp.read"];
                     "text/html": components["schemas"]["CotizacionFilepasajero.html-file.item.read_timestamp.read"];
                     "multipart/form-data": components["schemas"]["CotizacionFilepasajero.multipart-file.item.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_pagos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new CotizacionPago resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["CotizacionPago-cotizacion_pago.write"];
+                "application/json": components["schemas"]["CotizacionPago-cotizacion_pago.write"];
+                "text/html": components["schemas"]["CotizacionPago-cotizacion_pago.write"];
+                "multipart/form-data": components["schemas"]["CotizacionPago-cotizacion_pago.write"];
+            };
+        };
+        responses: {
+            /** @description CotizacionPago resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionPago.jsonld-cotizacion_pago.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionPago-cotizacion_pago.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionPago.html-cotizacion_pago.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionPago.multipart-cotizacion_pago.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_pagos_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionPago identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CotizacionPago resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionPago.jsonld-cotizacion_pago.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionPago-cotizacion_pago.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionPago.html-cotizacion_pago.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionPago.multipart-cotizacion_pago.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_salescotizacion_pagos_idanular_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description CotizacionPago identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated CotizacionPago resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["CotizacionPago-cotizacion_pago.anular.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description CotizacionPago resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["CotizacionPago.jsonld-cotizacion_pago.read_timestamp.read"];
+                    "application/json": components["schemas"]["CotizacionPago-cotizacion_pago.read_timestamp.read"];
+                    "text/html": components["schemas"]["CotizacionPago.html-cotizacion_pago.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["CotizacionPago.multipart-cotizacion_pago.read_timestamp.read"];
                 };
             };
             /** @description Invalid input */

@@ -3994,7 +3994,7 @@ Claves i18n del pie: `cot_ver_precios_perfil`, `cot_ver_perfiles_y_opciones`,
 
 ---
 
-## 6.a Cómo reservar: adelanto, medios de pago y devoluciones (16/10/2026)
+## 6.a Cómo reservar y los pagos del cliente: adelanto, medios, devoluciones y saldo (16/10/2026)
 
 La regla de venta de la agencia, que en Oweb salía bajo cada total («reserve con el 50 %») y se
 perdió al pasar a este cotizador:
@@ -4059,6 +4059,51 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
 - Las cuentas están a nombre de Susan Acuña Romero, no de la SAC que vende los tours. **Decidido
   así por ahora** (16/10/2026): las cuentas de la empresa son un pendiente aparte.
 
+### Los pagos del cliente: `CotizacionPago` (16/10/2026)
+
+Hasta hoy no había dónde apuntar lo que paga el cliente de turismo (`OperacionPago` es lo que se le
+paga al PROVEEDOR). Ahora la ficha del expediente en util tiene «Pagos del cliente»: la cuenta, la
+lista y el alta.
+
+```
+util FilePagosPanel ── POST /platform/sales/cotizacion_pagos ── CotizacionPagoProcessor
+                    └─ PATCH …/{id}/anular                         │ registradoPor = sesión
+                                                                   │ anular(): de ida, con motivo
+                                                                   ▼
+                                     CotizacionVinculoDelExpediente::aplicar()  → enlaces del chat
+CotizacionFile::getCuenta() ── CuentaDelExpediente::de()   (util: total, pagado, saldo, aviso)
+ComoReservarResolver ── CuentaDelExpediente::pagadoUsdDePropuesta()   (pax: «adelanto recibido»)
+CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
+```
+
+**Las reglas** (decididas por Jorge el 16/10/2026):
+
+- **El pago es del EXPEDIENTE**, no de una versión: las versiones se clonan, pasan a histórico y
+  abren operativa, y el dinero tiene que sobrevivirles. `propuesta` es un entero —qué número se
+  pagaba—, no una relación: la confirmada y su operativa comparten número. Opcionalmente, **quién
+  pagó** (`pasajero`), para los grupos donde cada familia paga lo suyo.
+- **Registrar un pago NO confirma la propuesta**, al revés que en alojamiento: confirmar arma la
+  operativa y La Biblia, y eso lo decide una persona. La ficha avisa
+  (`CuentaDelExpediente::$propuestaSinConfirmar`).
+- **Un pago en soles guarda el tipo de cambio de ese día** y descuenta su equivalente en dólares
+  (`CotizacionPago::equivalenteUsd()`); sin tipo de cambio no se acepta. util propone el de la
+  propuesta, que es el que vio el cliente al calcular lo que pagaba. La Caja sigue agrupando por
+  moneda sin convertir, como con alojamiento.
+- **No se borra ni se edita: se anula**, con motivo obligatorio y de ida. El anulado sigue a la
+  vista, tachado, y deja de contar en el saldo, en la Caja y en el vínculo.
+- **El saldo se mide contra UNA propuesta** (`CuentaDelExpediente::de()`): la vendida
+  (confirmada → operada → operativa, con el dinero de su confirmada); si no, la que nombra el
+  último pago; si no, la única viva. Sin ninguna, no hay saldo: se dice lo pagado y nada más.
+- **Pagar hace cliente** para el agente: `CotizacionFile::vinculoComercial()` = abierto y con pago
+  → `Cliente`; abierto sin pago → `Interesado`; archivado o cerrado → `Terminado`. El enlace guarda
+  el vínculo, así que el procesador lo recalcula al registrar o anular.
+- **pax deja de pedir lo que ya entró**: con el adelanto cubierto, «Adelanto recibido · quedan
+  $ X»; con todo pagado, sin medios de pago. 🔒 **En un expediente de grupo no**: el enlace lo
+  tienen todas las familias, y la suma de lo pagado sería el dinero de todas, a la vista de
+  cualquiera y diciéndole «recibido» a quien no pagó (`ComoReservarResolver`, `pagadoUsd` a 0).
+- **El enlace de Culqi aún no registra solo** el pago: es la siguiente entrega, y la columna
+  `enlacePagoId` ya está esperando (ver `docs/Pendientes.md`).
+
 ### Dónde tocar
 
 | Para cambiar… | Archivo | Símbolo |
@@ -4071,6 +4116,13 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
 | El bloque en pax | `pax/src/views/cotizacion/PaxCotizacionGuiaView.vue` | «CÓMO RESERVAR», `planReserva` |
 | El pie de la portada | `pax/src/views/cotizacion/PaxFilePortadaView.vue` | `adelantoDe()` |
 | Los textos | `src/Pax/Command/PaxCrearTextosComoReservarCommand.php` | `pax:textos:como-reservar` |
+| Qué se guarda de un pago, qué se valida | `src/Cotizacion/Entity/CotizacionPago.php` | `validar()`, `equivalenteUsd()`, `anular()` |
+| Contra qué propuesta se mide el saldo | `src/Cotizacion/Dto/CuentaDelExpediente.php` | `de()`, `vendida()`, `laQueSePaga()` |
+| Quién es cliente para el agente | `src/Cotizacion/Entity/CotizacionFile.php` | `vinculoComercial()` |
+| Los medios de pago (vocabulario) | `CotizacionMedioPagoEnum.php` ↔ `fileDetalleModel.ts` | `label()` ↔ `MEDIO_PAGO_LABELS` |
+| El panel de pagos en util | `util/src/components/cotizacion/FilePagosPanel.vue` | — |
+| Lo pagado en pax | `PaxCotizacionGuiaView.vue` | `pagoRecibido` |
+| Cómo salen en la Caja | `src/Cotizacion/Finanzas/CotizacionPagoMovimientoProvider.php` | `aMovimiento()` |
 
 ---
 

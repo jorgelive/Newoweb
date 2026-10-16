@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * diciendo cosas distintas en el idioma número cinco.
  *
  * Comando y no migración: `UiI18n::$contenido` lleva `#[AutoTranslate]` y un INSERT en SQL dejaría
- * la cadena sólo en español. `{{ pct }}` es un marcador que protege `ProtectorDeMarcadores` y
+ * la cadena sólo en español. `{{ pct }}` y `{{ monto }}` son marcadores que protege `ProtectorDeMarcadores` y
  * rellena `maestroStore.t()`, ya con su «%».
  *
  * Idempotente por la clave natural.
@@ -58,6 +58,14 @@ final class PaxCrearTextosComoReservarCommand extends Command
         // sería tener dos versiones que un día dirán cosas distintas.
         'cot_devoluciones_resumen'   => 'Si cancelas, lo que se devuelve depende de con cuánta anticipación lo hagas.',
         'cot_ver_politica'           => 'Ver la política completa',
+        // 16/10/2026: con los pagos registrados en el expediente (`CotizacionPago`), el bloque
+        // deja de pedir lo que ya entró.
+        'cot_pago_recibido'          => 'Recibido',
+        'cot_adelanto_recibido'      => 'Adelanto recibido',
+        'cot_quedan'                 => 'quedan {{ monto }}',
+        'cot_falta_adelanto'         => 'Faltan {{ monto }} para completar el adelanto',
+        'cot_pagado_completo'        => 'Pagado por completo. ¡Gracias!',
+        'cot_gracias_pago'           => 'Recibimos tu pago, ¡gracias!',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

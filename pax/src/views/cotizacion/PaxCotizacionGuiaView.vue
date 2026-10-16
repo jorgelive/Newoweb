@@ -1657,8 +1657,42 @@ const planReserva = computed(() => {
   };
 });
 
+/**
+ * Lo que ya pagó, contra el adelanto y el total (16/10/2026). Con el pago registrado en el
+ * expediente (`CotizacionPago`), el bloque deja de pedir lo que ya entró: «Adelanto recibido ·
+ * quedan $ 420». Lo pagado viene en dólares del servidor; los soles, al cambio de la cotización,
+ * igual que el resto de importes de esta vista.
+ */
+const pagoRecibido = computed(() => {
+  const pagadoUsd = store.comoReservar?.pagadoUsd ?? 0;
+  if (!(pagadoUsd > 0)) return null;
+  const tc = tipoCambio.value || 1;
+  const total = planReserva.value ? totalViaje.value : null;
+  if (!total) return { pagado: mv(pagadoUsd * tc, pagadoUsd), adelantoCubierto: false, completo: false, resto: null, faltaAdelanto: null };
+  const p = porcentajeAdelanto.value;
+  const adelantoUsd = montoDeAdelanto(total.dolares, p);
+  const restoUsd = Math.max(0, Math.round((total.dolares - pagadoUsd) * 100) / 100);
+  const faltaUsd = Math.max(0, Math.round((adelantoUsd - pagadoUsd) * 100) / 100);
+  return {
+    pagado: mv(pagadoUsd * tc, pagadoUsd),
+    adelantoCubierto: faltaUsd === 0,
+    completo: restoUsd === 0,
+    resto: mv(restoUsd * tc, restoUsd),
+    faltaAdelanto: faltaUsd > 0 ? mv(faltaUsd * tc, faltaUsd) : null,
+  };
+});
+
 /** La línea de la cabecera plegada: lo que hay que saber aunque no se abra. */
 const notaComoReservar = computed(() => {
+  const pago = pagoRecibido.value;
+  if (pago) {
+    if (pago.completo) return maestroStore.t('cot_pagado_completo') || 'Pagado por completo. ¡Gracias!';
+    if (pago.adelantoCubierto && pago.resto) {
+      return `${maestroStore.t('cot_adelanto_recibido') || 'Adelanto recibido'} · ${maestroStore.t('cot_quedan', { monto: pago.resto }) || `quedan ${pago.resto}`}`;
+    }
+    if (pago.faltaAdelanto) return maestroStore.t('cot_falta_adelanto', { monto: pago.faltaAdelanto }) || `Faltan ${pago.faltaAdelanto} para completar el adelanto`;
+    return maestroStore.t('cot_gracias_pago') || 'Recibimos tu pago, ¡gracias!';
+  }
   const p = porcentajeAdelanto.value;
   if (p >= 100) return maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
   if (p <= 0) return maestroStore.t('cot_reserva_sin_adelanto') || 'Sin adelanto: todo se paga el día del primer servicio';
@@ -2564,11 +2598,30 @@ const rotuloProcedencia = computed(() => {
                        icono="calendar-check"
                        :titulo="maestroStore.t('cot_como_reservar') || 'Cómo reservar'"
                        :nota="notaComoReservar"
-                       tono="pendiente">
+                       :tono="pagoRecibido?.adelantoCubierto || (pagoRecibido && !planReserva) ? 'listo' : 'pendiente'">
           <div class="space-y-5 pt-2">
 
+            <!-- Lo ya pagado: sustituye a la petición del adelanto. -->
+            <div v-if="pagoRecibido" class="space-y-2">
+              <div class="flex items-center justify-between gap-4 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                <span class="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
+                  <i class="fas fa-circle-check mr-1"></i>{{ maestroStore.t('cot_pago_recibido') || 'Recibido' }}
+                </span>
+                <span class="text-lg font-black text-gray-800 tabular-nums shrink-0">{{ pagoRecibido.pagado }}</span>
+              </div>
+              <p v-if="pagoRecibido.faltaAdelanto" class="text-[11px] font-bold text-[#E07845] px-4">
+                {{ maestroStore.t('cot_falta_adelanto', { monto: pagoRecibido.faltaAdelanto }) || `Faltan ${pagoRecibido.faltaAdelanto} para completar el adelanto` }}
+              </p>
+              <div v-if="pagoRecibido.resto && !pagoRecibido.completo" class="flex items-center justify-between gap-4 rounded-xl px-4 py-2">
+                <span class="text-[11px] font-bold text-slate-500 leading-snug">
+                  {{ maestroStore.t('cot_resto_primer_servicio') || 'El resto, el día del primer servicio' }}<template v-if="fechaDelResto"> ({{ fechaDelResto }})</template>
+                </span>
+                <span class="text-sm font-black text-slate-600 tabular-nums shrink-0">{{ pagoRecibido.resto }}</span>
+              </div>
+            </div>
+
             <!-- El adelanto y el resto -->
-            <div v-if="porcentajeAdelanto > 0 && porcentajeAdelanto < 100" class="space-y-2">
+            <div v-else-if="porcentajeAdelanto > 0 && porcentajeAdelanto < 100" class="space-y-2">
               <div class="flex items-center justify-between gap-4 bg-[#E07845]/5 border border-[#E07845]/15 rounded-xl px-4 py-3">
                 <span class="text-[11px] font-black text-[#E07845] uppercase tracking-widest">
                   {{ maestroStore.t('cot_adelanto_para_reservar') || 'Adelanto para reservar' }} · {{ porcentajeLabel }}
@@ -2584,8 +2637,8 @@ const rotuloProcedencia = computed(() => {
             </div>
             <p v-else class="text-[12px] font-bold text-slate-600">{{ notaComoReservar }}</p>
 
-            <!-- Por dónde pagar -->
-            <div>
+            <!-- Por dónde pagar: sobra con todo pagado. -->
+            <div v-if="!pagoRecibido?.completo">
               <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 {{ maestroStore.t('cot_por_donde_pagar') || 'Por dónde pagar' }}<template v-if="rotuloProcedencia"> · {{ rotuloProcedencia }}</template>
               </h4>
@@ -2604,7 +2657,10 @@ const rotuloProcedencia = computed(() => {
                 </span>
               </div>
 
-              <MediosPagoWidget :medios-pago="store.comoReservar.medios" />
+              <!-- Sin cuentas que ofrecer (Western Union ya no llega a tiempo), el widget pinta su
+                   «consúltanos por el chat». Con la tarjeta delante sobra: ya hay por dónde pagar. -->
+              <MediosPagoWidget v-if="store.comoReservar.medios.length || !store.comoReservar.conTarjeta"
+                                :medios-pago="store.comoReservar.medios" />
 
               <p class="text-[11px] font-bold text-slate-500 leading-snug">
                 {{ maestroStore.t('res_aviso_pago') || 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.' }}

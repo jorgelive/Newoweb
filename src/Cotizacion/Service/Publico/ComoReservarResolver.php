@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Cotizacion\Service\Publico;
 
 use App\Cotizacion\Dto\ComoReservar;
+use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
@@ -108,6 +109,12 @@ final readonly class ComoReservarResolver
                 'es' => $this->politica('es'),
                 'en' => $this->politica('en'),
             ],
+            // 🔒 En un grupo NO: el enlace lo tienen todas las familias, y la suma de lo pagado
+            // sería el dinero de todas — a la vista de cualquiera y diciéndole «adelanto recibido»
+            // a quien no pagó. Lo de cada familia, cuando haya cuenta por persona identificada.
+            pagadoUsd: $file->getModo()->ocultaTotalDeGrupo()
+                ? 0.0
+                : CuentaDelExpediente::pagadoUsdDePropuesta($file, $cotizacion->getPropuesta()),
         );
     }
 

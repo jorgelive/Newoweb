@@ -26,9 +26,10 @@ decidió dejar para después:
    enlace de pago seguro», y ese enlace hoy se hace a mano (cobro manual con etiqueta
    `cotizacion`). Para generarlo con el importe justo falta un
    `CotizacionOrigenCobroResolver` (`FinOrigenCobroResolverInterface`, `FinOrigenCobro::COTIZACION`).
-   Lo que hay que resolver antes: **Cotizaciones no tiene libro de pagos**, así que lo cobrado
-   tendría que salir de los propios `FinEnlacePago` pagados del expediente (y `registrarCobro()`
-   devolvería `null`), y el total de qué versión —la publicada que se ofrece— es el «documento».
+   **El libro de pagos ya existe** (`CotizacionPago`, 16/10/2026): `resolver()` sale de
+   `CuentaDelExpediente::de()` (saldo de la propuesta que manda) y `registrarCobro()` crea un
+   `CotizacionPago` medio `tarjeta` con `enlacePagoId` —la columna ya está— y devuelve su id. Al
+   cobrarse el vínculo y la Caja se ponen solos, porque pasan por el mismo sitio que el alta a mano.
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):

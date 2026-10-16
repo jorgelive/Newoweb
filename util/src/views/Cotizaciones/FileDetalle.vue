@@ -2,6 +2,7 @@
 import {ref, onMounted, onUnmounted, watch, computed, nextTick} from 'vue';
 import { hoyNaive } from '@/utils/naiveDate.ts';
 import ClonarAExpedienteModal from '@/components/cotizacion/ClonarAExpedienteModal.vue';
+import FilePagosPanel from '@/components/cotizacion/FilePagosPanel.vue';
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useVolverAtras } from '@/composables/useVolverAtras';
 // El gesto «atrás» del móvil cierra la capa de arriba en vez de sacarte de la pantalla.
@@ -4936,6 +4937,10 @@ const eliminarDocumento = async (iri?: string) => {
             </div>
 
             </div>
+
+            <!-- Los pagos del cliente (16/10/2026). Plegado como lo de abajo, con lo pagado y el
+                 saldo en el rótulo. Ver docs/Cotizaciones.md §6.a. -->
+            <FilePagosPanel v-if="file['@id']" :file="file" @actualizado="cargarFile" />
 
             <!-- ⚠️ Las cuatro secciones de abajo van PLEGADAS y con su resumen en el rótulo.
                  Un expediente de grupo son 131 personas, 16 vuelos y 109 subgrupos: desplegado todo,

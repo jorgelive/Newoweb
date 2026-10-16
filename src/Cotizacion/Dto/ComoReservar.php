@@ -13,7 +13,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * cotizador (16/10/2026). Lo arma {@see \App\Cotizacion\Service\Publico\ComoReservarResolver} y
  * lo pinta el bloque «Cómo reservar» de `pax`.
  *
- * ⚠️ **No lleva importes.** El dinero ya viaja en `clasificacionFinancieraCliente`, en las dos
+ * ⚠️ **No lleva el importe del adelanto** (sí lo ya pagado). El dinero ya viaja en `clasificacionFinancieraCliente`, en las dos
  * monedas y redactado cuando el precio va oculto; aquí sólo el porcentaje, y el importe lo
  * calcula `pax` con `montoDeAdelanto()` de `dominio/cotizacion/adelanto.ts`, la misma función que
  * usa el editor. Mandarlo también desde aquí serían dos cálculos del mismo número.
@@ -52,6 +52,13 @@ final readonly class ComoReservar
 
         #[Groups(['pax_cotizacion:read'])]
         public array $politicaDevoluciones,
+
+        /**
+         * Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
+         * el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+         */
+        #[Groups(['pax_cotizacion:read'])]
+        public float $pagadoUsd = 0.0,
     ) {
     }
 }

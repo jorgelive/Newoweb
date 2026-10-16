@@ -473,6 +473,8 @@ export type PaxComoReservar = Omit<
 > & {
     medios: GuiaMedioPago[];
     politicaDevoluciones: { es: string; en: string };
+    /** Lo ya pagado a cuenta de esta propuesta, en USD. Siempre viaja (0 sin pagos). */
+    pagadoUsd: number;
 };
 
 export type PaxCotizacionFile = Omit<

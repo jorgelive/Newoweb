@@ -834,6 +834,12 @@ huésped de una casita (pms_reserva)
   tour a Puno sin saber si se hacía: un modelo al que se le dice «no digas que no» dice que sí a
   todo. La zona vive en `CotizacionInstruccionesDominio::VENTA` y en los avisos de la skill.
 
+- **En turismo, cliente es quien PAGÓ (16/10/2026).** El vínculo del enlace `cotizacion_file` lo
+  decide `CotizacionFile::vinculoComercial()`: abierto y con algún `CotizacionPago` vivo →
+  `Cliente` (perfil `Huesped`); sin pagos → `Interesado`. Hasta ese día no existían pagos de
+  turismo y nadie pasaba nunca a cliente. Se recalcula al registrar o anular un pago
+  (`CotizacionVinculoDelExpediente`). Ver `docs/Cotizaciones.md` §6.a.
+
 ⚠️ **Lo que queda por hacer:** el pasajero de un expediente (`cotizacion_file`) no tiene bloque
 propio —su viaje, sus fechas— y cae al camino sin contexto (alojamiento + venta de tours).
 `CotizacionFrentes::frentesVivos()` devuelve vacío porque la enumeración de frentes aún no la lee

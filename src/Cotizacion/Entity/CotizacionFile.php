@@ -21,7 +21,9 @@ use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Contract\VinculoComercial;
 use App\Cotizacion\Dto\ComoReservar;
+use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Enum\PaisDeControlEnum;
 use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Cotizacion\Enum\FileModoEnum;
@@ -257,6 +259,20 @@ class CotizacionFile
     private Collection $filearchivos;
 
     /**
+     * Lo que el cliente ha pagado a cuenta de este viaje, del más antiguo al más reciente. Los
+     * anulados siguen aquí —no se borra, se marca—, y {@see CotizacionPago::cuenta()} dice cuáles
+     * cuentan. El saldo lo calcula {@see \App\Cotizacion\Dto\CuentaDelExpediente}.
+     *
+     * Sin `cascade` ni `orphanRemoval`: un pago no se crea ni se borra desde el expediente.
+     *
+     * @var Collection<int, CotizacionPago>
+     */
+    #[Groups(['file:item:read'])]
+    #[ORM\OneToMany(mappedBy: 'file', targetEntity: CotizacionPago::class)]
+    #[ORM\OrderBy(['fechaPago' => 'ASC', 'createdAt' => 'ASC'])]
+    private Collection $pagos;
+
+    /**
      * Los vuelos del viaje, en orden cronológico.
      *
      * ⚠️ Ordenados por `salida` y no por número: lo que se mira en un expediente es «qué pasa
@@ -362,6 +378,7 @@ class CotizacionFile
         $this->filearchivos = new ArrayCollection();
         $this->grupos = new ArrayCollection();
         $this->vuelos = new ArrayCollection();
+        $this->pagos = new ArrayCollection();
     }
 
     public function __toString(): string
@@ -511,6 +528,51 @@ class CotizacionFile
     /* ======================================================
      * GETTERS Y SETTERS
      * ====================================================== */
+
+    /** @return Collection<int, CotizacionPago> */
+    public function getPagos(): Collection { return $this->pagos; }
+
+    /**
+     * Cuánto vale lo que se vende, cuánto se pagó y cuánto falta. Calculado al servir; ver
+     * {@see CuentaDelExpediente::de()}. Sólo en el detalle del editor (`file:item:read`), que es
+     * donde ya están cargadas las propuestas.
+     */
+    #[Groups(['file:item:read'])]
+    public function getCuenta(): CuentaDelExpediente
+    {
+        return CuentaDelExpediente::de($this);
+    }
+
+    /** ¿Ha pagado algo que cuente? Un pago anulado no hace cliente a nadie. */
+    public function tienePagos(): bool
+    {
+        foreach ($this->pagos as $pago) {
+            if ($pago->cuenta()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * ¿Qué es esta persona para el agente? En turismo lo dice el PAGO, no el estado del expediente.
+     *
+     * - Abierto y con algún pago → `Cliente`: compró, aunque nadie haya confirmado aún la propuesta.
+     * - Abierto sin pagos → `Interesado`: se le está vendiendo.
+     * - Archivado (el viaje terminó) o cerrado (no hubo venta) → `Terminado`.
+     *
+     * Lo leen `CotizacionFileMessageContext::getVinculo()` al crear el enlace y
+     * `CotizacionVinculoDelExpediente` al registrar o anular un pago. Una sola regla para los dos.
+     */
+    public function vinculoComercial(): VinculoComercial
+    {
+        if ($this->estado !== FileEstadoEnum::ABIERTO) {
+            return VinculoComercial::Terminado;
+        }
+
+        return $this->tienePagos() ? VinculoComercial::Cliente : VinculoComercial::Interesado;
+    }
 
     public function getPais(): ?MaestroPais { return $this->pais; }
     public function setPais(?MaestroPais $pais): self { $this->pais = $pais; return $this; }
