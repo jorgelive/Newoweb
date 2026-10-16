@@ -37,6 +37,9 @@ final class PaxCrearTextosGuiaCommand extends Command
         // El hueco de `MediosPagoWidget` cuando no hay medio que ofrecer. Nunca se había creado:
         // salía siempre el respaldo en español, también en una ficha en inglés (16/10/2026).
         'gui_pago_consultanos' => 'Consúltanos los medios de pago por el chat',
+        // La moneda de una cuenta, con su nombre y no con el código ISO: en Perú nadie dice «PEN».
+        'gui_moneda_pen' => 'Soles',
+        'gui_moneda_usd' => 'Dólares',
     ];
 
     /**
@@ -50,6 +53,13 @@ final class PaxCrearTextosGuiaCommand extends Command
     private const array A_MANO = [
         'gui_siguiente' => [
             'en' => 'Next', 'pt' => 'Próximo', 'fr' => 'Suivant', 'it' => 'Avanti', 'de' => 'Weiter', 'nl' => 'Volgende',
+        ],
+        // El sol peruano no se traduce: «soles» en todos los idiomas, como lo dicen los bancos.
+        'gui_moneda_pen' => [
+            'en' => 'Soles', 'pt' => 'Soles', 'fr' => 'Soles', 'it' => 'Soles', 'de' => 'Soles', 'nl' => 'Soles',
+        ],
+        'gui_moneda_usd' => [
+            'en' => 'Dollars', 'pt' => 'Dólares', 'fr' => 'Dollars', 'it' => 'Dollari', 'de' => 'Dollar', 'nl' => 'Dollars',
         ],
     ];
 

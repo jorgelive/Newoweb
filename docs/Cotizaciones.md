@@ -4056,7 +4056,10 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
   - **Plegables** (prop `plegable`, 16/10/2026): con diez cuentas abiertas el bloque medía varias
     pantallas; plegadas se ve la lista de un vistazo y se abre la que interesa. La cabecera es
     compacta en todas las tarjetas —icono pequeño, «Transferencia bancaria» sólo sobre un banco,
-    nunca «Yape» sobre «Yape · PEN»—. La guía del huésped usa el mismo widget sin plegar.
+    nunca «Yape» sobre «Yape»—. La guía del huésped usa el mismo widget sin plegar.
+  - **La moneda con su nombre**, «BCP · Soles», nunca el código ISO: en Perú nadie dice «PEN».
+    `gui_moneda_pen` / `gui_moneda_usd` van traducidas a mano en `PaxCrearTextosGuiaCommand::A_MANO`
+    (el sol no se traduce; sueltas, el traductor automático las estropea).
 - **La tarjeta no es una cuenta**: al de fuera (y a quien no se sabe) se le dice que se le manda un
   enlace de pago seguro. Generarlo desde la propia vista (Culqi) es la segunda entrega: falta un
   `FinOrigenCobroResolverInterface` para el expediente. Ver `docs/Pendientes.md`.

@@ -57,8 +57,19 @@ const copiar = (texto: string, index: number) => {
  * tiene ocho cuentas delante: primero elige su banco, después la moneda. Sin banco —Yape,
  * Western Union— basta la etiqueta del medio.
  */
-const encabezado = (medio: GuiaMedioPago): string =>
-  [medio.banco ?? medio.medio, medio.moneda].filter(Boolean).join(' · ');
+const encabezado = (medio: GuiaMedioPago): string => medio.banco ?? medio.medio;
+
+/**
+ * La moneda con su nombre: «Soles», «Dólares». El código ISO («PEN») no lo usa nadie en Perú
+ * —se dice soles, o S/—, y en la cabecera se leía como una sigla más del banco (16/10/2026).
+ * Las dos palabras van traducidas A MANO (`PaxCrearTextosGuiaCommand::A_MANO`): sueltas, el
+ * traductor automático las destroza.
+ */
+const nombreMoneda = (moneda?: string): string => {
+  if (moneda === 'PEN') return t('gui_moneda_pen', 'Soles');
+  if (moneda === 'USD') return t('gui_moneda_usd', 'Dólares');
+  return moneda ?? '';
+};
 
 /**
  * La línea pequeña de encima, sólo cuando dice algo que el título no: «Transferencia bancaria»
@@ -96,8 +107,11 @@ const t = (clave: string, porDefecto: string): string => maestroStore.t(clave) |
           <span v-if="antetitulo(medio)" class="block text-[9px] font-black uppercase tracking-widest text-[#E07845] leading-tight">
             {{ antetitulo(medio) }}
           </span>
-          <span class="block font-black text-gray-900 leading-tight text-base truncate">
-            {{ encabezado(medio) }}
+          <!-- Menos peso que antes: en negro y a tamaño grande, «BBVA · PEN» gritaba más que el
+               importe que se va a pagar. La moneda, más suave todavía: es el segundo criterio. -->
+          <span class="block leading-tight text-[15px] truncate">
+            <span class="font-bold text-gray-800">{{ encabezado(medio) }}</span>
+            <span v-if="medio.moneda" class="font-medium text-slate-500"> · {{ nombreMoneda(medio.moneda) }}</span>
           </span>
         </span>
 
