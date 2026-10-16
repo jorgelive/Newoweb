@@ -147,26 +147,34 @@ final readonly class ComoReservarResolver
             ],
             pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta(), $cotizacion->isPrecioOculto()))['usd'],
             pagadoPorMoneda: $pagado['porMoneda'],
-            enlacePago: $this->enlaceVigente($cotizacion),
+            enlacesPago: $this->enlacesVigentes($cotizacion),
         );
     }
 
-    /** El enlace de tarjeta más reciente que el cliente puede pagar ahora, o `null`. */
-    private function enlaceVigente(Cotizacion $cotizacion): ?ComoReservarEnlace
+    /**
+     * Los enlaces de tarjeta que el cliente puede pagar ahora, en orden, con su «parte i de n».
+     *
+     * @return list<ComoReservarEnlace>
+     */
+    private function enlacesVigentes(Cotizacion $cotizacion): array
     {
-        $enlace = $this->enlacesDeCotizacion->pagables($cotizacion)[0] ?? null;
+        $vivos = $this->enlacesDeCotizacion->pagables($cotizacion);
+        $partes = \count($vivos);
+        $lista = [];
 
-        if ($enlace === null) {
-            return null;
+        foreach ($vivos as $i => $enlace) {
+            $lista[] = new ComoReservarEnlace(
+                url: $this->enlaces->urlPublica($enlace),
+                montoTotal: $enlace->getMontoTotal(),
+                montoNeto: $enlace->getMontoNeto(),
+                moneda: $enlace->getMonedaCodigo() ?? 'USD',
+                recargoPorcentaje: $enlace->getRecargoPorcentaje(),
+                parte: $i + 1,
+                partes: $partes,
+            );
         }
 
-        return new ComoReservarEnlace(
-            url: $this->enlaces->urlPublica($enlace),
-            montoTotal: $enlace->getMontoTotal(),
-            montoNeto: $enlace->getMontoNeto(),
-            moneda: $enlace->getMonedaCodigo() ?? 'USD',
-            recargoPorcentaje: $enlace->getRecargoPorcentaje(),
-        );
+        return $lista;
     }
 
     private function politica(string $idioma): string

@@ -471,7 +471,7 @@ type FileBase = components['schemas']['CotizacionFile-pax_file.read_pax_cotizaci
  */
 export type PaxComoReservar = Omit<
     components['schemas']['ComoReservar-pax_file.read_pax_cotizacion.read'],
-    'medios' | 'politicaDevoluciones' | 'pagadoPorMoneda' | 'enlacePago'
+    'medios' | 'politicaDevoluciones' | 'pagadoPorMoneda' | 'enlacesPago'
 > & {
     medios: GuiaMedioPago[];
     politicaDevoluciones: { es: string; en: string };
@@ -480,10 +480,11 @@ export type PaxComoReservar = Omit<
     /** Lo mismo por moneda, sin convertir: lo que de verdad transfirió (`{ PEN: 1700 }`). */
     pagadoPorMoneda: Record<string, number>;
     /**
-     * El enlace de tarjeta vigente de esta propuesta, o `null`. `Required` porque el DTO PHP
-     * (`ComoReservarEnlace`) manda siempre sus cinco campos aunque el esquema los marque opcionales.
+     * Los enlaces de tarjeta vigentes, en orden: uno lo normal, varios si el cobro no cupo en el
+     * tope de la pasarela (se pagan todos). `Required` porque el DTO PHP (`ComoReservarEnlace`)
+     * manda siempre todos sus campos aunque el esquema los marque opcionales.
      */
-    enlacePago: Required<components['schemas']['ComoReservarEnlace-pax_file.read_pax_cotizacion.read']> | null;
+    enlacesPago: Required<components['schemas']['ComoReservarEnlace-pax_file.read_pax_cotizacion.read']>[];
 };
 
 export type PaxCotizacionFile = Omit<

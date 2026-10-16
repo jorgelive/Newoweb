@@ -76,7 +76,8 @@ final class FinEnlacePagoApiController extends AbstractController
      * Emite un enlace.
      *
      * Body: `{origenTipo, origenId, monto?, conRecargo?, vigenciaDias?, concepto?}`.
-     * `monto` es el NETO; si se omite se cobra el saldo pendiente completo.
+     * `monto` es el NETO; si se omite se cobra el saldo pendiente completo. Si no cabe en el tope de
+     * la pasarela sale en varios tramos vivos a la vez: la respuesta trae `enlaces`.
      */
     #[Route('', name: 'crear', methods: ['POST'])]
     #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para emitir cobros.')]
@@ -96,7 +97,9 @@ final class FinEnlacePagoApiController extends AbstractController
         }
 
         try {
-            $enlace = $this->servicio->crear(
+            // En tramos si no cabe en el tope de la pasarela (16/10/2026): un solo enlace cuando
+            // cabe, que es lo normal. Ver `FinEnlacePagoService::crearEnTramos()`.
+            $enlaces = $this->servicio->crearEnTramos(
                 origenTipo: $tipo,
                 origenId: $origenId,
                 montoNeto: $cuerpo->monto,
@@ -115,7 +118,11 @@ final class FinEnlacePagoApiController extends AbstractController
             return $this->json(['error' => $e->getMessage()], 422);
         }
 
-        return $this->json(['enlace' => $this->serializar($enlace)], 201);
+        // `enlace` (el primero) se queda para quien sólo sabe de uno; `enlaces`, todos los tramos.
+        return $this->json([
+            'enlace' => $this->serializar($enlaces[0]),
+            'enlaces' => array_map($this->serializar(...), $enlaces),
+        ], 201);
     }
 
     /**

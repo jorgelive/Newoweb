@@ -33,6 +33,14 @@ final readonly class ComoReservarEnlace
         /** El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
         #[Groups(['pax_cotizacion:read'])]
         public string $recargoPorcentaje,
+
+        /** Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+        #[Groups(['pax_cotizacion:read'])]
+        public int $parte = 1,
+
+        /** De cuántas partes: 1 si no se partió. */
+        #[Groups(['pax_cotizacion:read'])]
+        public int $partes = 1,
     ) {
     }
 }

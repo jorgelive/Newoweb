@@ -63,8 +63,11 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
     const crear = async (payload: FinEnlacePagoCreate): Promise<FinEnlacePago> => {
         isSaving.value = true;
         try {
-            const { data } = await apiClient.post<{ enlace: FinEnlacePago }>('/finanzas/enlaces-pago', payload);
-            enlaces.value = [data.enlace, ...enlaces.value];
+            // Por encima del tope de la pasarela el cobro sale en TRAMOS vivos a la vez (`enlaces`);
+            // el primero anuló lo que hubiera vivo, así que se recarga en vez de insertar a ciegas.
+            const { data } = await apiClient.post<{ enlace: FinEnlacePago; enlaces?: FinEnlacePago[] }>('/finanzas/enlaces-pago', payload);
+            const nuevos = data.enlaces?.length ? data.enlaces : [data.enlace];
+            enlaces.value = [...nuevos, ...enlaces.value.filter(e => !nuevos.some(n => n.id === e.id))];
             return data.enlace;
         } finally {
             isSaving.value = false;

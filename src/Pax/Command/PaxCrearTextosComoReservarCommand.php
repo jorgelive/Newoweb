@@ -68,6 +68,9 @@ final class PaxCrearTextosComoReservarCommand extends Command
         'cot_gracias_pago'           => 'Recibimos tu pago, ¡gracias!',
         // 16/10/2026: el botón del enlace de tarjeta que se emite al publicar la propuesta.
         'cot_pagar_con_tarjeta'      => 'Pagar con tarjeta',
+        // Cuando el cobro no cabe en el tope por operación de la pasarela y sale en varios enlaces.
+        'cot_parte_de'               => 'parte {{ i }} de {{ n }}',
+        'cot_pago_en_partes'         => 'El pago va en {{ n }} partes, por el límite por operación de la pasarela: págalas todas.',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

@@ -4175,9 +4175,16 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
   cotización, y el pago entra con ese cambio para descontar exactamente lo cobrado.
 - **El mismo interruptor que alojamiento**, `finanzas.enlaces_prepago_activos`: dice si la
   pasarela cobra de verdad.
-- **El tope de Culqi es 3000 USD por operación** (comisión incluida): el adelanto de un grupo
-  grande no cabe, el servicio no lo emite y lo deja en el log; pax sigue diciendo «te enviamos un
-  enlace». 🔒 La emisión automática **nunca lanza**: no puede tumbar la publicación.
+- **Por encima del tope de Culqi** (3000 USD / 10 000 PEN por operación, comisión incluida) el
+  cobro sale **en tramos vivos a la vez** (`FinEnlacePagoService::crearEnTramos()`), y pax los
+  enseña todos con «parte 1 de 2» y el aviso de pagarlos todos (Jorge). Pagada una parte, siguen
+  las demás y «Cómo reservar» dice lo recibido y lo que falta.
+- **En un expediente de GRUPO no se emite solo**: cada familia paga lo suyo, y el adelanto del
+  grupo entero (el del colegio salía en 34 tramos) no lo paga nadie con una tarjeta.
+- **El automático no pisa uno emitido a mano**: con un enlace manual vivo no emite nada; sólo
+  reemplaza a otros automáticos cuando cambia el importe. Misma regla que alojamiento.
+- 🔒 La emisión automática **nunca lanza**: no puede tumbar la publicación; lo que falla queda en
+  el log. Para las propuestas publicadas antes del 16/10/2026: `app:cotizacion:enlaces:emitir-publicadas`.
 - **«Cobrar el total»** con el adelanto pendiente: en alojamiento marca la reserva; aquí emite el
   enlace del saldo entero, que anula el del adelanto (un documento, un enlace vivo).
 - En la Caja, el localizador de un ENLACE de turismo pregunta primero de qué expediente es la

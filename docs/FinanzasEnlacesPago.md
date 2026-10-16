@@ -108,6 +108,14 @@ inventarnos uno para una moneda que no conocemos impediría cobros que la pasare
 ⚠️ **Los valores viven en `services_finanzas.yaml`, no en el código**, porque son provisionales:
 hay una ampliación solicitada a Culqi. Cuando la concedan, es una línea.
 
+**Y por encima del tope, en TRAMOS (16/10/2026).** «Partir el cobro» ya no es un consejo del mensaje
+de error: `FinEnlacePagoService::crearEnTramos()` parte el neto en el mínimo de enlaces cuyo total
+CON comisión quepa (`partirEnTramos()`, pura y probada en `PartirEnTramosTest`), en céntimos
+exactos, con el concepto «… · parte 1 de 2». Si cabe, es un enlace normal. Lo usan el endpoint de
+emitir del panel (la respuesta trae `enlaces`) y el emisor de turismo; el prepago automático de
+alojamiento sigue con `crear()`. Pedido por Jorge al salir el adelanto de un grupo de turismo por
+encima de 3 000 USD.
+
 ## 🅿️ IZIPAY ESTÁ PARADA (stalled) — 28/08/2026
 
 **No se toca el camino de Izipay hasta que esté implementada de verdad.** Su conector se
@@ -1534,7 +1542,11 @@ confirmación) y el botón «Cobrar con tarjeta» del panel de la reserva.
 
 **🔒 Un documento, un enlace vivo (10/10/2026).** «En ningún caso deben estar dos enlaces»
 (Jorge). Lo impone `FinEnlacePagoService::crear()`, por donde pasan todos —panel, skill, emisor—:
-al emitir uno, anula los vivos del mismo documento, con el documento bloqueado (`GET_LOCK`). Y el
+al emitir uno, anula los vivos del mismo documento, con el documento bloqueado (`GET_LOCK`).
+**La única excepción son los tramos de UN mismo cobro** (`crearEnTramos()`, 16/10/2026): conviven
+porque pagarlos todos es lo correcto —la regla protege de dos cobros DISTINTOS—; el primer tramo
+anula lo que hubiera y los demás no (`construir(anularVivos: false)`). Un cobro nuevo los anula a
+todos. Y el
 automático **no emite nada mientras haya uno manual vivo**: antes buscaba uno vivo *por su
 importe*, y el «Total» que el operador emitía a mano no coincidía con el adelanto, así que en el
 siguiente movimiento le ponía un adelanto al lado. Con deuda en dos monedas se cobra una y, pagada,
@@ -2529,6 +2541,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Los avisos antes de crear un enlace y el cargo por la diferencia | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` · `ReservaFinanzasPanel.vue` | `comprobarAntesDeCrear()` · `registrarCargoDelEnlace()` |
 | El aviso del cobro suelto («esta persona debe algo») | `src/Finanzas/Contract/FinDeudasDeContactoInterface.php` · `src/Pms/Finanzas/PmsDeudasDeContacto.php` · `FinanzasView.vue` | `deudasDe()` · `deudasDelContacto` |
 | La regla «un documento, un enlace vivo» | `src/Finanzas/Service/FinEnlacePagoService.php` | `construir()` · `tomarDocumento()` |
+| Partir un cobro que no cabe en el tope | `src/Finanzas/Service/FinEnlacePagoService.php` | `crearEnTramos()` · `partirEnTramos()` |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
 | Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |
 | Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |

@@ -121,6 +121,133 @@ final class FinEnlacePagoService
     }
 
     /**
+     * Como {@see self::crear()}, pero si el cobro no cabe en el tope de la pasarela lo PARTE en el
+     * mínimo de enlaces que quepan, y todos quedan vivos a la vez (16/10/2026).
+     *
+     * ── La excepción a «un documento, un enlace vivo» ───────────────────────────
+     * Esa regla existe para que el cliente no tenga delante dos cobros DISTINTOS y pague el que no
+     * toca o los dos. Los tramos de un mismo cobro no son eso: son partes, y pagarlas todas es
+     * justo lo correcto («parte 1 de 2», «parte 2 de 2»). Por eso conviven entre sí —el primero
+     * anula lo que hubiera vivo, los demás no—, y un cobro NUEVO sigue anulándolos a todos.
+     *
+     * Culqi admite como mucho 3000 USD por operación, comisión incluida: el adelanto de un viaje de
+     * grupo no cabía en un enlace y el operador no tenía forma de emitir dos (Jorge).
+     *
+     * El reparto es en céntimos exactos: los tramos suman el neto y los primeros llevan el céntimo
+     * que sobre. Si el cobro cabe, devuelve un solo enlace, idéntico al de `crear()`.
+     *
+     * @return non-empty-list<FinEnlacePago> Ordenados: parte 1, parte 2…
+     *
+     * @throws DomainException como `crear()`.
+     */
+    public function crearEnTramos(
+        FinOrigenCobro $origenTipo,
+        Uuid $origenId,
+        ?string $montoNeto = null,
+        bool $conRecargo = true,
+        ?int $vigenciaDias = null,
+        ?string $concepto = null,
+        ?User $creadoPor = null,
+        ?FinPasarela $pasarela = null,
+        ?string $moneda = null,
+    ): array {
+        $origen = $this->registry->resolver($origenTipo, $origenId, $moneda);
+
+        if ($origen === null) {
+            throw new DomainException('El documento que se quiere cobrar ya no existe.');
+        }
+
+        $neto = $this->normalizarImporte($montoNeto ?? $origen->saldoPendiente);
+        $partes = $this->tramos($neto, $origen->moneda, $conRecargo);
+
+        if (\count($partes) === 1) {
+            return [$this->crear($origenTipo, $origenId, $neto, $conRecargo, $vigenciaDias, $concepto, $creadoPor, $pasarela, $moneda)];
+        }
+
+        // La misma protección que `crear()`: una persona no puede pedir más de lo que se debe.
+        if ($creadoPor !== null && (float) $neto > (float) $origen->saldoPendiente + 0.005) {
+            throw new DomainException(sprintf(
+                'Se deben %s %s y estos enlaces pedirían %s. No se puede pedir más de lo que se debe.',
+                $origen->moneda,
+                $origen->saldoPendiente,
+                $neto,
+            ));
+        }
+
+        $base = $concepto ?: $origen->descripcion;
+        $enlaces = [];
+
+        foreach ($partes as $i => $parte) {
+            $enlaces[] = $this->construir(
+                origenTipo: $origenTipo,
+                origenId: $origenId,
+                montoNeto: $parte,
+                monedaId: $origen->moneda,
+                concepto: sprintf('%s · parte %d de %d', $base, $i + 1, \count($partes)),
+                referencia: $origen->referencia,
+                clienteNombre: $origen->clienteNombre,
+                clienteApellido: $origen->clienteApellido,
+                clienteEmail: $origen->clienteEmail,
+                clienteTelefono: $origen->clienteTelefono,
+                conRecargo: $conRecargo,
+                vigenciaDias: $vigenciaDias,
+                creadoPor: $creadoPor,
+                pasarela: $pasarela,
+                anularVivos: $i === 0,
+            );
+        }
+
+        return $enlaces;
+    }
+
+    /** @return non-empty-list<string> */
+    private function tramos(string $neto, string $monedaId, bool $conRecargo): array
+    {
+        return self::partirEnTramos(
+            $neto,
+            $this->limitePorCargo[$monedaId] ?? null,
+            $conRecargo ? (float) $this->recargoTarjetaPorcentaje : 0.0,
+        );
+    }
+
+    /**
+     * El neto partido en el mínimo de tramos cuyo TOTAL (con comisión) quepa en el tope. Sin tope
+     * para esa moneda, un solo tramo: el límite es del proveedor, no nuestro.
+     *
+     * Céntimos exactos: los tramos suman el neto y los primeros llevan el céntimo que sobra. Se
+     * comprueba con el redondeo de verdad —el total de cada enlace se normaliza a céntimos—, porque
+     * un céntimo de más lo dejaría fuera del tope. Pura y estática para poder probarla sola.
+     *
+     * @return non-empty-list<string>
+     */
+    public static function partirEnTramos(string $neto, string|int|float|null $tope, float $recargoPorcentaje): array
+    {
+        $dos = static fn (float $v): string => number_format($v, 2, '.', '');
+        $factor = 1 + $recargoPorcentaje / 100;
+        $centimos = (int) round((float) $neto * 100);
+
+        if ($tope === null || $centimos <= 0 || (float) $dos($centimos / 100 * $factor) <= (float) $tope) {
+            return [$dos($centimos / 100)];
+        }
+
+        for ($n = max(2, (int) ceil($centimos / 100 * $factor / (float) $tope)); ; ++$n) {
+            $cada = intdiv($centimos, $n);
+            $sobra = $centimos - $cada * $n;
+            $mayor = ($cada + ($sobra > 0 ? 1 : 0)) / 100;
+
+            if ((float) $dos($mayor * $factor) <= (float) $tope) {
+                $parte = static fn (int $i): string => $dos(($cada + ($i < $sobra ? 1 : 0)) / 100);
+                $partes = [$parte(0)];
+                for ($i = 1; $i < $n; ++$i) {
+                    $partes[] = $parte($i);
+                }
+
+                return $partes;
+            }
+        }
+    }
+
+    /**
      * Construcción común a los dos caminos.
      *
      * Lo único que cambia entre un cobro contra documento y uno manual es **de dónde salen
@@ -143,6 +270,9 @@ final class FinEnlacePagoService
         ?int $vigenciaDias,
         ?User $creadoPor,
         ?FinPasarela $pasarela,
+        // `false` sólo para los tramos 2..N de un mismo cobro (`crearEnTramos()`): conviven con el
+        // primero, que es el que anuló lo que hubiera vivo.
+        bool $anularVivos = true,
     ): FinEnlacePago {
         $neto = $this->normalizarImporte($montoNeto);
 
@@ -211,7 +341,7 @@ final class FinEnlacePagoService
         }
 
         try {
-            foreach ($this->repository->porOrigen($origenTipo, $origenId) as $vivo) {
+            foreach ($anularVivos ? $this->repository->porOrigen($origenTipo, $origenId) : [] as $vivo) {
                 // Se anula, no se borra: el enlace que se mandó existió.
                 if ($vivo->estaVigente()) {
                     $vivo->setEstado(FinEnlacePagoEstado::ANULADO);

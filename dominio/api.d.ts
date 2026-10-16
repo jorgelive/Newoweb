@@ -3083,7 +3083,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace"][];
         };
         "ComoReservar-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3120,7 +3120,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace-pax_file.read_pax_cotizacion.read"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace-pax_file.read_pax_cotizacion.read"][];
         };
         "ComoReservar.html": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3157,7 +3157,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.html"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.html"][];
         };
         "ComoReservar.html-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3194,7 +3194,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.html-pax_file.read_pax_cotizacion.read"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.html-pax_file.read_pax_cotizacion.read"][];
         };
         "ComoReservar.jsonld": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3231,7 +3231,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.jsonld"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.jsonld"][];
         };
         "ComoReservar.jsonld-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3268,7 +3268,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.jsonld-pax_file.read_pax_cotizacion.read"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.jsonld-pax_file.read_pax_cotizacion.read"][];
         };
         "ComoReservar.multipart": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3305,7 +3305,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.multipart"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.multipart"][];
         };
         "ComoReservar.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3342,7 +3342,7 @@ export interface components {
             pagadoPorMoneda?: {
                 [key: string]: number;
             };
-            enlacePago?: components["schemas"]["ComoReservarEnlace.multipart-pax_file.read_pax_cotizacion.read"] | null;
+            enlacesPago?: components["schemas"]["ComoReservarEnlace.multipart-pax_file.read_pax_cotizacion.read"][];
         };
         ComoReservarEnlace: {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3354,6 +3354,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace-pax_file.read_pax_cotizacion.read": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3365,6 +3369,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.html": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3376,6 +3384,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.html-pax_file.read_pax_cotizacion.read": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3387,6 +3399,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.jsonld": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3398,6 +3414,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.jsonld-pax_file.read_pax_cotizacion.read": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3409,6 +3429,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.multipart": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3420,6 +3444,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         "ComoReservarEnlace.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description La página de pago de pax (`/pago/{token}`). */
@@ -3431,6 +3459,10 @@ export interface components {
             moneda?: string;
             /** @description El % de comisión de la pasarela que se suma; «0.00» si no lleva. */
             recargoPorcentaje?: string;
+            /** @description Qué parte es (1, 2…) cuando el cobro no cupo en el tope de la pasarela y se partió. */
+            parte?: number;
+            /** @description De cuántas partes: 1 si no se partió. */
+            partes?: number;
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {

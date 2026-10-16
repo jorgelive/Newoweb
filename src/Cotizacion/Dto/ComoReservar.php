@@ -27,6 +27,7 @@ final readonly class ComoReservar
      *                                           ya filtradas por procedencia y por los días que faltan.
      * @param array<string, string> $politicaDevoluciones URL de la política en la web, por idioma (`es`, `en`).
      * @param array<string, float>  $pagadoPorMoneda      Lo pagado por moneda, sin convertir.
+     * @param list<ComoReservarEnlace> $enlacesPago        Los enlaces de tarjeta vigentes, en orden.
      */
     public function __construct(
         /** 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -69,12 +70,13 @@ final readonly class ComoReservar
         public array $pagadoPorMoneda = [],
 
         /**
-         * El enlace de pago con tarjeta vigente de esta propuesta, o `null` si no hay ninguno:
-         * «Cómo reservar» pinta entonces «Pagar con tarjeta» en vez de «te enviamos un enlace». Lo
-         * emite solo `CotizacionEnlaceService` al publicar la propuesta.
+         * Los enlaces de pago con tarjeta vigentes de esta propuesta, en orden: uno lo normal, varios
+         * si el cobro no cupo en el tope de la pasarela y se partió (se pagan todos). Vacía si no hay:
+         * «Cómo reservar» dice entonces «te enviamos un enlace». Los emite solo
+         * `CotizacionEnlaceService` al publicar la propuesta.
          */
         #[Groups(['pax_cotizacion:read'])]
-        public ?ComoReservarEnlace $enlacePago = null,
+        public array $enlacesPago = [],
     ) {
     }
 }
