@@ -23046,6 +23046,10 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda-operacion.item.read_timestamp.read": {
             id?: string;
@@ -23084,21 +23088,37 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda-pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -23122,6 +23142,10 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.html-operacion.item.read_timestamp.read": {
             id?: string;
@@ -23160,21 +23184,37 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.html-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.html-pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.html-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -23198,6 +23238,10 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.jsonld-operacion.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
@@ -23236,21 +23280,37 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.jsonld-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.jsonld-pms_pago.read_maestro.moneda.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.jsonld-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -23274,6 +23334,10 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.multipart-operacion.item.read_timestamp.read": {
             id?: string;
@@ -23312,21 +23376,37 @@ export interface components {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.multipart-pms_finanzas.read_pms_cargo.read_pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.multipart-pms_pago.read_maestro.moneda.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
         };
         "Moneda.multipart-pms_tarifa.read_pms_unidad.read_maestro.moneda.read_timestamp.read": {
             id?: string;
             nombre?: string;
             simbolo?: string;
+            /** @description El nombre de la moneda para el CLIENTE, en cada idioma: «Soles», «Dollars»… (16/10/2026). */
+            titulo?: {
+                [key: string]: string | null;
+            }[];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

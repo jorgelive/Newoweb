@@ -1,4 +1,4 @@
-import type {MaestroIdioma} from "@/types/maestroModel.ts";
+import type { MaestroIdioma, MaestroMoneda } from "@/types/maestroModel.ts";
 import type { PmsContenidoTraducible } from '@/types/paxHuespedModel';
 
 
@@ -17,6 +17,18 @@ export const paxCommonService = {
             if (!res.ok) return [];
             const data = await res.json();
             return data['hydra:member'] || data['member'] || [];
+        } catch {
+            return [];
+        }
+    },
+
+    /** Las monedas del maestro, con su nombre para el cliente. Público: lo pide la app sin sesión. */
+    async getMonedas(): Promise<MaestroMoneda[]> {
+        try {
+            const res = await fetch(`${API_BASE}/platform/maestro/monedas`, {headers: {'Accept': 'application/ld+json'}});
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data['member'] || data['hydra:member'] || [];
         } catch {
             return [];
         }

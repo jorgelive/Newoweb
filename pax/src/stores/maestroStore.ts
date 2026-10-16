@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { paxCommonService } from '@/services/paxCommonService.ts';
-import type { MaestroIdioma } from '@/types/maestroModel.ts';
+import type { MaestroIdioma, MaestroMoneda } from '@/types/maestroModel.ts';
 import type { PmsContenidoTraducible } from '@/types/paxHuespedModel.ts';
 import type { PersistenceOptions } from 'pinia-plugin-persistedstate';
 
@@ -12,6 +12,8 @@ export const useMaestroStore = defineStore('maestroStore', () => {
         const idiomaActual = ref('es');
         const loading = ref(false);
         const diccionario = ref<Record<string, PmsContenidoTraducible[]>>({});
+        /** Las monedas del maestro: su nombre para el cliente sale de aquí (`nombreMoneda()`). */
+        const monedas = ref<MaestroMoneda[]>([]);
 
         // ⏰ Control de Caché
         const lastUpdate = ref<number>(0);
@@ -57,13 +59,16 @@ export const useMaestroStore = defineStore('maestroStore', () => {
 
             loadPromise = (async () => {
                 try {
-                    const [dataIdiomas, dataTextos] = await Promise.all([
+                    const [dataIdiomas, dataTextos, dataMonedas] = await Promise.all([
                         paxCommonService.getIdiomasPrioritarios(),
-                        paxCommonService.getPaxUiTextos()
+                        paxCommonService.getPaxUiTextos(),
+                        paxCommonService.getMonedas(),
                     ]);
 
                     idiomas.value = dataIdiomas;
                     diccionario.value = dataTextos;
+                    // Si falla, se queda la lista anterior: es un nombre, no un dato del que dependa nada.
+                    if (dataMonedas.length) monedas.value = dataMonedas;
 
                     // Actualizamos la fecha solo si tuvimos éxito
                     lastUpdate.value = Date.now();
@@ -124,6 +129,18 @@ export const useMaestroStore = defineStore('maestroStore', () => {
         };
 
         /**
+         * El nombre de una moneda para el cliente, en su idioma: «Soles», «Dollars».
+         *
+         * Del maestro (`MaestroMoneda::$titulo`), y si aún no llegó, el código tal cual: «PEN» es
+         * feo pero cierto, y un nombre inventado aquí sería una segunda fuente de verdad.
+         */
+        const nombreMoneda = (codigo?: string | null): string => {
+            if (!codigo) return '';
+            const moneda = monedas.value.find(m => m.id === codigo);
+            return (moneda && traducir(moneda.titulo)) || codigo;
+        };
+
+        /**
          * Actualiza el idioma actual de la aplicación.
          * * @param {string} id Código de idioma (ej. 'es', 'en').
          */
@@ -135,17 +152,19 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             idiomas,
             idiomaActual,
             diccionario,
+            monedas,
             loading,
             lastUpdate,
             cargarConfiguracion,
             setIdioma,
             traducir,
+            nombreMoneda,
             t
         };
     },
     {
         persist: {
-            paths: ['idiomas', 'diccionario', 'idiomaActual', 'lastUpdate'],
+            paths: ['idiomas', 'diccionario', 'monedas', 'idiomaActual', 'lastUpdate'],
             storage: localStorage,
         } as PersistenceOptions
     });

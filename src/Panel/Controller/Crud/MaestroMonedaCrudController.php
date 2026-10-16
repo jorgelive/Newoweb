@@ -7,10 +7,12 @@ namespace App\Panel\Controller\Crud;
 // ✅ Restauramos la herencia de tu BaseCrudController
 use App\Panel\Controller\Crud\BaseCrudController;
 use App\Entity\Maestro\MaestroMoneda;
+use App\Panel\Form\Type\TranslationTextType;
 use App\Security\Roles;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Field\CollectionField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -96,6 +98,14 @@ class MaestroMonedaCrudController extends BaseCrudController
 
         yield TextField::new('simbolo', 'Símbolo')
             ->setHelp('Ejemplo: $ o S/');
+
+        // Lo que ve el cliente («Soles», «Dollars»). Ver `MaestroMoneda::$titulo`: los idiomas se
+        // revisan a mano, porque una palabra suelta la traduce mal el traductor automático.
+        yield CollectionField::new('titulo', 'Nombre para el cliente')
+            ->setEntryType(TranslationTextType::class)
+            ->hideOnIndex()
+            ->setColumns(12)
+            ->setHelp('Escribe el español y guarda: el resto se traduce solo. Revisa los idiomas: una palabra suelta se traduce mal.');
 
         // ✅ Auditoría mediante TimestampTrait (createdAt, updatedAt)
         yield FormField::addPanel('Tiempos de Registro')->setIcon('fa fa-clock')->onlyOnDetail();

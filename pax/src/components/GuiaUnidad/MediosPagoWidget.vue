@@ -60,16 +60,11 @@ const copiar = (texto: string, index: number) => {
 const encabezado = (medio: GuiaMedioPago): string => medio.banco ?? medio.medio;
 
 /**
- * La moneda con su nombre: «Soles», «Dólares». El código ISO («PEN») no lo usa nadie en Perú
+ * La moneda con su nombre: «Soles», «Dollars». El código ISO («PEN») no lo usa nadie en Perú
  * —se dice soles, o S/—, y en la cabecera se leía como una sigla más del banco (16/10/2026).
- * Las dos palabras van traducidas A MANO (`PaxCrearTextosGuiaCommand::A_MANO`): sueltas, el
- * traductor automático las destroza.
+ * El nombre es del maestro de monedas (`MaestroMoneda::$titulo`), no de este componente.
  */
-const nombreMoneda = (moneda?: string): string => {
-  if (moneda === 'PEN') return t('gui_moneda_pen', 'Soles');
-  if (moneda === 'USD') return t('gui_moneda_usd', 'Dólares');
-  return moneda ?? '';
-};
+const nombreMoneda = (moneda?: string): string => maestroStore.nombreMoneda(moneda);
 
 /**
  * La línea pequeña de encima, sólo cuando dice algo que el título no: «Transferencia bancaria»

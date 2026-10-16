@@ -4058,8 +4058,12 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
     compacta en todas las tarjetas —icono pequeño, «Transferencia bancaria» sólo sobre un banco,
     nunca «Yape» sobre «Yape»—. La guía del huésped usa el mismo widget sin plegar.
   - **La moneda con su nombre**, «BCP · Soles», nunca el código ISO: en Perú nadie dice «PEN».
-    `gui_moneda_pen` / `gui_moneda_usd` van traducidas a mano en `PaxCrearTextosGuiaCommand::A_MANO`
-    (el sol no se traduce; sueltas, el traductor automático las estropea).
+    El nombre es del **maestro de monedas**: `MaestroMoneda::$titulo` (i18n, editable en el panel)
+    llega a pax por `/platform/maestro/monedas` con el resto de maestros (`maestroStore.monedas`,
+    `nombreMoneda()`). Los siete idiomas se fijan a mano con `app:maestro:monedas:titulos`, con
+    `origenHash: 'manual'`: sueltas, el traductor estropea las palabras, y una traducción sin hash
+    se rehace en el siguiente guardado. El sol no se traduce: «Soles» en todos.
+    Durante unas horas fueron dos cadenas de UI (`gui_moneda_*`); las borró `Version20261016200000`.
 - **La tarjeta no es una cuenta**: al de fuera (y a quien no se sabe) se le dice que se le manda un
   enlace de pago seguro. Generarlo desde la propia vista (Culqi) es la segunda entrega: falta un
   `FinOrigenCobroResolverInterface` para el expediente. Ver `docs/Pendientes.md`.
@@ -4151,6 +4155,7 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
 | Borrar un expediente con pagos | `src/Cotizacion/ApiPlatform/State/CotizacionFileBorradoProcessor.php` | `process()` |
 | Quién es cliente para el agente | `src/Cotizacion/Entity/CotizacionFile.php` | `vinculoComercial()` |
 | Los medios de pago (vocabulario) | `CotizacionMedioPagoEnum.php` ↔ `fileDetalleModel.ts` | `label()` ↔ `MEDIO_PAGO_LABELS` |
+| El nombre de una moneda para el cliente | `src/Entity/Maestro/MaestroMoneda.php`, `src/Command/MaestroMonedasTitulosCommand.php` | `$titulo`, `TITULOS` |
 | El panel de pagos en util | `util/src/components/cotizacion/FilePagosPanel.vue` | — |
 | Lo pagado en pax | `PaxCotizacionGuiaView.vue` | `pagoRecibido` |
 | Cómo salen en la Caja | `src/Cotizacion/Finanzas/CotizacionPagoMovimientoProvider.php` | `aMovimiento()` |
