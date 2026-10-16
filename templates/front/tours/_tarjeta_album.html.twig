@@ -1,0 +1,17 @@
+{# Tarjeta de un álbum de experiencias. Recibe `album` (AlbumWeb). #}
+{% set imagen = album.portada ? album.portada|trim('/', 'left')|imagine_filter('travel_galeria') : album.miniaturaDeVideo %}
+<a class="tarjeta" href="{{ path('front_experiencia', {'album': album.slug}) }}">
+    <div class="tarjeta-foto{{ imagen ? '' : ' sin-foto' }}">
+        {% if imagen %}<img src="{{ imagen }}" alt="{{ album.titulo }}" loading="lazy" width="480" height="360">{% endif %}
+        {% if album.destino %}<span class="chip">{{ album.destino }}</span>{% endif %}
+    </div>
+    <div class="tarjeta-cuerpo">
+        <h3>{{ album.titulo }}</h3>
+        <p class="tarjeta-resumen">
+            {%- if album.fecha %}{{ album.fecha|format_date(pattern: 'LLLL y', locale: app.request.locale)|capitalize }} · {% endif -%}
+            {%- set nf = album.fotos|length %}{% set nv = album.videos|length -%}
+            {%- if nf %}{{ 'exp.fotos'|trans({'%count%': nf}, 'front_tours') }}{% endif %}{% if nf and nv %} · {% endif %}{% if nv %}{{ 'exp.videos'|trans({'%count%': nv}, 'front_tours') }}{% endif -%}
+        </p>
+        <div class="tarjeta-pie"><span></span><span class="flecha">{{ 'exp.ver'|trans({}, 'front_tours') }} →</span></div>
+    </div>
+</a>

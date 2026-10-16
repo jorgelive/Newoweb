@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Front\Tours\Controller;
 
+use App\Front\Comun\Service\ExperienciaWebLector;
 use App\Front\Tours\Service\CatalogoWebLector;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -24,6 +25,7 @@ final class SeoController extends AbstractController
 
     public function __construct(
         private readonly CatalogoWebLector $lector,
+        private readonly ExperienciaWebLector $experiencias,
         #[Autowire('%kernel.project_dir%/public/front/favicon.ico')]
         private readonly string $favicon = '',
     ) {
@@ -59,6 +61,13 @@ final class SeoController extends AbstractController
         $urls = [];
         foreach (self::IDIOMAS as $idioma) {
             $urls[] = $this->generateUrl('front_portada', ['_locale' => $idioma], UrlGeneratorInterface::ABSOLUTE_URL);
+            $albumes = $this->experiencias->publicados($idioma);
+            if ($albumes !== []) {
+                $urls[] = $this->generateUrl('front_experiencias', ['_locale' => $idioma], UrlGeneratorInterface::ABSOLUTE_URL);
+                foreach ($albumes as $album) {
+                    $urls[] = $this->generateUrl('front_experiencia', ['_locale' => $idioma, 'album' => $album->slug], UrlGeneratorInterface::ABSOLUTE_URL);
+                }
+            }
             foreach ($this->lector->publicados($idioma) as $catalogo) {
                 $urls[] = $this->generateUrl('front_catalogo', ['_locale' => $idioma, 'catalogo' => $catalogo->slug], UrlGeneratorInterface::ABSOLUTE_URL);
                 foreach ($catalogo->tours as $tour) {

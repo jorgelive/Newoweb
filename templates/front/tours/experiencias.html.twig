@@ -1,0 +1,32 @@
+{% extends 'front/tours/layout.html.twig' %}
+
+{% block titulo %}{{ 'exp.titulo'|trans({}, 'front_tours') }} · {{ front.marca }}{% endblock %}
+{% block descripcion %}{{ 'exp.meta_descripcion'|trans({}, 'front_tours') }}{% endblock %}
+{% block imagen_social %}{% set primero = albumes|first %}{% if primero and primero.portada %}{{ primero.portada|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
+
+{% block cuerpo %}
+<div class="envoltura">
+    <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}">
+        <a href="{{ path('front_portada') }}">{{ 'nav.inicio'|trans({}, 'front') }}</a> › {{ 'exp.titulo'|trans({}, 'front_tours') }}
+    </nav>
+</div>
+<section class="seccion" style="padding-top:24px">
+    <div class="envoltura">
+        <div class="seccion-cabecera">
+            <div>
+                <h1>{{ 'exp.titulo'|trans({}, 'front_tours') }}</h1>
+                <p class="entradilla">{{ 'exp.entradilla'|trans({}, 'front_tours') }}</p>
+            </div>
+        </div>
+        {% if albumes is empty %}
+            <p class="nota">{{ 'exp.vacio'|trans({}, 'front_tours') }}</p>
+        {% else %}
+            <div class="rejilla">
+                {% for album in albumes %}
+                    {% include 'front/tours/_tarjeta_album.html.twig' %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

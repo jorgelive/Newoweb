@@ -10,6 +10,9 @@ api_platform:
             - '%kernel.project_dir%/src/Message/Entity'
             - '%kernel.project_dir%/src/Travel/Entity'
             - '%kernel.project_dir%/src/Cotizacion/Entity'
+            # Web pública: los álbumes de experiencias (ExperienciaAlbum, ExperienciaMedio) se editan desde
+            # util. El resto de entidades de aquí (Libro de Reclamaciones) no llevan #[ApiResource].
+            - '%kernel.project_dir%/src/Front/Comun/Entity'
             # Sin esta línea los #[ApiFilter] de Operacion no se compilan a servicios:
             # AttributeFilterPass sólo recorre los directorios listados aquí, así que los
             # filtros se ignoran en silencio y las colecciones salen sin filtrar.

@@ -192,6 +192,7 @@ class CotizacionCatalogo
     public const array SLUGS_RESERVADOS = [
         // rutas de la web
         'en', 'tours', 'legal', 'libro-de-reclamaciones', 'complaints-book', 'robots', 'sitemap', 'favicon',
+        'experiencias', 'experiences',
         // carpetas de `public/` y de nginx
         'front', 'media', 'carga', 'build', 'bundles', 'index',
         // URLs viejas del PHPTravels que redirigen a la portada (`LegadoController`)

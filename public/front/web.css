@@ -198,3 +198,13 @@ h3 { font-size: 1.2rem; }
 section.marca-open-world { background: linear-gradient(180deg, #eef7f9 0%, var(--fondo) 100%); }
 .sello-marca { display: block; height: 76px; width: auto; margin-bottom: 14px; }
 @media (max-width: 640px) { .sello-marca { height: 58px; } }
+
+/* ── Experiencias: vídeos que se cargan al pulsar (templates/front/tours/_video.html.twig) ── */
+.videos { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); margin-top: 12px; }
+.video { margin: 0; }
+.video figcaption { color: var(--suave); font-size: .9rem; margin-top: 6px; }
+.video-boton, .video-marco { display: block; position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, var(--primario), var(--primario-osc)); border: 0; }
+.video-boton img { width: 100%; height: 100%; object-fit: cover; }
+.video-play { position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; display: flex; align-items: center; justify-content: center; transition: transform .2s ease, background .2s ease; }
+.video-play svg { width: 30px; height: 30px; margin-left: 4px; }
+.video-boton:hover .video-play { transform: scale(1.08); background: var(--acento-boton, #c04e1b); }

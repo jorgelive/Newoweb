@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Front\Comun\Twig;
 
+use App\Front\Comun\Service\ExperienciaWebLector;
 use App\Service\Config\Parametro;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Twig\Attribute\AsTwigFilter;
@@ -19,7 +20,15 @@ final class FrontExtension
         private readonly mixed $publicDir,
         #[Autowire('%front.whatsapp%')]
         private readonly mixed $whatsapp,
+        private readonly ExperienciaWebLector $experiencias,
     ) {
+    }
+
+    /** ¿Sale «Experiencias» en el menú? Sólo si hay algún álbum que la web pueda enseñar. */
+    #[AsTwigFunction('front_hay_experiencias')]
+    public function hayExperiencias(): bool
+    {
+        return $this->experiencias->hayPublicados();
     }
 
     /**

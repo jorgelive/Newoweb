@@ -1,0 +1,75 @@
+{% extends 'front/tours/layout.html.twig' %}
+
+{% block titulo %}{{ album.titulo }} · {{ 'exp.titulo'|trans({}, 'front_tours') }} · {{ front.marca }}{% endblock %}
+{% block descripcion %}{{ (album.texto ?? 'exp.meta_descripcion'|trans({}, 'front_tours'))|front_recorte }}{% endblock %}
+{% block imagen_social %}{% if album.portada %}{{ album.portada|trim('/', 'left')|imagine_filter('travel_cliente') }}{% elseif album.miniaturaDeVideo %}{{ album.miniaturaDeVideo }}{% endif %}{% endblock %}
+
+{% block cuerpo %}
+<div class="envoltura">
+    <nav class="migas" aria-label="{{ 'nav.migas'|trans({}, 'front') }}">
+        <a href="{{ path('front_portada') }}">{{ 'nav.inicio'|trans({}, 'front') }}</a> ›
+        <a href="{{ path('front_experiencias') }}">{{ 'exp.titulo'|trans({}, 'front_tours') }}</a> ›
+        {{ album.titulo }}
+    </nav>
+
+    <article class="album">
+        <h1>{{ album.titulo }}</h1>
+        <div class="ficha-datos">
+            {% if album.destino %}<span class="dato">{{ album.destino }}</span>{% endif %}
+            {% if album.fecha %}<span class="dato">{{ album.fecha|format_date(pattern: 'LLLL y', locale: app.request.locale)|capitalize }}</span>{% endif %}
+        </div>
+        {% if album.texto %}<p class="entradilla" style="white-space:pre-line">{{ album.texto }}</p>{% endif %}
+
+        {% if album.videos is not empty %}
+            <h2 style="margin-top:28px">{{ 'exp.videos_titulo'|trans({}, 'front_tours') }}</h2>
+            <div class="videos">
+                {% for m in album.videos %}
+                    {% include 'front/tours/_video.html.twig' with {'video': m.video, 'pie': m.pie} %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if album.fotos is not empty %}
+            <h2 style="margin-top:28px">{{ 'exp.fotos_titulo'|trans({}, 'front_tours') }}</h2>
+            <div class="galeria">
+                {% for m in album.fotos %}
+                    {% include 'front/tours/_foto_galeria.html.twig' with {'img': m.ruta, 'n': loop.index, 'alt': m.pie ?? (album.titulo ~ ' — ' ~ loop.index)} %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <p style="margin-top:32px">
+            <a class="boton boton-wa" href="{{ front_whatsapp('exp.whatsapp_mensaje'|trans({'%album%': album.titulo}, 'front_tours')) }}" target="_blank" rel="noopener">{{ 'exp.quieres'|trans({}, 'front_tours') }}</a>
+        </p>
+    </article>
+</div>
+
+{% if otros is not empty %}
+    <section class="seccion" style="padding-top:0">
+        <div class="envoltura">
+            <div class="seccion-cabecera"><h2>{{ 'exp.otras'|trans({}, 'front_tours') }}</h2></div>
+            <div class="rejilla">
+                {% for album in otros %}
+                    {% include 'front/tours/_tarjeta_album.html.twig' %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+
+{# El reproductor sólo al pulsar: cambia la miniatura por el iframe. Sin JS, el enlace abre el vídeo. #}
+<script>
+document.querySelectorAll('.video-boton[data-reproductor]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var f = document.createElement('iframe');
+        f.src = a.dataset.reproductor;
+        f.title = a.getAttribute('aria-label') || '';
+        f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+        f.allowFullscreen = true;
+        f.className = 'video-marco';
+        a.replaceWith(f);
+    });
+});
+</script>
+{% endblock %}

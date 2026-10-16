@@ -1,3 +1,4 @@
-{# Una foto de la galería de la ficha: miniatura en la rejilla, la grande al pulsar. Recibe `img` (ruta) y `n`. #}
+{# Una foto de galería: miniatura en la rejilla, la grande al pulsar. Recibe `img` (ruta), `n` y,
+   opcional, `alt` (por defecto, el título del tour). La usan la ficha del tour y los álbumes. #}
 {% set ruta = img|trim('/', 'left') %}
-<a href="{{ ruta|imagine_filter('travel_cliente') }}" target="_blank" rel="noopener"><img src="{{ ruta|imagine_filter('travel_galeria') }}" alt="{{ tour.titulo }} — {{ n }}" loading="lazy" width="480" height="360"></a>
+<a href="{{ ruta|imagine_filter('travel_cliente') }}" target="_blank" rel="noopener"><img src="{{ ruta|imagine_filter('travel_galeria') }}" alt="{{ alt ?? (tour.titulo ~ ' — ' ~ n) }}" loading="lazy" width="480" height="360"></a>

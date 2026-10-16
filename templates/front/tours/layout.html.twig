@@ -14,6 +14,7 @@
 
 {% block nav %}
     <a href="{{ path('front_portada', {'_locale': app.request.locale}) }}#tours">{{ 'nav.tours'|trans({}, 'front_tours') }}</a>
+    {% if front_hay_experiencias() %}<a href="{{ path('front_experiencias', {'_locale': app.request.locale}) }}">{{ 'nav.experiencias'|trans({}, 'front_tours') }}</a>{% endif %}
     {# Mientras no exista centrocuscointi.com, la sección de alojamiento vive en la portada. #}
     <a class="nav-secundario" href="{{ path('front_portada', {'_locale': app.request.locale}) }}#alojamiento">{{ 'nav.alojamiento'|trans({}, 'front_tours') }}</a>
     <a class="nav-secundario" href="{{ front_whatsapp() }}" target="_blank" rel="noopener">{{ 'nav.contacto'|trans({}, 'front') }}</a>

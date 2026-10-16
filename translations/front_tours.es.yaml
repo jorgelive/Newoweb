@@ -4,6 +4,7 @@
 nav:
     tours: Tours
     alojamiento: Alojamiento
+    experiencias: Experiencias
 portada:
     meta_titulo: '%marca% · Tours y promociones en Cusco'
     meta_descripcion: 'Tours en promoción por Cusco y el Valle Sagrado. Consulta disponibilidad y reserva por WhatsApp.'
@@ -41,3 +42,17 @@ tour:
     nota_precio: 'Precios referenciales «desde». Te confirmamos disponibilidad y precio final para tu fecha por WhatsApp.'
 pie:
     lema: 'Tours y promociones en Cusco.'
+exp:
+    titulo: 'Experiencias reales'
+    entradilla: 'Fotos y vídeos de viajes que ya organizamos, contados por quienes viajaron.'
+    meta_descripcion: 'Fotos y vídeos de viajes de promoción y tours que ya organizamos: Cusco, Machu Picchu y el Caribe.'
+    vacio: 'Muy pronto compartiremos aquí las fotos y vídeos de nuestros viajes.'
+    fotos: '{1} 1 foto|]1,Inf[ %count% fotos'
+    videos: '{1} 1 vídeo|]1,Inf[ %count% vídeos'
+    ver: 'Ver álbum'
+    fotos_titulo: Fotos
+    videos_titulo: Vídeos
+    reproducir: 'Reproducir vídeo'
+    quieres: '¿Quieres un viaje así? Escríbenos'
+    whatsapp_mensaje: 'Hola, vi «%album%» en su web y quisiera información para un viaje.'
+    otras: 'Otras experiencias'

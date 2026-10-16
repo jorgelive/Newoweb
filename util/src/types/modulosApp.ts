@@ -92,6 +92,12 @@ export const MODULOS_APP: readonly GrupoModulos[] = [
                 bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
             },
             {
+                to: '/experiencias', title: 'Experiencias', icon: 'fa-images',
+                desc: 'Fotos y vídeos de viajes ya hechos para la web, con su autorización.',
+                iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',
+                bar: 'bg-[#E07845]', titleHover: 'group-hover:text-[#E07845]',
+            },
+            {
                 to: '/organizaciones', title: 'Organizaciones', icon: 'fa-truck-field',
                 desc: 'Maestro de con quién se opera: contacto, servicios que presta y galería.',
                 iconBg: 'bg-[#E07845]/10', iconColor: 'text-[#E07845]',

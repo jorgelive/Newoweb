@@ -33,7 +33,7 @@ final class TourController extends AbstractController
      * Las rutas de catálogo llevan además prioridad −5: las fijas (0) ganan siempre, y las de
      * `LegadoController` (−10) sólo cuando ninguna otra casa.
      */
-    public const string SLUG_CATALOGO = '(?!(?:en|tours|legal|libro-de-reclamaciones|complaints-book|robots|sitemap|favicon|front|media|carga|build|bundles|index|es|hotels|blog|login|register|supplier|notfound)(?:/|$))[a-z0-9]+(?:-[a-z0-9]+)*';
+    public const string SLUG_CATALOGO = '(?!(?:en|tours|legal|libro-de-reclamaciones|complaints-book|robots|sitemap|favicon|experiencias|experiences|front|media|carga|build|bundles|index|es|hotels|blog|login|register|supplier|notfound)(?:/|$))[a-z0-9]+(?:-[a-z0-9]+)*';
 
     public function __construct(
         private readonly CatalogoWebLector $lector,

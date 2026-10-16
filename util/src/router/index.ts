@@ -65,6 +65,13 @@ const router = createRouter({
         // MÓDULO DE CATÁLOGOS DE TOURS
         // ============================================================================
 
+        // Experiencias: álbumes de fotos y vídeos de viajes para la web (docs/WebPublica.md)
+        {
+            path: '/experiencias',
+            name: 'experiencias',
+            component: () => import('../views/Experiencias/ExperienciasView.vue')
+        },
+
         // 1. Dashboard: Lista de catálogos y sala de cada catálogo (tours)
         {
             path: '/catalogo',

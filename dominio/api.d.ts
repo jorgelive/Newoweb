@@ -1056,6 +1056,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/platform/front/experiencia_albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves the collection of ExperienciaAlbum resources.
+         * @description Retrieves the collection of ExperienciaAlbum resources.
+         */
+        get: operations["api_frontexperiencia_albums_get_collection"];
+        put?: never;
+        /**
+         * Creates a ExperienciaAlbum resource.
+         * @description Creates a ExperienciaAlbum resource.
+         */
+        post: operations["api_frontexperiencia_albums_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/front/experiencia_albums/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Retrieves a ExperienciaAlbum resource.
+         * @description Retrieves a ExperienciaAlbum resource.
+         */
+        get: operations["api_frontexperiencia_albums_id_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Removes the ExperienciaAlbum resource.
+         * @description Removes the ExperienciaAlbum resource.
+         */
+        delete: operations["api_frontexperiencia_albums_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the ExperienciaAlbum resource.
+         * @description Updates the ExperienciaAlbum resource.
+         */
+        patch: operations["api_frontexperiencia_albums_id_patch"];
+        trace?: never;
+    };
+    "/platform/front/experiencia_medios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a ExperienciaMedio resource.
+         * @description Creates a ExperienciaMedio resource.
+         */
+        post: operations["api_frontexperiencia_medios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/platform/front/experiencia_medios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes the ExperienciaMedio resource.
+         * @description Removes the ExperienciaMedio resource.
+         */
+        delete: operations["api_frontexperiencia_medios_id_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Updates the ExperienciaMedio resource.
+         * @description Updates the ExperienciaMedio resource.
+         */
+        patch: operations["api_frontexperiencia_medios_id_patch"];
+        trace?: never;
+    };
     "/platform/maestro/idiomas": {
         parameters: {
             query?: never;
@@ -7170,7 +7266,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7234,7 +7330,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7297,7 +7393,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7355,7 +7451,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7446,7 +7542,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7510,7 +7606,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7606,7 +7702,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7670,7 +7766,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7766,7 +7862,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -7830,7 +7926,7 @@ export interface components {
              * @default false
              */
             ofrecidoPorAgente: boolean;
-            /** @description Tramo de la URL pública: `/tours/{slug}`. Nulo mientras no se publique. */
+            /** @description Tramo de la URL pública: `/{slug}` (antes `/tours/{slug}`, que redirige). Nulo mientras no se publique. */
             slug?: string | null;
             /**
              * @description Con qué marca sale en la web: OpenPeru Travel (la casa) u Open World Travel (la división de
@@ -19509,6 +19605,429 @@ export interface components {
             /** @description A URI reference that identifies the problem type */
             readonly type?: string;
             readonly description?: string | null;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum-experiencia.read_timestamp.read": {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+            medios?: components["schemas"]["ExperienciaMedio-experiencia.read_timestamp.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum-experiencia.write": {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum-experiencia.write.jsonMergePatch": {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum.html-experiencia.read_timestamp.read": {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+            medios?: components["schemas"]["ExperienciaMedio.html-experiencia.read_timestamp.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum.jsonld-experiencia.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+            medios?: components["schemas"]["ExperienciaMedio.jsonld-experiencia.read_timestamp.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Un álbum de EXPERIENCIAS: las fotos y vídeos de un viaje ya operado, para la web. */
+        "ExperienciaAlbum.multipart-experiencia.read_timestamp.read": {
+            titulo?: {
+                [key: string]: string | null;
+            }[];
+            texto?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Dónde fue: «Punta Cana», «Cusco y Machu Picchu». Texto libre, se enseña tal cual. */
+            destino?: string | null;
+            /**
+             * Format: date-time
+             * @description Cuándo fue el viaje: ordena y fecha el álbum en la web («septiembre de 2026»).
+             */
+            fecha?: string | null;
+            /** @description Tramo de la URL: `/experiencias/{slug}`. Obligatorio para publicar. */
+            slug?: string | null;
+            /** @default 0 */
+            orden: number;
+            /**
+             * @description Hay autorización firmada para publicar las imágenes. Ver el docblock de la clase.
+             * @default false
+             */
+            autorizado: boolean;
+            /** @default false */
+            publicado: boolean;
+            medios?: components["schemas"]["ExperienciaMedio.multipart-experiencia.read_timestamp.read"][];
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio-experiencia.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "ExperienciaMedio-experiencia.read_timestamp.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio-experiencia_medio.write": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            album?: string;
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio-experiencia_medio.write.jsonMergePatch": {
+            /**
+             * Format: iri-reference
+             * @example https://example.com/
+             */
+            album?: string;
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio.html-experiencia.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "ExperienciaMedio.html-experiencia.read_timestamp.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio.jsonld-experiencia.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio.jsonld-experiencia.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
+        "ExperienciaMedio.multipart-experiencia.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+        };
+        "ExperienciaMedio.multipart-experiencia.read_timestamp.read": {
+            /**
+             * @default foto
+             * @enum {string}
+             */
+            tipo: "foto" | "video";
+            /** @default 0 */
+            orden: number;
+            /** @default false */
+            esPortada: boolean;
+            pie?: {
+                [key: string]: string | null;
+            }[];
+            /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
+            videoUrl?: string | null;
+            imageName?: string | null;
+            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
+            imageUrl?: string | null;
+            /** Format: uuid */
+            readonly id?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         "HallazgoCoherencia-coherencia.read": {
             clave?: string;
@@ -39926,6 +40445,434 @@ export interface operations {
                     "application/ld+json": components["schemas"]["Error.jsonld"];
                     "application/problem+json": components["schemas"]["Error"];
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_albums_get_collection: {
+        parameters: {
+            query?: {
+                /** @description The collection page number */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ExperienciaAlbum collection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["HydraCollectionBaseSchema"] & {
+                        member: components["schemas"]["ExperienciaAlbum.jsonld-experiencia.read_timestamp.read"][];
+                    };
+                    "application/json": components["schemas"]["ExperienciaAlbum-experiencia.read_timestamp.read"][];
+                    "text/html": components["schemas"]["ExperienciaAlbum.html-experiencia.read_timestamp.read"][];
+                    "multipart/form-data": components["schemas"]["ExperienciaAlbum.multipart-experiencia.read_timestamp.read"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_albums_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new ExperienciaAlbum resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["ExperienciaAlbum-experiencia.write"];
+                "application/json": components["schemas"]["ExperienciaAlbum-experiencia.write"];
+                "text/html": components["schemas"]["ExperienciaAlbum-experiencia.write"];
+                "multipart/form-data": components["schemas"]["ExperienciaAlbum-experiencia.write"];
+            };
+        };
+        responses: {
+            /** @description ExperienciaAlbum resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ExperienciaAlbum.jsonld-experiencia.read_timestamp.read"];
+                    "application/json": components["schemas"]["ExperienciaAlbum-experiencia.read_timestamp.read"];
+                    "text/html": components["schemas"]["ExperienciaAlbum.html-experiencia.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["ExperienciaAlbum.multipart-experiencia.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_albums_id_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ExperienciaAlbum identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ExperienciaAlbum resource */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ExperienciaAlbum.jsonld-experiencia.read_timestamp.read"];
+                    "application/json": components["schemas"]["ExperienciaAlbum-experiencia.read_timestamp.read"];
+                    "text/html": components["schemas"]["ExperienciaAlbum.html-experiencia.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["ExperienciaAlbum.multipart-experiencia.read_timestamp.read"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_albums_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ExperienciaAlbum identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ExperienciaAlbum resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_albums_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ExperienciaAlbum identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated ExperienciaAlbum resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["ExperienciaAlbum-experiencia.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description ExperienciaAlbum resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ExperienciaAlbum.jsonld-experiencia.read_timestamp.read"];
+                    "application/json": components["schemas"]["ExperienciaAlbum-experiencia.read_timestamp.read"];
+                    "text/html": components["schemas"]["ExperienciaAlbum.html-experiencia.read_timestamp.read"];
+                    "multipart/form-data": components["schemas"]["ExperienciaAlbum.multipart-experiencia.read_timestamp.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_medios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The new ExperienciaMedio resource */
+        requestBody: {
+            content: {
+                "application/ld+json": components["schemas"]["ExperienciaMedio-experiencia_medio.write"];
+                "application/json": components["schemas"]["ExperienciaMedio-experiencia_medio.write"];
+                "multipart/form-data": components["schemas"]["ExperienciaMedio-experiencia_medio.write"];
+            };
+        };
+        responses: {
+            /** @description ExperienciaMedio resource created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ExperienciaMedio.jsonld-experiencia.read"];
+                    "application/json": components["schemas"]["ExperienciaMedio-experiencia.read"];
+                    "text/html": components["schemas"]["ExperienciaMedio.html-experiencia.read"];
+                    "multipart/form-data": components["schemas"]["ExperienciaMedio.multipart-experiencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_medios_id_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ExperienciaMedio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ExperienciaMedio resource deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    api_frontexperiencia_medios_id_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ExperienciaMedio identifier */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated ExperienciaMedio resource */
+        requestBody: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["ExperienciaMedio-experiencia_medio.write.jsonMergePatch"];
+            };
+        };
+        responses: {
+            /** @description ExperienciaMedio resource updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ExperienciaMedio.jsonld-experiencia.read"];
+                    "application/json": components["schemas"]["ExperienciaMedio-experiencia.read"];
+                    "text/html": components["schemas"]["ExperienciaMedio.html-experiencia.read"];
+                    "multipart/form-data": components["schemas"]["ExperienciaMedio.multipart-experiencia.read"];
+                };
+            };
+            /** @description Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["Error.jsonld"];
+                    "application/problem+json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An error occurred */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/ld+json": components["schemas"]["ConstraintViolation.jsonld"];
+                    "application/problem+json": components["schemas"]["ConstraintViolation"];
+                    "application/json": components["schemas"]["ConstraintViolation"];
                 };
             };
         };

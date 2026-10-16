@@ -2,6 +2,7 @@
 nav:
     tours: Tours
     alojamiento: Accommodation
+    experiencias: Experiences
 portada:
     meta_titulo: '%marca% · Tours and deals in Cusco'
     meta_descripcion: 'Discounted tours around Cusco and the Sacred Valley. Check availability and book on WhatsApp.'
@@ -39,3 +40,17 @@ tour:
     nota_precio: 'Indicative "from" prices. We''ll confirm availability and the final price for your date on WhatsApp.'
 pie:
     lema: 'Tours and deals in Cusco.'
+exp:
+    titulo: 'Real experiences'
+    entradilla: 'Photos and videos from trips we have already organised, told by those who travelled.'
+    meta_descripcion: 'Photos and videos from group trips and tours we have organised: Cusco, Machu Picchu and the Caribbean.'
+    vacio: 'We will soon share photos and videos from our trips here.'
+    fotos: '{1} 1 photo|]1,Inf[ %count% photos'
+    videos: '{1} 1 video|]1,Inf[ %count% videos'
+    ver: 'View album'
+    fotos_titulo: Photos
+    videos_titulo: Videos
+    reproducir: 'Play video'
+    quieres: 'Want a trip like this? Message us'
+    whatsapp_mensaje: 'Hello, I saw «%album%» on your website and would like information about a trip.'
+    otras: 'Other experiences'

@@ -168,6 +168,10 @@ catálogo **a** expediente (`CuerpoDeClonacion::$file`). Falta el sentido contra
 
 ### Fase 3 — Multimedia comercial (vídeos y galería de clientes)
 
+**Primera entrega hecha el 16/10/2026**: álbumes con fotos y vídeos en util («Experiencias»),
+`openperu.pe/experiencias` y la página de cada álbum. Ver `docs/WebPublica.md` §2.1. Falta la
+selección por catálogo y la franja en sus secciones.
+
 **Va aparte del cotizador y de los expedientes** (Jorge, 07/10/2026): el catálogo es genérico y
 el expediente es la venta; las fotos y vídeos se ponen **después** de operar un viaje, y hoy no
 están en ninguna parte. Los archivos del expediente son documentos privados (DNI, billetes) y

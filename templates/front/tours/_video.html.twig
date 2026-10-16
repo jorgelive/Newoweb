@@ -1,0 +1,13 @@
+{# Un vídeo de YouTube o Vimeo (VideoExterno) que NO se incrusta al cargar: miniatura y botón, y el
+   reproductor —youtube-nocookie— sólo al pulsar. Sin JavaScript, el enlace abre el vídeo en su
+   sitio. Recibe `video` y, opcional, `pie`. #}
+<figure class="video">
+    <a class="video-boton" href="{{ video.enlace }}" target="_blank" rel="noopener" data-reproductor="{{ video.reproductor }}"
+       aria-label="{{ 'exp.reproducir'|trans({}, 'front_tours') }}{% if pie %}: {{ pie }}{% endif %}">
+        {% if video.miniatura %}<img src="{{ video.miniatura }}" alt="" loading="lazy" width="480" height="360">{% endif %}
+        <span class="video-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </span>
+    </a>
+    {% if pie %}<figcaption>{{ pie }}</figcaption>{% endif %}
+</figure>

@@ -112,6 +112,15 @@ vich_uploader:
             delete_on_update: true
             delete_on_remove: true
 
+        # Fotos de los álbumes de experiencias (ExperienciaMedio): públicas, las sirve la web.
+        front_experiencias:
+            uri_prefix: '%front.path.experiencias%'
+            upload_destination: '%app.public_dir%%front.path.experiencias%'
+            namer: App\Panel\Naming\MediaTokenNamer
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
+
         travel_proveedor_galeria:
             uri_prefix: '%travel.path.proveedor_galeria%'
             upload_destination: '%app.public_dir%%travel.path.proveedor_galeria%'

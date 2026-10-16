@@ -12,6 +12,7 @@ preguntas abiertas están en `docs/PlanWebPublica.md`.
 
 1. [Piezas y flujo](#1-piezas-y-flujo)
 2. [Qué sale en la web](#2-qué-sale-en-la-web)
+   - [2.1 Experiencias: álbumes de fotos y vídeos](#21-experiencias-álbumes-de-fotos-y-vídeos-16102026)
 3. [Plantillas, estilos e idiomas](#3-plantillas-estilos-e-idiomas)
 4. [SEO y compartir](#4-seo-y-compartir)
 5. [Libro de Reclamaciones](#5-libro-de-reclamaciones)
@@ -103,6 +104,54 @@ la cifra grande es el total («total para N pasajeros», `tour.total_para`) y el
 con «por persona, con la base», la nota «calculado para N» (o «para un grupo de N» si el precio es
 personalizado, `tour.grupo_de`); con «solo por persona», ninguna. El mapa de casos está en
 `docs/Cotizaciones.md`, «El precio desde».
+
+### 2.1 Experiencias: álbumes de fotos y vídeos (16/10/2026)
+
+«Experiencias reales»: fotos y vídeos de viajes **ya operados**, para la web. Fase 3 del plan
+(`docs/PlanWebPublica.md`), primera entrega.
+
+```
+util /experiencias (ExperienciasView.vue + experienciaStore.ts)
+   │  POST/PATCH /platform/front/experiencia_albums      ExperienciaAlbum
+   │  POST multipart (campo «imagen») / JSON (vídeo)      ExperienciaMedio ── ExperienciaMedioProcessor
+   ▼
+front_experiencia_album / front_experiencia_medio   (fotos: public/carga/front/experiencias, WebP)
+   │
+   ▼  ExperienciaWebLector  (SÓLO publicado + autorizado + slug)
+openperu.pe/experiencias · /experiencias/{slug} · /en/experiences/…   (ExperienciaController)
+menú «Experiencias» (front_hay_experiencias()) · sitemap
+```
+
+- **Va aparte del cotizador y de los expedientes** (Jorge, 07/10/2026). Las entidades viven en
+  `src/Front/Comun/Entity/` porque también las enseñará centrocuscointi.com.
+- 🔒 **`publicado` exige `autorizado`**: viajes escolares con menores; sin el permiso firmado de
+  las familias no sale (Ley 29733). Tres cerrojos, a propósito redundantes:
+  `ExperienciaAlbum::validarPublicacion()` (la API rechaza con el motivo, 422), la consulta de
+  `ExperienciaWebLector` (un álbum forzado por SQL tampoco sale: probado) y util, que deshabilita
+  «publicado» y despublica al quitar «autorizado».
+- **Fotos**: subidas de una en una (progreso en pantalla), recortadas antes en el navegador
+  (`acotarSiEsFotoGrande`) y pasadas a WebP por `VichWebpConversionListener`; en la web, miniatura
+  `travel_galeria` y grande `travel_cliente`. Borrar un medio o un álbum borra el archivo
+  (`delete_on_remove`, cascada).
+- **Vídeos por ENLACE** de YouTube o Vimeo, nunca MP4 propios: `VideoExterno::desdeUrl()` es a la
+  vez el validador y el que sabe reproducirlos. La web **no incrusta al cargar**: miniatura y botón,
+  y el reproductor —`youtube-nocookie.com`, sin cookies hasta pulsar— sólo al pulsar
+  (`_video.html.twig`); sin JavaScript, el enlace abre el vídeo en su sitio. Vimeo oculto necesita
+  su hash (`vimeo.com/123/abc`), y no tiene miniatura sin llamar a su API: su tarjeta va sin foto.
+- **Portada**: la marcada (estrella en util) o la primera foto; sin fotos, la miniatura del primer
+  vídeo de YouTube.
+- Textos (`titulo`, `texto`, `pie`) con `#[AutoTranslate]`: util manda sólo el español.
+- ⚠️ `/experiencias` es una ruta de UN tramo en la raíz, donde viven los catálogos: está en
+  `CotizacionCatalogo::SLUGS_RESERVADOS` y en `TourController::SLUG_CATALOGO` (§4).
+
+⚠️ **API Platform valida ANTES del procesador.** La regla «una foto trae su archivo» estaba en el
+validador de la entidad y rechazaba TODAS las subidas: el archivo lo recoge
+`ExperienciaMedioProcessor`, que corre después. Vive en el procesador (422 «Falta la foto»); la del
+enlace de vídeo sí puede ir en la entidad, porque el enlace llega en el cuerpo.
+
+**Falta (siguientes entregas de la Fase 3):** elegir en cada catálogo qué álbumes o vídeos enseña,
+la franja «Experiencias reales» en las secciones de la portada y en la página del catálogo, y el
+vídeo del primer catálogo como cabecera.
 
 ## 3. Plantillas, estilos e idiomas
 
@@ -393,6 +442,11 @@ La migración `Version20261007010000` (columnas web del catálogo + tabla del li
 | Qué tours / qué datos tiene una tarjeta | `src/Cotizacion/Service/TourTarjetaResolver.php` | `tarjetas()` |
 | Idioma de los contenidos y su caída | `src/Front/Comun/Service/TextoI18n.php` | `en()` |
 | Portada, catálogo, ficha | `src/Front/Tours/Controller/TourController.php` + `templates/front/tours/*.html.twig` | `portada()`, `catalogo()`, `tour()` |
+| Qué álbumes de experiencias enseña la web | `src/Front/Comun/Service/ExperienciaWebLector.php` | `publicados()`, `album()` — la condición publicado + autorizado va en la consulta |
+| Publicar un álbum: qué exige | `src/Front/Comun/Entity/ExperienciaAlbum.php` | `validarPublicacion()`, `esVisibleEnLaWeb()` |
+| Qué enlaces de vídeo se aceptan y cómo se reproducen | `src/Front/Comun/Dto/VideoExterno.php` | `desdeUrl()`, `reproductor()`, `miniatura()` (espejo de la miniatura en `ExperienciasView.vue`) |
+| Subida de fotos de un álbum | `src/Front/Comun/ApiPlatform/State/ExperienciaMedioProcessor.php` · `util/src/stores/front/experienciaStore.ts` | `process()`, `subirFoto()` |
+| La pantalla de álbumes en util | `util/src/views/Experiencias/ExperienciasView.vue` | — |
 | Añadir una ruta de UN tramo a la web, o reservar una palabra | `CotizacionCatalogo::SLUGS_RESERVADOS` **y** `TourController::SLUG_CATALOGO` | lo vigila `SlugsDeCatalogoTest` |
 | Cuántas fotos de la galería se ven sin desplegar, o su miniatura | `templates/front/tours/tour.html.twig` (`visibles`) · `config/packages/liip_imagine.yaml` | `travel_galeria` |
 | Menú, lema o WhatsApp de la cabecera de tours | `templates/front/tours/layout.html.twig` | bloques `nav`, `pie_lema`, `whatsapp_flotante` |
