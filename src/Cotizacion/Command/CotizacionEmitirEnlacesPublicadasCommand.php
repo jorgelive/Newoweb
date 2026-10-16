@@ -25,7 +25,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * importe) y en tramos si no cabe en el tope de la pasarela.
  *
  *   php bin/console app:cotizacion:enlaces:emitir-publicadas --dry-run
- *   php bin/console app:cotizacion:enlaces:emitir-publicadas
+ *   php bin/console app:cotizacion:enlaces:emitir-publicadas --excepto=X5ZXF4
+ *
+ * El 16/10/2026 se corrió en producción saltando X5ZXF4 (Promoción 2027 Colegio Santa Rosa): un
+ * viaje de colegio aún en modo estándar, cuyo adelanto habría salido en ~17 tramos.
  */
 #[AsCommand(
     name: 'app:cotizacion:enlaces:emitir-publicadas',
@@ -43,12 +46,16 @@ final class CotizacionEmitirEnlacesPublicadasCommand extends Command
     protected function configure(): void
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Sólo lista las propuestas que se mirarían');
+        // Para un viaje de grupo que aún no está marcado como tal (modo «grupo»): sin esto se le
+        // emitiría el adelanto del grupo entero, que no paga nadie con una tarjeta.
+        $this->addOption('excepto', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Localizadores a saltar');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $simular = (bool) $input->getOption('dry-run');
+        $excepto = array_map('strtoupper', array_filter((array) $input->getOption('excepto'), 'is_string'));
 
         /** @var list<Cotizacion> $candidatas */
         $candidatas = $this->em->getRepository(Cotizacion::class)->findBy([
@@ -61,6 +68,11 @@ final class CotizacionEmitirEnlacesPublicadasCommand extends Command
             $file = $cotizacion->getFile();
             if ($file === null) {
                 continue; // Un catálogo: no se vende directamente.
+            }
+
+            if (\in_array(strtoupper((string) $file->getLocalizador()), $excepto, true)) {
+                $filas[] = [$file->getLocalizador(), 'v' . $cotizacion->getPropuesta(), $cotizacion->getEstado()->value, $cotizacion->getTotalVenta(), 'saltado (--excepto)'];
+                continue;
             }
 
             $emitidos = $simular ? [] : $this->enlaces->emitirAdelanto($cotizacion);
