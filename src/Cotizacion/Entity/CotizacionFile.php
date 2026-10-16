@@ -22,6 +22,7 @@ use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
 use App\Contract\VinculoComercial;
+use App\Cotizacion\ApiPlatform\State\CotizacionFileBorradoProcessor;
 use App\Cotizacion\Dto\ComoReservar;
 use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Enum\PaisDeControlEnum;
@@ -38,6 +39,8 @@ use App\Security\Roles;
 use App\Service\Phone\PhoneSanitizer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\Criteria;
+use Doctrine\Common\Collections\Selectable;
 use Doctrine\ORM\Mapping as ORM;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -144,7 +147,9 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Delete(
             security: "is_granted('" . Roles::RESERVAS_DELETE . "')",
-            securityMessage: 'No tienes permiso para eliminar expedientes.'
+            securityMessage: 'No tienes permiso para eliminar expedientes.',
+            // Con pagos no se borra: 409 con el motivo, no un 500 de clave foránea.
+            processor: CotizacionFileBorradoProcessor::class,
         )
     ],
     routePrefix: '/sales'
@@ -529,6 +534,30 @@ class CotizacionFile
      * GETTERS Y SETTERS
      * ====================================================== */
 
+    /**
+     * Las propuestas que casan con un criterio, SIN cargar el resto.
+     *
+     * Sin inicializar, `matching()` pide a la base sólo las filas que casan; ya cargada, filtra en
+     * memoria. Existe porque el provider público no debe hidratar nunca las 100+ versiones de un
+     * expediente grande (ver `CuentaDelExpediente::vivas()`), y `Collection` a secas no declara
+     * `matching()`: es de `Selectable`, que cumplen las dos colecciones reales.
+     *
+     * @return list<Cotizacion>
+     */
+    public function cotizacionesQue(Criteria $criterio): array
+    {
+        $coleccion = $this->cotizaciones instanceof Selectable
+            ? $this->cotizaciones
+            : new ArrayCollection($this->cotizaciones->toArray());
+
+        // El `instanceof` no defiende de nada: al cruzar `Collection<int, Cotizacion>` con
+        // `Selectable` el analizador pierde el tipo del elemento, y esto se lo devuelve sin mentir.
+        return array_values(array_filter(
+            $coleccion->matching($criterio)->toArray(),
+            static fn (mixed $c): bool => $c instanceof Cotizacion,
+        ));
+    }
+
     /** @return Collection<int, CotizacionPago> */
     public function getPagos(): Collection { return $this->pagos; }
 
@@ -563,7 +592,8 @@ class CotizacionFile
      * - Archivado (el viaje terminó) o cerrado (no hubo venta) → `Terminado`.
      *
      * Lo leen `CotizacionFileMessageContext::getVinculo()` al crear el enlace y
-     * `CotizacionVinculoDelExpediente` al registrar o anular un pago. Una sola regla para los dos.
+     * `CotizacionFileConversacionListener`, que resincroniza el enlace al registrar o anular un pago.
+     * Una sola regla para los dos.
      */
     public function vinculoComercial(): VinculoComercial
     {

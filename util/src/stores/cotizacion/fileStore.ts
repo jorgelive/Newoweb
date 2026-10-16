@@ -716,11 +716,15 @@ export const useCotizacionFileStore = defineStore('cotizacionFileStore', () => {
     };
 
     const deleteFile = async (iri: string): Promise<boolean> => {
+        error.value = null;
         try {
             await apiClient.delete(iri);
             files.value = files.value.filter(f => f['@id'] !== iri && f.id !== iri);
             return true;
-        } catch {
+        } catch (err: unknown) {
+            // El servidor dice POR QUÉ —p. ej. «tiene pagos registrados» (409)—; tragárselo dejaba
+            // un «Error al eliminar» que no deja hacer nada.
+            error.value = extractApiErrorMessage(err, 'Error al eliminar el expediente.');
             return false;
         }
     };

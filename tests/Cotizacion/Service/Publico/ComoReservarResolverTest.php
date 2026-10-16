@@ -6,7 +6,11 @@ namespace App\Tests\Cotizacion\Service\Publico;
 
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionCotservicio;
+use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Entity\CotizacionPago;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\FileEstadoEnum;
+use App\Cotizacion\Enum\FileModoEnum;
 use App\Cotizacion\Service\Publico\ComoReservarResolver;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,15 +27,45 @@ final class ComoReservarResolverTest extends TestCase
     public function testSoloSeOfreceLoQueAunNoSeReservo(): void
     {
         $siOfrece = [CotizacionEstadoEnum::PENDIENTE, CotizacionEstadoEnum::ENVIADO];
+        $file = new CotizacionFile();
 
         foreach (CotizacionEstadoEnum::cases() as $estado) {
             self::assertSame(
                 \in_array($estado, $siOfrece, true),
-                ComoReservarResolver::seOfreceEnEstado($estado),
+                ComoReservarResolver::seOfreceEnEstado($file, $estado),
                 // A quien ya pagó, «reserva con el 50 %» le invita a pagar dos veces.
                 sprintf('Estado %s', $estado->value),
             );
         }
+    }
+
+    /** Hallazgo M3 de la revisión: confirmar la v2 no despublica la v1, que seguía ofreciéndose. */
+    public function testConUnaHermanaVendidaNoSeOfreceNinguna(): void
+    {
+        $file = new CotizacionFile();
+        $v1 = (new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::ENVIADO);
+        $file->addCotizacion($v1);
+        self::assertTrue(ComoReservarResolver::seOfrece($file, $v1));
+
+        $file->addCotizacion((new Cotizacion())->setPropuesta(2)->setEstado(CotizacionEstadoEnum::CONFIRMADO));
+        self::assertFalse(ComoReservarResolver::seOfrece($file, $v1));
+    }
+
+    public function testUnExpedienteCerradoOArchivadoNoOfreceNada(): void
+    {
+        foreach ([FileEstadoEnum::CERRADO, FileEstadoEnum::ARCHIVADO] as $estado) {
+            $file = (new CotizacionFile())->setEstado($estado);
+            self::assertFalse(ComoReservarResolver::seOfreceEnEstado($file, CotizacionEstadoEnum::ENVIADO));
+        }
+    }
+
+    public function testEnUnGrupoNoSeEnsenaLoPagado(): void
+    {
+        $file = (new CotizacionFile())->setModo(FileModoEnum::GRUPO);
+        $file->addCotizacion((new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::ENVIADO)->setTotalVenta('900'));
+        $file->getPagos()->add((new CotizacionPago())->setFile($file)->setMonto('300')->setMoneda('USD'));
+
+        self::assertSame(['usd' => 0.0, 'porMoneda' => []], ComoReservarResolver::pagadoVisible($file, 1));
     }
 
     public function testElRestoSePagaElDiaDelPrimerServicio(): void

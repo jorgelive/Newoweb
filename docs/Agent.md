@@ -838,7 +838,8 @@ huésped de una casita (pms_reserva)
   decide `CotizacionFile::vinculoComercial()`: abierto y con algún `CotizacionPago` vivo →
   `Cliente` (perfil `Huesped`); sin pagos → `Interesado`. Hasta ese día no existían pagos de
   turismo y nadie pasaba nunca a cliente. Se recalcula al registrar o anular un pago
-  (`CotizacionVinculoDelExpediente`). Ver `docs/Cotizaciones.md` §6.a.
+  (`CotizacionFileConversacionListener`, el mismo que resincroniza el enlace al editar el
+  expediente). Ver `docs/Cotizaciones.md` §6.a.
 
 ⚠️ **Lo que queda por hacer:** el pasajero de un expediente (`cotizacion_file`) no tiene bloque
 propio —su viaje, sus fechas— y cae al camino sin contexto (alojamiento + venta de tours).

@@ -4,8 +4,8 @@
  *
  * ⚠️ **Aquí no se calcula el saldo.** Total, pagado y saldo vienen hechos del servidor
  * (`CuentaDelExpediente::de()`), que es quien sabe contra qué propuesta se mide. Lo único que se
- * calcula es el adelanto en dinero, con `montoDeAdelanto()` de `dominio/`: la misma función que
- * el editor y `pax`.
+ * calcula es el adelanto en dinero y si está cubierto, con `montoDeAdelanto()` y
+ * `adelantoCubierto()` de `dominio/`: las mismas funciones que el editor y `pax`.
  *
  * Reglas que vienen del servidor y aquí sólo se respetan (ver `CotizacionPago`):
  * - **Registrar un pago NO confirma la propuesta**: si se paga una pendiente o enviada, se avisa.
@@ -19,7 +19,7 @@ import { computed, ref, watch } from 'vue';
 import { apiClient } from '@/services/apiClient';
 import { extractApiErrorMessage } from '@/services/apiError';
 import { hoyNaive } from '@/utils/naiveDate.ts';
-import { montoDeAdelanto } from '@dominio/cotizacion/index.ts';
+import { adelantoCubierto, montoDeAdelanto } from '@dominio/cotizacion/index.ts';
 import {
   MEDIO_PAGO_LABELS,
   type ApiCotizacionFile,
@@ -48,7 +48,7 @@ const adelanto = computed(() => {
   const c = cuenta.value;
   if (!c || c.totalUsd == null || c.porcentajeAdelanto == null) return null;
   const monto = montoDeAdelanto(c.totalUsd, c.porcentajeAdelanto);
-  return { monto, porcentaje: c.porcentajeAdelanto, cubierto: (c.pagadoUsd ?? 0) >= monto - 0.005 };
+  return { monto, porcentaje: c.porcentajeAdelanto, cubierto: adelantoCubierto(c.totalUsd, c.porcentajeAdelanto, c.pagadoUsd ?? 0) };
 });
 
 const resumen = computed(() => {

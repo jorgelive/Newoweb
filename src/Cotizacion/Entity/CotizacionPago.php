@@ -107,8 +107,14 @@ class CotizacionPago
     #[ORM\JoinColumn(name: 'pasajero_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?CotizacionFilepasajero $pasajero = null;
 
+    /**
+     * ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+     * texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+     * reventaban en MySQL con un 500 (revisión del 16/10/2026).
+     */
     #[Groups(['cotizacion_pago:read', 'file:item:read', 'cotizacion_pago:write'])]
     #[Assert\NotBlank]
+    #[Assert\Regex(pattern: '/^\d{1,10}(\.\d{1,2})?$/', message: 'El importe va con punto decimal y como mucho dos decimales (ej.: 1250.50).')]
     #[Assert\Positive(message: 'El importe tiene que ser mayor que cero.')]
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2)]
     private string $monto = '0.00';
@@ -130,6 +136,7 @@ class CotizacionPago
     /** El día en que entró el dinero (hora de pared), no el día en que se apuntó. */
     #[Groups(['cotizacion_pago:read', 'file:item:read', 'cotizacion_pago:write'])]
     #[Assert\NotNull(message: 'Falta la fecha del pago.')]
+    #[Assert\LessThanOrEqual(value: 'today', message: 'Un pago no puede tener fecha futura: se apunta cuando el dinero ya entró.')]
     #[ORM\Column(type: 'date_immutable')]
     private ?DateTimeImmutable $fechaPago = null;
 
@@ -184,10 +191,29 @@ class CotizacionPago
     #[Assert\Callback]
     public function validar(ExecutionContextInterface $context): void
     {
-        if ($this->moneda === 'PEN' && !((float) $this->tipoCambio > 0)) {
-            $context->buildViolation('Un pago en soles necesita el tipo de cambio de ese día.')
-                ->atPath('tipoCambio')
-                ->addViolation();
+        if ($this->moneda === 'PEN') {
+            // Soles por dólar, con punto. Una coma («3,40») se leía como 3 y el pago contaba un 13 %
+            // más de dólares; un 0,0001 hacía de 100 soles un millón. Fuera de 1–10 es un dedo mal
+            // puesto, no un tipo de cambio.
+            $tc = $this->tipoCambio;
+            if ($tc === null || !preg_match('/^\d{1,6}(\.\d{1,4})?$/', $tc) || (float) $tc < 1 || (float) $tc > 10) {
+                $context->buildViolation('Un pago en soles necesita el tipo de cambio de ese día, con punto decimal (ej.: 3.75).')
+                    ->atPath('tipoCambio')
+                    ->addViolation();
+            }
+        }
+
+        // El número de propuesta tiene que existir en el expediente: un pago a la «v99» caía en
+        // silencio en el saldo de otra.
+        if ($this->propuesta !== null && $this->file !== null) {
+            $existe = $this->file->getCotizaciones()->exists(
+                fn (int $i, Cotizacion $c): bool => $c->getPropuesta() === $this->propuesta,
+            );
+            if (!$existe) {
+                $context->buildViolation(sprintf('El expediente no tiene propuesta %d.', $this->propuesta))
+                    ->atPath('propuesta')
+                    ->addViolation();
+            }
         }
 
         $pasajero = $this->pasajero?->getFile();

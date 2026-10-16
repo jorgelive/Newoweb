@@ -9,6 +9,7 @@ use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Finanzas\Enum\FinAudienciaCobro;
 use App\Finanzas\Enum\FinMedioCobroTipo;
 use App\Finanzas\Repository\FinMedioCobroRepository;
@@ -26,7 +27,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * - **Las devoluciones** no se redactan aquí: se enlaza la política publicada en la web.
  *
  * Sólo en una propuesta que todavía se está ofreciendo ({@see self::seOfrece()}). Una confirmada
- * ya está reservada, y decirle «reserva con el 50 %» a quien ya pagó invita a pagar dos veces.
+ * ya está reservada, y decirle «reserva con el 50 %» a quien ya compró invita a pagar dos veces.
  */
 final readonly class ComoReservarResolver
 {
@@ -42,18 +43,42 @@ final readonly class ComoReservarResolver
     /**
      * ¿Se le dice a esta propuesta cómo reservarla?
      *
-     * Pendiente o enviada: lo que aún se está ofreciendo. Confirmada, operativa u operada ya se
-     * reservaron; cerrada, cancelada e histórica no se venden.
+     * Las tres cosas, y la regla es UNA para el detalle y la portada:
+     *
+     * - **La propuesta** está pendiente o enviada: lo que aún se ofrece. Confirmada, operativa u
+     *   operada ya se reservaron; cerrada, cancelada e histórica no se venden.
+     * - **El expediente** sigue abierto: cerrado (no hubo venta) o archivado (el viaje terminó) no
+     *   ofrecen nada, aunque quede una propuesta publicada.
+     * - **No hay otra ya vendida**. Confirmar la v2 no despublica la v1, y la v1 seguía diciendo
+     *   «reserva con el 50 %» a quien ya había comprado la v2 (revisión del 16/10/2026).
      */
-    public static function seOfrece(Cotizacion $cotizacion): bool
+    public static function seOfrece(CotizacionFile $file, Cotizacion $cotizacion): bool
     {
-        return self::seOfreceEnEstado($cotizacion->getEstado());
+        return self::seOfreceEnEstado($file, $cotizacion->getEstado());
     }
 
     /** Lo mismo, para quien lee el estado de una consulta escalar (la portada). */
-    public static function seOfreceEnEstado(CotizacionEstadoEnum $estado): bool
+    public static function seOfreceEnEstado(CotizacionFile $file, CotizacionEstadoEnum $estado): bool
     {
-        return \in_array($estado, [CotizacionEstadoEnum::PENDIENTE, CotizacionEstadoEnum::ENVIADO], true);
+        return \in_array($estado, [CotizacionEstadoEnum::PENDIENTE, CotizacionEstadoEnum::ENVIADO], true)
+            && $file->getEstado() === FileEstadoEnum::ABIERTO
+            && CuentaDelExpediente::vendida($file) === null;
+    }
+
+    /**
+     * Lo ya pagado a cuenta de una propuesta, tal como lo puede ver el cliente.
+     *
+     * 🔒 **En un grupo, nada.** El enlace lo tienen todas las familias, y la suma de lo pagado sería
+     * el dinero de todas — a la vista de cualquiera y diciéndole «adelanto recibido» a quien no
+     * pagó. Lo de cada familia, cuando haya cuenta por persona identificada.
+     *
+     * @return array{usd: float, porMoneda: array<string, float>}
+     */
+    public static function pagadoVisible(CotizacionFile $file, int $propuesta): array
+    {
+        return $file->getModo()->ocultaTotalDeGrupo()
+            ? ['usd' => 0.0, 'porMoneda' => []]
+            : CuentaDelExpediente::pagadoDePropuesta($file, $propuesta);
     }
 
     /** El día del primer servicio, o `null` si la propuesta no tiene fechas. */
@@ -74,7 +99,7 @@ final readonly class ComoReservarResolver
 
     public function para(CotizacionFile $file, Cotizacion $cotizacion, DateTimeImmutable $hoy): ?ComoReservar
     {
-        if (!self::seOfrece($cotizacion)) {
+        if (!self::seOfrece($file, $cotizacion)) {
             return null;
         }
 
@@ -109,12 +134,8 @@ final readonly class ComoReservarResolver
                 'es' => $this->politica('es'),
                 'en' => $this->politica('en'),
             ],
-            // 🔒 En un grupo NO: el enlace lo tienen todas las familias, y la suma de lo pagado
-            // sería el dinero de todas — a la vista de cualquiera y diciéndole «adelanto recibido»
-            // a quien no pagó. Lo de cada familia, cuando haya cuenta por persona identificada.
-            pagadoUsd: $file->getModo()->ocultaTotalDeGrupo()
-                ? 0.0
-                : CuentaDelExpediente::pagadoUsdDePropuesta($file, $cotizacion->getPropuesta()),
+            pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta()))['usd'],
+            pagadoPorMoneda: $pagado['porMoneda'],
         );
     }
 

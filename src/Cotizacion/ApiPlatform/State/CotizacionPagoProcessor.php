@@ -8,11 +8,9 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Cotizacion\Entity\CotizacionPago;
-use App\Cotizacion\Service\Message\CotizacionVinculoDelExpediente;
 use App\Entity\User;
 use DateTimeImmutable;
 use DomainException;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -24,8 +22,9 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * - **Anular** (`PATCH /cotizacion_pagos/{id}/anular`): el cuerpo sólo trae el motivo, y es
  *   {@see CotizacionPago::anular()} quien cambia el estado — de ida, y con motivo obligatorio.
  *
- * En los dos casos, después, el vínculo comercial de las conversaciones del expediente: pagar es
- * lo que convierte a alguien en cliente para el agente ({@see CotizacionVinculoDelExpediente}).
+ * El vínculo comercial de las conversaciones del expediente —pagar hace cliente— NO se toca aquí:
+ * lo resincroniza `CotizacionFileConversacionListener` en el mismo flush, que es el sitio por el
+ * que pasará también el cobro por pasarela.
  *
  * @implements ProcessorInterface<CotizacionPago, CotizacionPago|null>
  */
@@ -36,8 +35,6 @@ final readonly class CotizacionPagoProcessor implements ProcessorInterface
         #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
         private ProcessorInterface $persistProcessor,
         private Security $security,
-        private CotizacionVinculoDelExpediente $vinculo,
-        private EntityManagerInterface $em,
     ) {
     }
 
@@ -65,18 +62,6 @@ final readonly class CotizacionPagoProcessor implements ProcessorInterface
             }
         }
 
-        $resultado = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
-
-        $file = $data->getFile();
-        if ($file !== null) {
-            // La colección inversa no se entera sola de un pago recién creado en esta petición.
-            if (!$file->getPagos()->contains($data)) {
-                $file->getPagos()->add($data);
-            }
-            $this->vinculo->aplicar($file);
-            $this->em->flush();
-        }
-
-        return $resultado;
+        return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
     }
 }

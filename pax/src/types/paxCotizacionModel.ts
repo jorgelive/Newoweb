@@ -441,6 +441,8 @@ export interface PaxPropuestaResumen {
      * bloque del detalle.
      */
     reservable?: boolean;
+    /** Lo ya pagado a cuenta de esta propuesta, en USD; 0 si no se ofrece o va en grupo. */
+    pagadoUsd?: number;
     fechaExpiracion?: string | null;
     fechaInicio?: string | null; // primera fecha de servicio (yyyy-MM-dd)
 }
@@ -469,12 +471,14 @@ type FileBase = components['schemas']['CotizacionFile-pax_file.read_pax_cotizaci
  */
 export type PaxComoReservar = Omit<
     components['schemas']['ComoReservar-pax_file.read_pax_cotizacion.read'],
-    'medios' | 'politicaDevoluciones'
+    'medios' | 'politicaDevoluciones' | 'pagadoPorMoneda'
 > & {
     medios: GuiaMedioPago[];
     politicaDevoluciones: { es: string; en: string };
     /** Lo ya pagado a cuenta de esta propuesta, en USD. Siempre viaja (0 sin pagos). */
     pagadoUsd: number;
+    /** Lo mismo por moneda, sin convertir: lo que de verdad transfirió (`{ PEN: 1700 }`). */
+    pagadoPorMoneda: Record<string, number>;
 };
 
 export type PaxCotizacionFile = Omit<

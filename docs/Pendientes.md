@@ -29,7 +29,9 @@ decidió dejar para después:
    **El libro de pagos ya existe** (`CotizacionPago`, 16/10/2026): `resolver()` sale de
    `CuentaDelExpediente::de()` (saldo de la propuesta que manda) y `registrarCobro()` crea un
    `CotizacionPago` medio `tarjeta` con `enlacePagoId` —la columna ya está— y devuelve su id. Al
-   cobrarse el vínculo y la Caja se ponen solos, porque pasan por el mismo sitio que el alta a mano.
+   cobrarse, el vínculo y la Caja se ponen solos: el vínculo lo resincroniza
+   `CotizacionFileConversacionListener` en cuanto se inserta un `CotizacionPago`, venga de donde
+   venga, y la Caja lee la tabla.
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):

@@ -31,3 +31,19 @@ export function montoDeAdelanto(total: number, porcentaje: number): number {
 export function saldoTrasAdelanto(total: number, porcentaje: number): number {
     return r2(r2(total) - montoDeAdelanto(total, porcentaje));
 }
+
+/**
+ * Lo que falta pagar para completar el adelanto (0 si ya está), en céntimos.
+ *
+ * Lo leen el panel de pagos de `util` y «Cómo reservar» de `pax`: estuvo escrito dos veces, con
+ * tolerancias distintas, y en el borde de medio céntimo una pantalla decía «cubierto» y la otra
+ * «faltan 0,01» (revisión del 16/10/2026).
+ */
+export function faltaParaAdelanto(total: number, porcentaje: number, pagado: number): number {
+    return Math.max(0, r2(montoDeAdelanto(total, porcentaje) - r2(pagado)));
+}
+
+/** ¿Lo pagado cubre el adelanto? Comparado en céntimos, nunca con decimales sueltos. */
+export function adelantoCubierto(total: number, porcentaje: number, pagado: number): boolean {
+    return faltaParaAdelanto(total, porcentaje, pagado) === 0;
+}

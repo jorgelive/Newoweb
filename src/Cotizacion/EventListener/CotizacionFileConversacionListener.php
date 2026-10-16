@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Cotizacion\EventListener;
 
 use App\Cotizacion\Entity\CotizacionFile;
+use App\Cotizacion\Entity\CotizacionPago;
 use App\Cotizacion\Service\Message\CotizacionFileMessageContext;
 use App\Message\Factory\MessageConversationFactory;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\PersistentCollection;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use Psr\Log\LoggerInterface;
@@ -64,6 +66,21 @@ final class CotizacionFileConversacionListener
         foreach ([...$uow->getScheduledEntityInsertions(), ...$uow->getScheduledEntityUpdates()] as $entidad) {
             if ($entidad instanceof CotizacionFile && $entidad->getId() !== null) {
                 $this->pendientes[(string) $entidad->getId()] = true;
+            }
+
+            // Un pago registrado o anulado cambia el VÍNCULO (pagar hace cliente, ver
+            // `CotizacionFile::vinculoComercial()`), y el enlace lo guarda: se resincroniza el
+            // expediente igual que si se hubiera editado. Aquí y no en el procesador de la API para
+            // que valga también para el cobro por pasarela, que no pasa por API Platform.
+            if ($entidad instanceof CotizacionPago && ($file = $entidad->getFile()) !== null && $file->getId() !== null) {
+                $this->pendientes[(string) $file->getId()] = true;
+
+                // La colección inversa no se entera sola de un pago nuevo. Si ya está cargada se
+                // añade; si no, la cargará de la base con el pago ya dentro.
+                $pagos = $file->getPagos();
+                if ((!$pagos instanceof PersistentCollection || $pagos->isInitialized()) && !$pagos->contains($entidad)) {
+                    $pagos->add($entidad);
+                }
             }
         }
     }

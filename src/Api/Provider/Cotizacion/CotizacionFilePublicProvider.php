@@ -138,7 +138,7 @@ final class CotizacionFilePublicProvider implements ProviderInterface
             $file->setSaltosDeOperador($hayBorradores !== [] ? ['sin_publicar'] : []);
         }
 
-        $file->setPropuestasParaCliente(array_map(static function (array $f) use ($previsualiza): array {
+        $file->setPropuestasParaCliente(array_map(function (array $f) use ($previsualiza, $file): array {
             // `precioOculto` sale DERIVADO del enum, igual que `Cotizacion::isPrecioOculto()`.
             $presentacion = $f['presentacionPrecio'] instanceof PresentacionPrecioEnum
                 ? $f['presentacionPrecio']
@@ -180,7 +180,12 @@ final class CotizacionFilePublicProvider implements ProviderInterface
                 'adelanto'        => $f['adelanto'],
                 // ¿Se ofrece aún? Sólo entonces la portada dice «reserva con el 50 %». Lo decide
                 // el mismo juez que el bloque del detalle: ver `ComoReservarResolver::seOfrece()`.
-                'reservable'      => $estadoEnum !== null && ComoReservarResolver::seOfreceEnEstado($estadoEnum),
+                'reservable'      => $reservable = $estadoEnum !== null && ComoReservarResolver::seOfreceEnEstado($file, $estadoEnum),
+                // Lo ya pagado, con la misma regla que el detalle: si cubre el adelanto, la tarjeta
+                // dice «adelanto recibido» en vez de volver a pedirlo a un clic del detalle.
+                'pagadoUsd'       => $reservable && !$oculto
+                    ? ComoReservarResolver::pagadoVisible($file, $f['propuesta'])['usd']
+                    : 0.0,
                 // ⚠️ Como DÍA (`Y-m-d`), no como instante con desplazamiento.
                 //
                 // Salía en `DATE_ATOM` y el cliente sólo la enseña como «Válida hasta el 15 de

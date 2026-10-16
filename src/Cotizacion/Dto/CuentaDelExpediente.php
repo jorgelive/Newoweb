@@ -7,6 +7,7 @@ namespace App\Cotizacion\Dto;
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Enum\CotizacionEstadoEnum;
+use Doctrine\Common\Collections\Criteria;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
@@ -107,38 +108,80 @@ final readonly class CuentaDelExpediente
         );
     }
 
-    /** Lo que el cliente ha pagado a cuenta de UNA propuesta: los pagos que la nombran y los que no nombran ninguna. */
-    public static function pagadoUsdDePropuesta(CotizacionFile $file, int $propuesta): float
+    /**
+     * Lo que el cliente ha pagado a cuenta de UNA propuesta: en USD y por moneda, sin convertir.
+     *
+     * 🔥 **La misma regla que el saldo, no una parecida** (revisión del 16/10/2026). Antes la ficha
+     * sumaba todos los pagos y `pax` sólo los que nombraban la propuesta: un pago a la v1, ya
+     * cancelada, bajaba el saldo de la v2 en util y en `pax` la v2 seguía pidiendo el adelanto
+     * entero a quien ya había pagado. Ahora:
+     *
+     * - Si es la propuesta BASE de la cuenta → todo lo pagado, igual que el saldo.
+     * - Si no hay base → los pagos que la nombran y los que no nombran ninguna.
+     * - Si hay otra base → sólo los que la nombran: lo pagado por la vendida no es de la hermana.
+     *
+     * `porMoneda` es lo que de verdad se transfirió: `pax` lo enseña en la vista en soles en vez de
+     * reconvertir los dólares al cambio de la cotización («yo mandé 1 700, ¿por qué dice 1 702?»).
+     *
+     * @return array{usd: float, porMoneda: array<string, float>}
+     */
+    public static function pagadoDePropuesta(CotizacionFile $file, int $propuesta): array
     {
-        $suma = 0.0;
+        $base = self::de($file)->propuestaBase;
+        $usd = 0.0;
+        $porMoneda = [];
 
         foreach ($file->getPagos() as $pago) {
-            if ($pago->cuenta() && ($pago->getPropuesta() === null || $pago->getPropuesta() === $propuesta)) {
-                $suma += $pago->equivalenteUsd();
+            if (!$pago->cuenta()) {
+                continue;
+            }
+
+            $cuenta = match (true) {
+                $base === $propuesta => true,
+                $base === null => $pago->getPropuesta() === null || $pago->getPropuesta() === $propuesta,
+                default => $pago->getPropuesta() === $propuesta,
+            };
+
+            if ($cuenta) {
+                $usd += $pago->equivalenteUsd();
+                $porMoneda[$pago->getMoneda()] = round(($porMoneda[$pago->getMoneda()] ?? 0.0) + (float) $pago->getMonto(), 2);
             }
         }
 
-        return round($suma, 2);
+        return ['usd' => round($usd, 2), 'porMoneda' => $porMoneda];
     }
 
-    /** @return list<Cotizacion> Las propuestas vivas: sin las fotos congeladas (históricos). */
+    /**
+     * Las propuestas vivas: sin las fotos congeladas (históricos).
+     *
+     * ⚠️ **Con `Criteria`, no recorriendo la colección.** El provider público lee las propuestas con
+     * una consulta escalar para no hidratar nunca las 100+ versiones de un expediente grande; un
+     * `foreach` aquí las cargaría todas. `matching()` sobre la colección sin inicializar pide a la
+     * base sólo las que casan; en util, donde ya está cargada, filtra en memoria.
+     *
+     * @return list<Cotizacion>
+     */
     private static function vivas(CotizacionFile $file): array
     {
-        $vivas = [];
-
-        foreach ($file->getCotizaciones() as $cotizacion) {
-            if ($cotizacion->getEstado() !== CotizacionEstadoEnum::HISTORICO) {
-                $vivas[] = $cotizacion;
-            }
-        }
-
-        return $vivas;
+        return $file->cotizacionesQue(
+            Criteria::create()->where(Criteria::expr()->neq('estado', CotizacionEstadoEnum::HISTORICO)),
+        );
     }
 
-    private static function vendida(CotizacionFile $file): ?Cotizacion
+    /**
+     * La propuesta vendida del expediente: confirmada; si no, operada; si no, operativa.
+     *
+     * ⚠️ Supone **un viaje por expediente** (`ARCHIVADO` = el viaje terminó). Con dos vendidas, todo
+     * lo pagado contaría contra la primera que encuentre. Un segundo viaje es otro expediente.
+     */
+    public static function vendida(CotizacionFile $file): ?Cotizacion
     {
+        $vendidas = $file->cotizacionesQue(Criteria::create()->where(Criteria::expr()->in('estado', [
+            CotizacionEstadoEnum::CONFIRMADO, CotizacionEstadoEnum::OPERADO, CotizacionEstadoEnum::OPERATIVA,
+        ])));
+
         foreach ([CotizacionEstadoEnum::CONFIRMADO, CotizacionEstadoEnum::OPERADO, CotizacionEstadoEnum::OPERATIVA] as $estado) {
-            foreach (self::vivas($file) as $cotizacion) {
+            foreach ($vendidas as $cotizacion) {
                 if ($cotizacion->getEstado() === $estado) {
                     return $cotizacion;
                 }

@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router';
 import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import { fmtNaiveDia } from '@dominio/fecha/index.ts';
-import { montoDeAdelanto } from '@dominio/cotizacion/index.ts';
+import { adelantoCubierto, montoDeAdelanto } from '@dominio/cotizacion/index.ts';
 import type { PaxPropuestaResumen } from '@/types/paxCotizacionModel';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 
@@ -131,11 +131,24 @@ const formatearMontoPortada = (monto: string | null, monedaGlobal: string, tipoC
 const adelantoDe = (v: PaxPropuestaResumen): string => {
   const pct = Number(v.adelanto);
   if (!v.reservable || !(pct > 0)) return '';
-  if (pct >= 100) return maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+  const total = v.totalVenta === null || v.precioOculto ? null : Number(v.totalVenta);
+  const dinero = (usd: number) => formatearMontoPortada(String(usd), v.monedaGlobal, v.tipoCambio);
+
+  // Con pago registrado no se vuelve a pedir: la misma regla que el detalle, a un clic de aquí
+  // (`adelantoCubierto()`, `dominio/`). Revisión del 16/10/2026.
+  const pagado = v.pagadoUsd ?? 0;
+  if (pagado > 0) {
+    if (total !== null && adelantoCubierto(total, pct, pagado)) return maestroStore.t('cot_adelanto_recibido') || 'Adelanto recibido';
+    return `${maestroStore.t('cot_pago_recibido') || 'Recibido'}: ${dinero(pagado)}`;
+  }
+
+  if (pct >= 100) {
+    const todo = maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+    return total !== null ? `${todo}: ${dinero(total)}` : todo;
+  }
   const pctLabel = `${pct.toLocaleString(maestroStore.idiomaActual, { maximumFractionDigits: 2 })} %`;
   const con = maestroStore.t('cot_reserva_con', { pct: pctLabel }) || `Reserva con el ${pctLabel}`;
-  if (v.totalVenta === null || v.precioOculto) return con;
-  return `${con}: ${formatearMontoPortada(String(montoDeAdelanto(Number(v.totalVenta), pct)), v.monedaGlobal, v.tipoCambio)}`;
+  return total !== null ? `${con}: ${dinero(montoDeAdelanto(total, pct))}` : con;
 };
 </script>
 

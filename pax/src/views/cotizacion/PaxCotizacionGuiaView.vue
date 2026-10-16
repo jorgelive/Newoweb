@@ -24,7 +24,7 @@ import { usePaxCotizacionStore } from '@/stores/cotizacion/paxCotizacionStore';
 import { useMaestroStore } from '@/stores/maestroStore';
 import EstadoDeActividad, { type ExcepcionDeActividad } from '@/components/cotizacion/EstadoDeActividad.vue';
 import type { PaxInclusionItem, PaxTarifaFinanciera, PaxClasePasajero, PaxCotServicio, PaxCotSegmento, PaxCotComponente, I18n } from '@/types/paxCotizacionModel';
-import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento, montoDeAdelanto, saldoTrasAdelanto } from '@dominio/cotizacion/index.ts';
+import { componerItinerario, dateOf, hhmm, compConHora, diffDays, etiquetaDeUnidades, resumenDeDuracion, mandaElSegmento, montoDeAdelanto, saldoTrasAdelanto, faltaParaAdelanto } from '@dominio/cotizacion/index.ts';
 import type { BloqueVista as BloqueVistaBase } from '@dominio/cotizacion/index.ts';
 import AvisoVistaDeOperador from '@/components/AvisoVistaDeOperador.vue';
 import MisDocumentos, { faltanDocumentos, pedidosEfectivos } from '@/components/cotizacion/MisDocumentos.vue';
@@ -1667,14 +1667,22 @@ const pagoRecibido = computed(() => {
   const pagadoUsd = store.comoReservar?.pagadoUsd ?? 0;
   if (!(pagadoUsd > 0)) return null;
   const tc = tipoCambio.value || 1;
+
+  // 🔥 Lo RECIBIDO, tal como se transfirió (revisión del 16/10/2026). Reconvertir los dólares al
+  // cambio de la cotización enseñaba «Recibido S/ 1 702,50» a quien mandó S/ 1 700 al cambio de su
+  // día. En la vista en soles: los soles de verdad, más los dólares al cambio. Lo que FALTA sí va
+  // convertido, porque es deuda en dólares.
+  const porMoneda = store.comoReservar?.pagadoPorMoneda ?? {};
+  const solesReales = (porMoneda.PEN ?? 0) + (porMoneda.USD ?? 0) * tc;
+  const pagado = monedaVista.value === 'PEN' ? fmtPEN(solesReales) : mv(pagadoUsd * tc, pagadoUsd);
+
   const total = planReserva.value ? totalViaje.value : null;
-  if (!total) return { pagado: mv(pagadoUsd * tc, pagadoUsd), adelantoCubierto: false, completo: false, resto: null, faltaAdelanto: null };
+  if (!total) return { pagado, adelantoCubierto: false, completo: false, resto: null, faltaAdelanto: null };
   const p = porcentajeAdelanto.value;
-  const adelantoUsd = montoDeAdelanto(total.dolares, p);
   const restoUsd = Math.max(0, Math.round((total.dolares - pagadoUsd) * 100) / 100);
-  const faltaUsd = Math.max(0, Math.round((adelantoUsd - pagadoUsd) * 100) / 100);
+  const faltaUsd = faltaParaAdelanto(total.dolares, p, pagadoUsd);
   return {
-    pagado: mv(pagadoUsd * tc, pagadoUsd),
+    pagado,
     adelantoCubierto: faltaUsd === 0,
     completo: restoUsd === 0,
     resto: mv(restoUsd * tc, restoUsd),
@@ -1694,7 +1702,11 @@ const notaComoReservar = computed(() => {
     return maestroStore.t('cot_gracias_pago') || 'Recibimos tu pago, ¡gracias!';
   }
   const p = porcentajeAdelanto.value;
-  if (p >= 100) return maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+  if (p >= 100) {
+    // Con el importe, como al 50 %: «para reservar se paga el total» a secas obligaba a abrir.
+    const total = maestroStore.t('cot_reserva_total') || 'Para reservar se paga el total';
+    return planReserva.value ? `${total}: ${planReserva.value.adelanto}` : total;
+  }
   if (p <= 0) return maestroStore.t('cot_reserva_sin_adelanto') || 'Sin adelanto: todo se paga el día del primer servicio';
   const con = maestroStore.t('cot_reserva_con', { pct: porcentajeLabel.value }) || `Reserva con el ${porcentajeLabel.value}`;
   return planReserva.value ? `${con}: ${planReserva.value.adelanto}` : con;

@@ -3073,9 +3073,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3102,9 +3109,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.html": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3131,9 +3145,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.html-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3160,9 +3181,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.jsonld": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3189,9 +3217,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.jsonld-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3218,9 +3253,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.multipart": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3247,9 +3289,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         "ComoReservar.multipart-pax_file.read_pax_cotizacion.read": {
             /** @description 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -3276,9 +3325,16 @@ export interface components {
             };
             /**
              * @description Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+             *     el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
              */
             pagadoUsd?: number;
+            /**
+             * @description Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+             *     enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+             */
+            pagadoPorMoneda?: {
+                [key: string]: number;
+            };
         };
         /** @description Entidad base para la logística pura (El insumo financiero). */
         Componente: {
@@ -17124,7 +17180,12 @@ export interface components {
         "CotizacionPago-cotizacion_pago.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17185,7 +17246,12 @@ export interface components {
              * @example https://example.com/
              */
             pasajero?: string | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17211,7 +17277,12 @@ export interface components {
         "CotizacionPago-file.item.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17254,7 +17325,12 @@ export interface components {
         "CotizacionPago-file.read_file.item.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17302,7 +17378,12 @@ export interface components {
         "CotizacionPago.html-cotizacion_pago.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17349,7 +17430,12 @@ export interface components {
         "CotizacionPago.html-file.item.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17392,7 +17478,12 @@ export interface components {
         "CotizacionPago.html-file.read_file.item.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17440,7 +17531,12 @@ export interface components {
         "CotizacionPago.jsonld-cotizacion_pago.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17488,7 +17584,12 @@ export interface components {
         "CotizacionPago.jsonld-file.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17532,7 +17633,12 @@ export interface components {
         "CotizacionPago.jsonld-file.read_file.item.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17580,7 +17686,12 @@ export interface components {
         "CotizacionPago.multipart-cotizacion_pago.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17627,7 +17738,12 @@ export interface components {
         "CotizacionPago.multipart-file.item.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD
@@ -17670,7 +17786,12 @@ export interface components {
         "CotizacionPago.multipart-file.read_file.item.read_timestamp.read": {
             /** @description El número de propuesta que se pagaba; `null` = a cuenta del viaje, sin elegir versión. */
             propuesta?: number | null;
-            /** @default 0.00 */
+            /**
+             * @description ⚠️ **`Regex` además de `Positive`, y no es redundante.** Con un texto, `Positive` compara como
+             *     texto: `'abc' > 0` y `'12,50' > 0` son `true` en PHP 8, así que pasaban la validación y
+             *     reventaban en MySQL con un 500 (revisión del 16/10/2026).
+             * @default 0.00
+             */
             monto: string;
             /**
              * @default USD

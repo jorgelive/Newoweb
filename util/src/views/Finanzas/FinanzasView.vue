@@ -909,10 +909,10 @@ function fechaLarga(iso?: string | null): string {
                         <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                             <button v-if="puedeAbrirDocumento(c.origenTipo, c.origenId)" type="button"
                                 @click.stop="abrirDocumento(c.origenTipo, c.origenId)"
-                                title="Abrir la ficha de la reserva"
+                                :title="c.origenTipo === 'cotizacion' ? 'Abrir el expediente' : 'Abrir la ficha de la reserva'"
                                 class="px-2 py-1 rounded border border-[#376875]/30 text-[11px] font-black text-[#376875]
                                        hover:bg-[#376875]/5 truncate">
-                                <i class="fas fa-bed mr-1"></i>{{ c.origenReferencia || 'Ver reserva' }}
+                                <i class="fas mr-1" :class="c.origenTipo === 'cotizacion' ? 'fa-suitcase-rolling' : 'fa-bed'"></i>{{ c.origenReferencia || (c.origenTipo === 'cotizacion' ? 'Ver expediente' : 'Ver reserva') }}
                             </button>
                             <span v-else-if="c.origenReferencia" class="text-[11px] font-bold text-slate-500 truncate">
                                 {{ c.origenReferencia }}
@@ -995,10 +995,10 @@ function fechaLarga(iso?: string | null): string {
                         <div class="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
                             <button v-if="puedeAbrirDocumento(m.origenTipo, m.origenId)" type="button"
                                 @click="abrirDocumento(m.origenTipo, m.origenId)"
-                                title="Abrir la ficha de la reserva"
+                                :title="m.origenTipo === 'cotizacion' ? 'Abrir el expediente' : 'Abrir la ficha de la reserva'"
                                 class="px-2 py-1 rounded border border-[#376875]/30 font-black text-[#376875]
                                        hover:bg-[#376875]/5 truncate">
-                                <i class="fas fa-bed mr-1"></i>{{ m.origenReferencia || 'Ver reserva' }}
+                                <i class="fas mr-1" :class="m.origenTipo === 'cotizacion' ? 'fa-suitcase-rolling' : 'fa-bed'"></i>{{ m.origenReferencia || (m.origenTipo === 'cotizacion' ? 'Ver expediente' : 'Ver reserva') }}
                             </button>
                             <span v-else class="font-bold text-slate-500 truncate">{{ m.origenReferencia || '—' }}</span>
                             <span class="text-slate-500 truncate">

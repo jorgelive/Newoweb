@@ -26,6 +26,7 @@ final readonly class ComoReservar
      * @param list<array<string, mixed>> $medios Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
      *                                           ya filtradas por procedencia y por los días que faltan.
      * @param array<string, string> $politicaDevoluciones URL de la política en la web, por idioma (`es`, `en`).
+     * @param array<string, float>  $pagadoPorMoneda      Lo pagado por moneda, sin convertir.
      */
     public function __construct(
         /** 0–100. El 50 es el de siempre; 100 es pagar todo para reservar. */
@@ -55,10 +56,17 @@ final readonly class ComoReservar
 
         /**
          * Lo que ya pagó a cuenta de esta propuesta, en USD (16/10/2026). Con el adelanto cubierto
-         * el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoUsdDePropuesta()`.
+         * el bloque deja de pedirlo y dice cuánto queda. Ver `CuentaDelExpediente::pagadoDePropuesta()`.
          */
         #[Groups(['pax_cotizacion:read'])]
         public float $pagadoUsd = 0.0,
+
+        /**
+         * Lo mismo por moneda y sin convertir: lo que de verdad transfirió. En la vista en soles se
+         * enseña esto, y no los dólares reconvertidos al cambio de la cotización.
+         */
+        #[Groups(['pax_cotizacion:read'])]
+        public array $pagadoPorMoneda = [],
     ) {
     }
 }

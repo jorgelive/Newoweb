@@ -4038,9 +4038,12 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
   redondeado**: 50 % de 139,99 → 70,00 + 69,99, nunca 70,00 + 70,00.
   - Con importe sólo si el total está a la vista: precio oculto o «sólo por persona» no tienen un
     total del que sacar la mitad.
-- **Sólo en una propuesta que aún se ofrece** (`pendiente`, `enviado`):
-  `ComoReservarResolver::seOfreceEnEstado()`. A quien ya confirmó, «reserva con el 50 %» le invita
-  a pagar dos veces. La portada recibe el mismo veredicto en `reservable`, no lo deduce.
+- **Sólo en una propuesta que aún se ofrece** (`ComoReservarResolver::seOfreceEnEstado()`): la
+  propuesta pendiente o enviada, el expediente abierto, y **ninguna hermana vendida** — confirmar
+  la v2 no despublica la v1, que seguía diciendo «reserva con el 50 %» a quien ya había comprado.
+  La portada recibe el mismo veredicto en `reservable`, no lo deduce. «Hay una vendida» se pregunta
+  con `CotizacionFile::cotizacionesQue(Criteria)`: el provider público no debe hidratar nunca las
+  100+ versiones de un expediente, y sin inicializar `matching()` sólo trae las que casan.
 - **Nunca en un catálogo.** El precio de un catálogo es referencial («desde»); para vender se pasa
   antes por una cotización con los pasajeros reales. El catálogo es otra entidad y otro provider,
   así que el bloque no existe ahí. Ver el pendiente en `docs/Pendientes.md`.
@@ -4069,10 +4072,10 @@ lista y el alta.
 util FilePagosPanel ── POST /platform/sales/cotizacion_pagos ── CotizacionPagoProcessor
                     └─ PATCH …/{id}/anular                         │ registradoPor = sesión
                                                                    │ anular(): de ida, con motivo
-                                                                   ▼
-                                     CotizacionVinculoDelExpediente::aplicar()  → enlaces del chat
-CotizacionFile::getCuenta() ── CuentaDelExpediente::de()   (util: total, pagado, saldo, aviso)
-ComoReservarResolver ── CuentaDelExpediente::pagadoUsdDePropuesta()   (pax: «adelanto recibido»)
+                                                                   ▼ flush
+                         CotizacionFileConversacionListener → upsertFromContext() → vínculo del enlace
+CotizacionFile::getCuenta() ── CuentaDelExpediente::de()          (util: total, pagado, saldo, aviso)
+ComoReservarResolver ── CuentaDelExpediente::pagadoDePropuesta()  (pax detalle y portada)
 CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
 ```
 
@@ -4094,13 +4097,31 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
 - **El saldo se mide contra UNA propuesta** (`CuentaDelExpediente::de()`): la vendida
   (confirmada → operada → operativa, con el dinero de su confirmada); si no, la que nombra el
   último pago; si no, la única viva. Sin ninguna, no hay saldo: se dice lo pagado y nada más.
+  Supone **un viaje por expediente**: con dos vendidas, todo contaría contra la primera.
+- **Lo pagado de una propuesta sigue la MISMA regla en las tres pantallas**
+  (`CuentaDelExpediente::pagadoDePropuesta()`): la base cuenta todo lo pagado, como el saldo; sin
+  base, lo que la nombra y lo que no nombra ninguna; una hermana de la base, sólo lo que la nombra.
+  🔥 Antes util sumaba todo y pax sólo lo nombrado: un pago a una v1 cancelada bajaba el saldo de
+  la v2 en la ficha mientras pax seguía pidiéndole el adelanto entero (revisión del 16/10/2026).
+- **«Adelanto cubierto» es una función de `dominio/`** (`adelantoCubierto()`,
+  `faltaParaAdelanto()`), en céntimos: estuvo escrita dos veces con tolerancias distintas.
 - **Pagar hace cliente** para el agente: `CotizacionFile::vinculoComercial()` = abierto y con pago
   → `Cliente`; abierto sin pago → `Interesado`; archivado o cerrado → `Terminado`. El enlace guarda
-  el vínculo, así que el procesador lo recalcula al registrar o anular.
+  el vínculo y lo resincroniza `CotizacionFileConversacionListener`, el mismo que ya lo hacía al
+  editar el expediente: ahora también cuando se inserta o anula un `CotizacionPago`. Ahí y no en
+  el procesador de la API para que valga para el cobro por pasarela, que no pasa por API Platform.
 - **pax deja de pedir lo que ya entró**: con el adelanto cubierto, «Adelanto recibido · quedan
-  $ X»; con todo pagado, sin medios de pago. 🔒 **En un expediente de grupo no**: el enlace lo
-  tienen todas las familias, y la suma de lo pagado sería el dinero de todas, a la vista de
-  cualquiera y diciéndole «recibido» a quien no pagó (`ComoReservarResolver`, `pagadoUsd` a 0).
+  $ X»; con todo pagado, sin medios de pago; la portada dice lo mismo (`pagadoUsd` por tarjeta).
+  En la vista en soles, «Recibido» es lo que **de verdad se transfirió** (`pagadoPorMoneda`), no
+  los dólares reconvertidos al cambio de la cotización. 🔒 **En un expediente de grupo no**: el
+  enlace lo tienen todas las familias, y la suma de lo pagado sería el dinero de todas, a la vista
+  de cualquiera y diciéndole «recibido» a quien no pagó (`ComoReservarResolver::pagadoVisible()`).
+- **Validación** (`CotizacionPago::validar()` y atributos): importe con punto y dos decimales
+  (⚠️ `Positive` a secas dejaba pasar `'abc'` y `'12,50'`: en PHP 8 `'abc' > 0` es `true`, y
+  MySQL respondía con un 500), tipo de cambio entre 1 y 10 con punto, fecha no futura, propuesta
+  que exista en el expediente y pasajero del mismo expediente.
+- **Un expediente con pagos no se borra** (`CotizacionFileBorradoProcessor`): 409 con el motivo
+  —«ciérralo en vez de borrarlo»—; cuentan también los anulados.
 - **El enlace de Culqi aún no registra solo** el pago: es la siguiente entrega, y la columna
   `enlacePagoId` ya está esperando (ver `docs/Pendientes.md`).
 
@@ -4118,6 +4139,9 @@ CotizacionPagoMovimientoProvider ── la Caja de Finanzas, junto a alojamiento
 | Los textos | `src/Pax/Command/PaxCrearTextosComoReservarCommand.php` | `pax:textos:como-reservar` |
 | Qué se guarda de un pago, qué se valida | `src/Cotizacion/Entity/CotizacionPago.php` | `validar()`, `equivalenteUsd()`, `anular()` |
 | Contra qué propuesta se mide el saldo | `src/Cotizacion/Dto/CuentaDelExpediente.php` | `de()`, `vendida()`, `laQueSePaga()` |
+| Qué cuenta como pagado de una propuesta (util, pax, portada) | `src/Cotizacion/Dto/CuentaDelExpediente.php` | `pagadoDePropuesta()` |
+| Cuándo se resincroniza el vínculo | `src/Cotizacion/EventListener/CotizacionFileConversacionListener.php` | `onFlush()` |
+| Borrar un expediente con pagos | `src/Cotizacion/ApiPlatform/State/CotizacionFileBorradoProcessor.php` | `process()` |
 | Quién es cliente para el agente | `src/Cotizacion/Entity/CotizacionFile.php` | `vinculoComercial()` |
 | Los medios de pago (vocabulario) | `CotizacionMedioPagoEnum.php` ↔ `fileDetalleModel.ts` | `label()` ↔ `MEDIO_PAGO_LABELS` |
 | El panel de pagos en util | `util/src/components/cotizacion/FilePagosPanel.vue` | — |

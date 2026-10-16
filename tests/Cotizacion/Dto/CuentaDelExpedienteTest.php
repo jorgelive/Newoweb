@@ -91,14 +91,55 @@ final class CuentaDelExpedienteTest extends TestCase
         self::assertSame(['PEN' => 1700.0], $cuenta->pagadoPorMoneda);
     }
 
-    public function testLoPagadoDeUnaPropuestaIncluyeLoQueNoNombraNinguna(): void
+    public function testSinBaseLoPagadoDeUnaPropuestaIncluyeLoQueNoNombraNinguna(): void
     {
         $file = new CotizacionFile();
+        $this->propuesta($file, 1, CotizacionEstadoEnum::ENVIADO, '800');
+        $this->propuesta($file, 2, CotizacionEstadoEnum::ENVIADO, '900');
         $this->pago($file, '100', 'USD', propuesta: 1);
         $this->pago($file, '50', 'USD');
-        $this->pago($file, '999', 'USD', propuesta: 2);
 
-        self::assertSame(150.0, CuentaDelExpediente::pagadoUsdDePropuesta($file, 1));
+        // La base es la 1 (la nombra el último pago con propuesta): cuenta todo.
+        self::assertSame(150.0, CuentaDelExpediente::pagadoDePropuesta($file, 1)['usd']);
+        // La hermana sólo lo que la nombra.
+        self::assertSame(0.0, CuentaDelExpediente::pagadoDePropuesta($file, 2)['usd']);
+    }
+
+    /**
+     * 🔥 El hallazgo A1 de la revisión: un pago a la v1, cancelada, bajaba el saldo de la v2 en util
+     * y en pax la v2 seguía pidiendo el adelanto entero. Ahora las dos pantallas leen la misma regla.
+     */
+    public function testUtilYPaxDicenLoMismoDeLaPropuestaBase(): void
+    {
+        $file = new CotizacionFile();
+        $this->propuesta($file, 1, CotizacionEstadoEnum::CANCELADO, '800');
+        $this->propuesta($file, 2, CotizacionEstadoEnum::ENVIADO, '900');
+        $this->pago($file, '450', 'USD', propuesta: 1);
+
+        $cuenta = CuentaDelExpediente::de($file);
+
+        self::assertSame(2, $cuenta->propuestaBase);
+        self::assertSame($cuenta->pagadoUsd, CuentaDelExpediente::pagadoDePropuesta($file, 2)['usd']);
+    }
+
+    public function testLoPagadoPorMonedaEsLoQueSeTransfirio(): void
+    {
+        $file = new CotizacionFile();
+        $this->propuesta($file, 1, CotizacionEstadoEnum::ENVIADO, '1000');
+        $this->pago($file, '1700', 'PEN', tipoCambio: '3.4000');
+        $this->pago($file, '100', 'USD');
+
+        self::assertSame(['usd' => 600.0, 'porMoneda' => ['PEN' => 1700.0, 'USD' => 100.0]], CuentaDelExpediente::pagadoDePropuesta($file, 1));
+    }
+
+    public function testUnaOperativaTomaElTotalDeSuConfirmada(): void
+    {
+        $file = new CotizacionFile();
+        // La confirmada no está en la colección del expediente (llega como proxy por `derivadaDe`).
+        $operativa = $this->propuesta($file, 1, CotizacionEstadoEnum::OPERATIVA, '0');
+        $operativa->setDerivadaDe((new Cotizacion())->setPropuesta(1)->setTotalVenta('950')->setEstado(CotizacionEstadoEnum::CONFIRMADO));
+
+        self::assertSame(950.0, CuentaDelExpediente::de($file)->totalUsd);
     }
 
     public function testPagarHaceClienteYAnularLoDeshace(): void
