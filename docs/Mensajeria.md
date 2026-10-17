@@ -7426,6 +7426,22 @@ Y dos cosas que el tipado destapó por el camino: los `?? 'Error desconocido'` d
 fallido no podían actuar nunca —`json_encode()` falla devolviendo `false`, no `null`—, y
 `findMessageByMetaId()` devolvía lo que diera la consulta nativa sin comprobar que fuera un `Message`.
 
+🔒 **Un mismo mensaje no se procesa dos veces a la vez (17/10/2026).** La deduplicación de
+`upsertInboundMessage()` es «comprobar y luego insertar» por el `wamid`, así que dos entregas
+simultáneas pasan las dos. Meta reenvía el webhook si no le contestamos rápido, y un vídeo tarda en
+descargarse: el **30/09/2026** el vídeo de un huésped quedó guardado dos veces, con un segundo de
+diferencia (el agente contestó una sola vez). En toda la historia hay ese caso y uno de Beds24 del
+09/08. `processMessage()` toma ahora un candado de MySQL por mensaje (`GET_LOCK('wa_in:' + sha1(wamid),
+30)`) alrededor de su transacción: la segunda entrega espera a que la primera confirme y la
+comprobación ya la encuentra. Es de MySQL, así que vale entre procesos y workers; el nombre va en
+hash porque MySQL lo limita a 64 caracteres. Si el candado no llega en 30 s, se sigue como antes.
+
+⚠️ **El `rollBack()` de `processMessage()` no vacía el UnitOfWork**, el mismo fallo que se corrigió
+en el webhook de Beds24 (`docs/PmsBeds24ReservasSync.md` §3.2). Aquí NO se copió el arreglo: `clear()`
+desvincularía la auditoría del controlador y su `persistAudit()` final fallaría. Y no hay rastro de
+que haya pasado: desde agosto ningún webhook de Meta acabó en error, y los cinco hilos manuales sin
+mensajes son fusiones legítimas.
+
 ### El resto del módulo, al nivel 9 (26/09/2026)
 
 Fuera del motor de intercambio (`Service/Exchange`, aparte) quedaban 163 avisos del nivel 9 en

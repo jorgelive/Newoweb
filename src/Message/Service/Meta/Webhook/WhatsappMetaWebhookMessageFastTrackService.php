@@ -99,6 +99,17 @@ final readonly class WhatsappMetaWebhookMessageFastTrackService
         $this->validateConfig();
         $scope = $this->syncContext->enter(SyncContext::MODE_PULL, 'meta');
         $conn = $this->em->getConnection();
+
+        // 🔒 **Un mismo mensaje no se procesa dos veces a la vez.** (17/10/2026) El persister
+        // comprueba si el `wamid` ya existe y, si no, lo inserta: dos entregas simultáneas pasan
+        // las dos la comprobación. Meta reenvía el webhook si no le contestamos rápido, y un vídeo
+        // tarda en descargarse: el 30/09/2026 un vídeo de un huésped quedó guardado dos veces, con
+        // un segundo de diferencia. Con el candado, la segunda espera a que la primera confirme y la
+        // comprobación ya la encuentra. Es de MySQL, así que vale entre procesos; el nombre va en
+        // hash porque MySQL lo limita a 64 caracteres y un `wamid` ronda los 60.
+        $candado = 'wa_in:' . sha1((string) $mensaje->id);
+        $conn->fetchOne('SELECT GET_LOCK(?, 30)', [$candado]);
+
         $conn->beginTransaction();
         try {
             // Delegamos al Persister Agnóstico
@@ -110,6 +121,7 @@ final readonly class WhatsappMetaWebhookMessageFastTrackService
             $conn->rollBack();
             throw $e;
         } finally {
+            $conn->fetchOne('SELECT RELEASE_LOCK(?)', [$candado]);
             $scope->restore();
         }
     }

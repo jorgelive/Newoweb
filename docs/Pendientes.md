@@ -83,8 +83,10 @@ antelación» no se puede implementar hasta que ese dato exista.
 - **El CRUD de medios de cobro va con `MAESTROS_WRITE`.** Son datos financieros —cuentas
   bancarias, números de Yape— y comparten permiso con los maestros corrientes. Merece un rol
   propio.
-- **Entrantes duplicados**: dos mensajes con el mismo id externo de WhatsApp, el último el
-  30/09/2026 (medido el 17/10/2026 agrupando por `external_ids`). Raro, pero sin investigar.
+- ~~**Entrantes duplicados**~~ **Investigado y cerrado el 17/10/2026**: dos casos en toda la
+  historia (un vídeo de WhatsApp el 30/09 y uno de Beds24 el 09/08), una carrera entre entregas
+  repetidas. WhatsApp va ahora con candado por mensaje (`docs/Mensajeria.md`, «Un mismo mensaje no
+  se procesa dos veces a la vez»). El de Beds24 no se tocó: un caso en dos meses y medio.
 
 ---
 
