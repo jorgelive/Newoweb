@@ -63,11 +63,12 @@ export const useEnlacesPagoStore = defineStore('enlacesPagoStore', () => {
     const crear = async (payload: FinEnlacePagoCreate): Promise<FinEnlacePago> => {
         isSaving.value = true;
         try {
-            // Por encima del tope de la pasarela el cobro sale en TRAMOS vivos a la vez (`enlaces`);
-            // el primero anuló lo que hubiera vivo, así que se recarga en vez de insertar a ciegas.
+            // Emitir ANULA lo que hubiera vivo en el documento (un documento, un enlace vivo; o sus
+            // tramos), así que se RECARGA en vez de insertar: insertando, el enlace anulado seguía
+            // pintado como pendiente, con «Copiar» y «Anular», hasta recargar la página (revisión
+            // del 16/10/2026).
             const { data } = await apiClient.post<{ enlace: FinEnlacePago; enlaces?: FinEnlacePago[] }>('/finanzas/enlaces-pago', payload);
-            const nuevos = data.enlaces?.length ? data.enlaces : [data.enlace];
-            enlaces.value = [...nuevos, ...enlaces.value.filter(e => !nuevos.some(n => n.id === e.id))];
+            await fetchPorOrigen(payload.origenTipo, payload.origenId);
             return data.enlace;
         } finally {
             isSaving.value = false;

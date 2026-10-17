@@ -7,6 +7,14 @@ describe('adelanto.cli: la puerta de PHP', () => {
         expect(r).toEqual({ ok: true, cuerpo: { contrato: CONTRATO, salidas: [{ adelanto: 70, saldo: 69.99 }, { adelanto: 840, saldo: 0 }] } });
     });
 
+    it('con lo pagado, dice si el adelanto está cubierto (la misma regla que pax)', () => {
+        const r = responder({ contrato: CONTRATO, entradas: [{ total: 8000, porcentaje: 50, pagado: 2000 }, { total: 8000, porcentaje: 50, pagado: 4000 }] });
+        expect(r).toEqual({ ok: true, cuerpo: { contrato: CONTRATO, salidas: [
+            { adelanto: 4000, saldo: 4000, cubierto: false },
+            { adelanto: 4000, saldo: 4000, cubierto: true },
+        ] } });
+    });
+
     it('un contrato distinto revienta en vez de calcular a ciegas', () => {
         expect(responder({ contrato: 'adelanto@0', entradas: [] }).ok).toBe(false);
     });

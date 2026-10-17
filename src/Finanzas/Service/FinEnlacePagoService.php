@@ -177,6 +177,8 @@ final class FinEnlacePagoService
         $base = $concepto ?: $origen->descripcion;
         $enlaces = [];
 
+        // 1. Construir y validar TODOS antes de tocar nada: un tramo que no puede existir no puede
+        //    llevarse por delante los enlaces vivos (misma regla que `construir()`).
         foreach ($partes as $i => $parte) {
             $enlaces[] = $this->construir(
                 origenTipo: $origenTipo,
@@ -193,11 +195,55 @@ final class FinEnlacePagoService
                 vigenciaDias: $vigenciaDias,
                 creadoPor: $creadoPor,
                 pasarela: $pasarela,
-                anularVivos: $i === 0,
+                persistir: false,
             );
         }
 
+        // 2. Anular lo vivo y guardar los N tramos JUNTOS: una transacción, un candado, un flush.
+        //    Por partes, un fallo en el segundo tramo dejaba los anteriores anulados y el cliente con
+        //    medio cobro (revisión del 16/10/2026).
+        if (!$this->tomarDocumento($origenId)) {
+            throw new DomainException('Se está emitiendo otro enlace para este documento. Inténtalo en unos segundos.');
+        }
+
+        try {
+            $this->em->wrapInTransaction(function () use ($origenTipo, $origenId, $enlaces): void {
+                foreach ($this->repository->porOrigen($origenTipo, $origenId) as $vivo) {
+                    if ($vivo->estaVigente()) {
+                        $vivo->setEstado(FinEnlacePagoEstado::ANULADO);
+                    }
+                }
+
+                foreach ($enlaces as $enlace) {
+                    $this->em->persist($enlace);
+                }
+
+                $this->em->flush();
+            });
+        } finally {
+            $this->soltarDocumento($origenId);
+        }
+
         return $enlaces;
+    }
+
+    /**
+     * Qué tramo es un enlace —`[parte, partes]`— leyendo el concepto que le puso `crearEnTramos()`
+     * («… · parte 2 de 3»), o `null` si no es un tramo.
+     *
+     * Se lee del enlace y no se cuenta lo que queda vivo: pagada la parte 1, contar los vivos
+     * renombraba la parte 2 como «única» y quitaba el aviso de que había más (revisión del
+     * 16/10/2026). El concepto lo escribe este servicio, así que el formato es suyo.
+     *
+     * @return array{0: int, 1: int}|null
+     */
+    public static function tramoDe(FinEnlacePago $enlace): ?array
+    {
+        if (preg_match('/ · parte (\d+) de (\d+)$/u', $enlace->getConcepto(), $m) !== 1) {
+            return null;
+        }
+
+        return [(int) $m[1], (int) $m[2]];
     }
 
     /** @return non-empty-list<string> */
@@ -270,9 +316,9 @@ final class FinEnlacePagoService
         ?int $vigenciaDias,
         ?User $creadoPor,
         ?FinPasarela $pasarela,
-        // `false` sólo para los tramos 2..N de un mismo cobro (`crearEnTramos()`): conviven con el
-        // primero, que es el que anuló lo que hubiera vivo.
-        bool $anularVivos = true,
+        // `false` = construir y validar SIN guardar: `crearEnTramos()` valida todos los tramos y
+        // después anula y guarda todo de una vez, en una transacción y con un solo candado.
+        bool $persistir = true,
     ): FinEnlacePago {
         $neto = $this->normalizarImporte($montoNeto);
 
@@ -321,6 +367,10 @@ final class FinEnlacePagoService
 
         $enlace->setOrdenId($this->generarOrdenId($enlace));
 
+        if (!$persistir) {
+            return $enlace;
+        }
+
         if ($origenTipo === null || $origenId === null) {
             $this->em->persist($enlace);
             $this->em->flush();
@@ -341,7 +391,7 @@ final class FinEnlacePagoService
         }
 
         try {
-            foreach ($anularVivos ? $this->repository->porOrigen($origenTipo, $origenId) : [] as $vivo) {
+            foreach ($this->repository->porOrigen($origenTipo, $origenId) as $vivo) {
                 // Se anula, no se borra: el enlace que se mandó existió.
                 if ($vivo->estaVigente()) {
                     $vivo->setEstado(FinEnlacePagoEstado::ANULADO);

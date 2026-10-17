@@ -21,8 +21,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Hermana de `saldo_pendiente` y no la misma: aquélla dice «el saldo de tu reserva… a más tardar el
  * día de tu llegada… en tu guía», que en un viaje es falso. Oficial de Meta por lo mismo que aquélla:
- * casi nunca hay ventana de 24 h abierta. El botón lleva a la portada del expediente en pax
- * (`account_path` de `CotizacionMessageDataResolver`), que enseña los enlaces vivos.
+ * casi nunca hay ventana de 24 h abierta. El botón lleva a la propuesta en pax (`account_path` de
+ * `CotizacionMessageDataResolver`: `file/{loc}/p/{n}`), cuyo «Cómo reservar» enseña el enlace vivo.
  *
  *   php bin/console msg:plantillas:saldo-pendiente-viaje --dry-run
  *   php bin/console msg:plantillas:saldo-pendiente-viaje

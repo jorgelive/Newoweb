@@ -88,7 +88,8 @@ final readonly class CotizacionAvisosDeCobro
         [$plantilla, $hilo] = $preparado;
 
         // Una sola vez por expediente: si el saldo cambia, el enlace se releva, pero el aviso ya se
-        // dio y su botón lleva a la portada del expediente, que enseña siempre el enlace vivo.
+        // dio y su botón lleva a la propuesta (`account_path`), cuyo «Cómo reservar» enseña siempre
+        // el enlace vivo —también ya confirmada, `ComoReservarResolver::quedaPorPagar()`—.
         $yaAvisado = $this->em->getRepository(Message::class)->count([
             'template' => $plantilla,
             'asuntoType' => CotizacionConversacionEnlace::CONTEXT_TYPE,

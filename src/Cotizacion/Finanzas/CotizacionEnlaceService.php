@@ -80,38 +80,59 @@ final readonly class CotizacionEnlaceService
     }
 
     /**
-     * Emite —o reutiliza— el enlace del adelanto de una propuesta que se está ofreciendo.
+     * Emite —o reutiliza— el enlace del adelanto de una propuesta que se está ofreciendo, y RETIRA
+     * los automáticos de la que dejó de poder cobrarse por enlace.
      *
-     * No procede (y devuelve una lista vacía) si: el interruptor está apagado, la propuesta ya no se ofrece
-     * (`ComoReservarResolver::seOfrece()`), no pide adelanto, no tiene total, o ya hay algo pagado
-     * —lo que se pague después es el saldo, y ése lo emite `emitirSaldo()`—.
+     * Lo llama `CotizacionPublicadaEnlaceListener` al publicar y cada vez que cambia algo que mueve
+     * el importe o la venta (total, %, estado, presentación). Por eso hace las dos cosas:
      *
-     * 🔒 **Nunca lanza.** Se llama desde el `postFlush` que publica la cotización: la publicación ya
-     * está hecha y que no salga el enlace no puede tumbarla. Queda en el log, y el operador lo
-     * emite a mano desde el panel.
+     * - **Retira** (anula los automáticos vivos; los manuales, nunca) si la propuesta ya no se vende
+     *   —cerrada, cancelada, histórica, expediente cerrado o archivado, o una HERMANA vendida—, si
+     *   no enseña su total (`isTotalesOcultos()`: sin precio o sólo por persona; el adelanto del
+     *   grupo entero no lo paga una persona y el importe del botón revelaría el precio oculto), si
+     *   es un expediente de grupo, o si ya no pide adelanto. Revisión del 16/10/2026: antes el
+     *   enlace viejo seguía cobrando la cifra de antes de editar.
+     * - **No hace nada** si ya hay algo pagado (lo que queda es el saldo, `emitirSaldo()`) o si la
+     *   propuesta es la vendida.
+     * - **Emite** si procede, reutilizando el vivo por el mismo importe; si cambió, el nuevo anula al
+     *   viejo.
+     *
+     * 🔒 **Nunca lanza**: la publicación ya está guardada y que no salga el enlace no puede tumbarla.
+     *
+     * @return list<FinEnlacePago> Vacía si no procedía o falló; varios si se partió en tramos.
      */
-    /** @return list<FinEnlacePago> Vacía si no procedía o falló; varios si se partió en tramos. */
     public function emitirAdelanto(Cotizacion $cotizacion, ?User $creadoPor = null): array
     {
         try {
             $file = $cotizacion->getFile();
             $id = $cotizacion->getId();
 
-            if (!$this->activo || $file === null || $id === null || !ComoReservarResolver::seOfrece($file, $cotizacion)) {
+            if (!$this->activo || $file === null || $id === null) {
                 return [];
+            }
+
+            $vendida = CuentaDelExpediente::vendida($file);
+            $esLaVendida = $vendida !== null && $vendida->getPropuesta() === $cotizacion->getPropuesta();
+
+            if ($esLaVendida) {
+                return []; // Su cobro sigue: el saldo lo emite `emitirSaldo()`.
             }
 
             $porcentaje = $cotizacion->porcentajeDeAdelanto();
             $total = round((float) $cotizacion->origenFinancieroParaCliente()->getTotalVenta(), 2);
-            $pagado = CuentaDelExpediente::pagadoDePropuesta($file, $cotizacion->getPropuesta())['usd'];
 
-            if ($porcentaje <= 0 || $total <= 0 || $pagado > 0) {
+            if (!ComoReservarResolver::seOfrece($file, $cotizacion)
+                || $cotizacion->isTotalesOcultos()
+                || $file->getModo()->ocultaTotalDeGrupo()
+                || $porcentaje <= 0
+                || $total <= 0
+            ) {
+                $this->retirarAutomaticos($cotizacion);
+
                 return [];
             }
 
-            // En un grupo cada familia paga lo suyo: el adelanto del grupo entero no lo paga nadie
-            // con una tarjeta (el del colegio, 95 000 USD, salía en 34 tramos para 133 familias).
-            if ($file->getModo()->ocultaTotalDeGrupo()) {
+            if (CuentaDelExpediente::pagadoDePropuesta($file, $cotizacion->getPropuesta())['usd'] > 0) {
                 return [];
             }
 
@@ -142,8 +163,11 @@ final readonly class CotizacionEnlaceService
      *
      * Lo emite solo el barrido `app:cotizacion:saldo-tras-adelanto` media hora después de pagarse
      * el adelanto con tarjeta, como en alojamiento. Sin saldo, vacía. 🔒 Nunca lanza.
+     *
+     * Sólo con el ADELANTO CUBIERTO (`adelantoCubierto()`) y con el total a la vista: ver allí.
+     *
+     * @return list<FinEnlacePago>
      */
-    /** @return list<FinEnlacePago> */
     public function emitirSaldo(Cotizacion $cotizacion): array
     {
         try {
@@ -151,6 +175,10 @@ final readonly class CotizacionEnlaceService
             $id = $cotizacion->getId();
 
             if (!$this->activo || $file === null || $id === null) {
+                return [];
+            }
+
+            if ($cotizacion->isTotalesOcultos() || $file->getModo()->ocultaTotalDeGrupo() || !$this->adelantoCubierto($cotizacion)) {
                 return [];
             }
 
@@ -178,6 +206,41 @@ final readonly class CotizacionEnlaceService
             ]);
 
             return [];
+        }
+    }
+
+    /**
+     * ¿Lo pagado de esta propuesta cubre ya su adelanto? Con `adelantoCubierto()` de `dominio/`, la
+     * misma regla que «Cómo reservar».
+     *
+     * La pregunta el saldo antes de emitirse: con un adelanto en tramos del que sólo se pagó una
+     * parte —y la otra se anuló o caducó—, el barrido emitía el saldo entero y el WhatsApp decía
+     * «tu adelanto ya está registrado» con la mitad pagada (revisión del 16/10/2026).
+     */
+    public function adelantoCubierto(Cotizacion $cotizacion): bool
+    {
+        $file = $cotizacion->getFile();
+
+        if ($file === null) {
+            return false;
+        }
+
+        $salida = Lee::objeto($this->dominio->ejecutarUna(new CalcularAdelanto(), [
+            'total' => round((float) $cotizacion->origenFinancieroParaCliente()->getTotalVenta(), 2),
+            'porcentaje' => $cotizacion->porcentajeDeAdelanto(),
+            'pagado' => CuentaDelExpediente::pagadoDePropuesta($file, $cotizacion->getPropuesta())['usd'],
+        ]));
+
+        return Lee::booleano($salida['cubierto'] ?? null) === true;
+    }
+
+    /** Anula los enlaces AUTOMÁTICOS vivos de la propuesta; uno emitido a mano es de una persona y se queda. */
+    private function retirarAutomaticos(Cotizacion $cotizacion): void
+    {
+        foreach ($this->pagables($cotizacion) as $enlace) {
+            if ($enlace->getCreadoPor() === null) {
+                $this->enlaces->anular($enlace);
+            }
         }
     }
 

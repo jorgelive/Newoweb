@@ -39,4 +39,13 @@ final class PartirEnTramosTest extends TestCase
         // El céntimo que sobra va a los primeros.
         self::assertGreaterThanOrEqual((float) end($partes), (float) $partes[0]);
     }
+
+    public function testUnEnlaceDiceQueTramoEsAunqueLosDemasYaSePagaran(): void
+    {
+        $tramo = (new \App\Finanzas\Entity\FinEnlacePago())->setConcepto('Adelanto para reservar (50 %) · Familia · parte 2 de 2');
+        $suelto = (new \App\Finanzas\Entity\FinEnlacePago())->setConcepto('Total del viaje');
+
+        self::assertSame([2, 2], FinEnlacePagoService::tramoDe($tramo));
+        self::assertNull(FinEnlacePagoService::tramoDe($suelto));
+    }
 }

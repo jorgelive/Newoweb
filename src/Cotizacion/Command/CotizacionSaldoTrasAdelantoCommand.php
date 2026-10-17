@@ -6,6 +6,7 @@ namespace App\Cotizacion\Command;
 
 use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Finanzas\CotizacionEnlaceService;
+use App\Cotizacion\Finanzas\CotizacionOrigenCobroResolver;
 use App\Cotizacion\Service\Message\CotizacionAvisosDeCobro;
 use App\Cotizacion\Service\Publico\ComoReservarResolver;
 use App\Finanzas\Enum\FinOrigenCobro;
@@ -29,6 +30,11 @@ use Symfony\Component\Uid\Uuid;
  * Una cotización con un enlace AUTOMÁTICO `pagado` hace media hora o más, de un expediente abierto
  * y cuyo primer servicio aún no pasó. Ese estado sólo lo escribe `FinEnlacePagoService::confirmarPago()`
  * con el cargo confirmado por la pasarela.
+ *
+ * ### Sólo con el adelanto CUBIERTO y saldo pendiente
+ * `CotizacionEnlaceService::adelantoCubierto()` (la regla de pax): con una parte de un adelanto en
+ * tramos sin pagar —anulada, o caducada si era manual— se emitía el saldo y el aviso decía «tu
+ * adelanto ya está registrado» con la mitad pagada.
  *
  * ### ⚠️ Con algún enlace vivo, no se toca
  * Si el adelanto salió en TRAMOS y queda una parte por pagar, emitir el saldo la anularía (un cobro
@@ -91,13 +97,17 @@ final class CotizacionSaldoTrasAdelantoCommand extends Command
                AND e.estado = :pagado
                AND e.pagado_en <= :corte
                AND f.estado = :abierto
+               AND c.estado NOT IN (:descartadas)
              GROUP BY c.id, f.localizador',
             [
                 'tipo' => FinOrigenCobro::COTIZACION->value,
                 'pagado' => 'pagado',
                 'corte' => $corte->format('Y-m-d H:i:s'),
                 'abierto' => 'abierto',
+                // Una propuesta cerrada, cancelada o congelada en histórico no se cobra.
+                'descartadas' => ['cerrado', 'cancelado', 'historico'],
             ],
+            ['descartadas' => \Doctrine\DBAL\ArrayParameterType::STRING],
         );
 
         $tabla = [];
@@ -112,6 +122,15 @@ final class CotizacionSaldoTrasAdelantoCommand extends Command
 
             if ($this->enlaces->pagables($cotizacion) !== []) {
                 continue; // Una parte del adelanto por pagar, o el saldo ya emitido. Ver la cabecera.
+            }
+
+            // ANTES del --dry-run: sin esto la simulación anunciaba «emitiría» en propuestas ya
+            // saldadas, y el saldo se emitía con medio adelanto pagado (revisión del 16/10/2026).
+            if ($cotizacion->getFile() === null
+                || CotizacionOrigenCobroResolver::saldoUsd($cotizacion->getFile(), $cotizacion) <= 0
+                || !$this->enlaces->adelantoCubierto($cotizacion)
+            ) {
+                continue;
             }
 
             if ($seco) {

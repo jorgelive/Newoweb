@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Service\Message;
 
+use App\Cotizacion\Dto\CuentaDelExpediente;
 use App\Cotizacion\Entity\CotizacionConversacionEnlace;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Message\Contract\MessageDataResolverInterface;
@@ -25,8 +26,11 @@ use Symfony\Component\Uid\Uuid;
  * | Variable | Qué es |
  * |---|---|
  * | `guest_name` | el nombre del contacto; si no hay, el pasajero principal o el grupo |
- * | `account_url` | la portada del expediente en pax, donde se ve cada propuesta y lo pagado |
+ * | `account_url` | la PROPUESTA que se cobra en pax (`file/{loc}/p/{n}`), donde está «Cómo reservar» con lo pagado y el enlace; sin propuesta que mande, la portada |
  * | `account_path` | lo mismo sin el dominio: la parte variable del botón de Meta |
+ *
+ * 🔥 Apuntaba a la portada, que no enseña enlaces de pago: el aviso del saldo mandaba a pagar
+ * con «el botón de abajo» a una página sin botón (revisión del 16/10/2026).
  */
 final readonly class CotizacionMessageDataResolver implements MessageDataResolverInterface
 {
@@ -70,7 +74,8 @@ final readonly class CotizacionMessageDataResolver implements MessageDataResolve
             return [];
         }
 
-        $ruta = 'file/' . $file->getLocalizador();
+        $base = CuentaDelExpediente::de($file)->propuestaBase;
+        $ruta = 'file/' . $file->getLocalizador() . ($base !== null ? '/p/' . $base : '');
 
         return [
             'guest_name' => $file->getContacto()?->getNombre() ?: ($file->getPasajeroPrincipal() ?: $file->getNombreGrupo()),

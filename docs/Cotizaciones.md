@@ -4168,10 +4168,19 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
 - **El documento es la COTIZACIÓN** (`origenId`), la fila que se cobra: la confirmada si la hay,
   si no la publicada (`CuentaDelExpediente::propuestas()`). Cada propuesta tiene sus enlaces; el
   pago entra en el EXPEDIENTE con su número de propuesta.
-- **Se emite solo al PUBLICAR**, el adelanto, si la propuesta se ofrece, pide adelanto, tiene
-  total y no tiene nada pagado. Para TODOS los clientes, y pax lo enseña a todos (al final de los
-  medios de pago). Republicar no duplica (reutiliza el vivo por
-  el mismo importe); despublicar no anula.
+- **Se emite al PUBLICAR y se mantiene al día**: el adelanto, si la propuesta se ofrece, enseña
+  su total (`TOTAL_GRUPO`), pide adelanto, tiene total y no tiene nada pagado. Para TODOS los
+  clientes, y pax lo enseña a todos (al final de los medios de pago).
+  - `CotizacionPublicadaEnlaceListener` mira también la cotización que **nace** publicada y, estando
+    publicada, cada cambio de `totalVenta`, `adelanto`, `estado` o `presentacionPrecio`: si cambia
+    la cifra, el enlace nuevo anula al viejo; si deja de proceder, `emitirAdelanto()` **retira**
+    los automáticos (los manuales, nunca). 🔥 Antes sólo el paso a publicada: editar el precio
+    dejaba «Cómo reservar» con la cifra nueva y el botón cobrando la vieja (revisión del 16/10/2026).
+  - Retira con: propuesta cerrada, cancelada o histórica, expediente cerrado o archivado, una
+    **hermana vendida** (si no, el enlace de la v1 seguía cobrándose con la URL vieja), totales
+    ocultos (sin precio o sólo por persona: el adelanto del grupo entero no lo paga una persona y
+    el importe del botón revelaría el precio), grupo, o sin adelanto. Republicar con la misma
+    cifra no duplica; despublicar no anula.
 - **La comisión la paga el cliente** (`conRecargo`), como en alojamiento: el enlace cobra neto +
   comisión y lo que entra al expediente es el neto.
 - **El automático no caduca** (`vigenciaDias: 0`): no lo mira nadie, y caducado moriría en
@@ -4186,6 +4195,15 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
   las demás y «Cómo reservar» dice lo recibido y lo que falta.
 - **En un expediente de GRUPO no se emite solo**: cada familia paga lo suyo, y el adelanto del
   grupo entero (el del colegio salía en 34 tramos) no lo paga nadie con una tarjeta.
+- **Con el precio oculto, pax no enseña ningún botón** (`ComoReservarResolver`): su importe sería
+  el 50 % del viaje que no se enseña. Lo pagado ya se ocultaba.
+- **La propuesta VENDIDA sigue enseñando «Cómo reservar» mientras le quede saldo**
+  (`ComoReservarResolver::quedaPorPagar()`), con sus enlaces vivos —los de su confirmada si se mira
+  la operativa—. 🔥 Antes el bloque desaparecía al confirmar, justo cuando el WhatsApp del saldo
+  mandaba a pagarlo «con el botón de abajo». Y ese aviso lleva ahora a la PROPUESTA
+  (`file/{loc}/p/{n}`), no a la portada, que no enseña enlaces.
+- **«Parte 2 de 2» lo dice el propio enlace** (`FinEnlacePagoService::tramoDe()`, leído del
+  concepto), no la cuenta de lo que queda vivo: pagada la parte 1, la 2 se renombraba como única.
 - **El automático no pisa uno emitido a mano**: con un enlace manual vivo no emite nada; sólo
   reemplaza a otros automáticos cuando cambia el importe. Misma regla que alojamiento.
 - 🔒 La emisión automática **nunca lanza**: no puede tumbar la publicación; lo que falla queda en
@@ -4205,7 +4223,11 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
 - **El enlace del saldo media hora después del adelanto**, y su aviso, como en alojamiento (Jorge):
   `app:cotizacion:saldo-tras-adelanto` cada 5 minutos (`tools/cron/www-data.crontab`, con
   `con-candado`). ⚠️ **Con algún enlace vivo no actúa**: si el adelanto salió en tramos y queda una
-  parte, emitir el saldo la anularía y le juntaría el resto del viaje. El aviso, sólo en la pasada
+  parte, emitir el saldo la anularía y le juntaría el resto del viaje. ⚠️ **Y sólo con el adelanto
+  CUBIERTO** (`CotizacionEnlaceService::adelantoCubierto()`, la regla de pax vía `dominio/`): con
+  una parte anulada o caducada, emitía el saldo y decía «tu adelanto ya está registrado» con la
+  mitad pagada. No mira propuestas cerradas, canceladas ni históricas, y el `--dry-run` comprueba
+  saldo y adelanto antes de anunciar nada. El aviso, sólo en la pasada
   en que se emite, si el pago fue en las últimas 6 horas, y una vez por expediente.
 - **Plantilla propia `saldo_pendiente_viaje`** (`msg:plantillas:saldo-pendiente-viaje`): «Tu adelanto
   ya está registrado… El saldo de tu viaje es de {{importe_saldo}}… a más tardar el día del primer

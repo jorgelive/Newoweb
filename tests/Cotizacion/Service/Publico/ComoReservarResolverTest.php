@@ -59,6 +59,32 @@ final class ComoReservarResolverTest extends TestCase
         }
     }
 
+    /** Revisión del 16/10/2026: al confirmar desaparecía el bloque, y con él el enlace del saldo. */
+    public function testLaVendidaSigueEnsenandoComoPagarMientrasLeQuedeSaldo(): void
+    {
+        $file = new CotizacionFile();
+        $vendida = (new Cotizacion())->setPropuesta(2)->setEstado(CotizacionEstadoEnum::CONFIRMADO)->setTotalVenta('900');
+        $hermana = (new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::ENVIADO)->setTotalVenta('800');
+        $file->addCotizacion($vendida);
+        $file->addCotizacion($hermana);
+        $file->getPagos()->add((new CotizacionPago())->setFile($file)->setPropuesta(2)->setMonto('450')->setMoneda('USD'));
+
+        self::assertTrue(ComoReservarResolver::quedaPorPagar($file, $vendida));
+        self::assertFalse(ComoReservarResolver::quedaPorPagar($file, $hermana), 'La hermana no es la vendida');
+
+        $file->getPagos()->add((new CotizacionPago())->setFile($file)->setPropuesta(2)->setMonto('450')->setMoneda('USD'));
+        self::assertFalse(ComoReservarResolver::quedaPorPagar($file, $vendida), 'Saldada, no hay nada que pagar');
+    }
+
+    public function testLaVendidaDeUnGrupoOConElTotalOcultoNoEnsenaCobros(): void
+    {
+        $file = (new CotizacionFile())->setModo(FileModoEnum::GRUPO);
+        $vendida = (new Cotizacion())->setPropuesta(1)->setEstado(CotizacionEstadoEnum::CONFIRMADO)->setTotalVenta('900');
+        $file->addCotizacion($vendida);
+
+        self::assertFalse(ComoReservarResolver::quedaPorPagar($file, $vendida));
+    }
+
     public function testEnUnGrupoNoSeEnsenaLoPagado(): void
     {
         $file = (new CotizacionFile())->setModo(FileModoEnum::GRUPO);

@@ -12,13 +12,13 @@
  *   echo '{"contrato":"adelanto@1","entradas":[{"total":139.99,"porcentaje":50}]}' \
  *     | node --experimental-strip-types dominio/cotizacion/adelanto.cli.ts
  */
-import { montoDeAdelanto, saldoTrasAdelanto } from './adelanto.ts';
+import { adelantoCubierto, montoDeAdelanto, saldoTrasAdelanto } from './adelanto.ts';
 
 export const CONTRATO = 'adelanto@1';
 
 interface Peticion {
   contrato?: string;
-  entradas?: { total?: number; porcentaje?: number }[];
+  entradas?: { total?: number; porcentaje?: number; pagado?: number }[];
 }
 
 /** La parte pura, exportada para el test. Devuelve el error como valor; `main()` decide la salida. */
@@ -45,9 +45,12 @@ export function responder(peticion: Peticion): { ok: true; cuerpo: unknown } | {
     ok: true,
     cuerpo: {
       contrato: CONTRATO,
+      // `cubierto` sólo si llega `pagado`: lo pregunta el barrido del saldo, que no debe emitirlo
+      // —ni decir «tu adelanto ya está registrado»— con medio adelanto pagado (revisión del 16/10).
       salidas: peticion.entradas.map((e) => ({
         adelanto: montoDeAdelanto(e.total as number, e.porcentaje as number),
         saldo: saldoTrasAdelanto(e.total as number, e.porcentaje as number),
+        ...(typeof e.pagado === 'number' ? { cubierto: adelantoCubierto(e.total as number, e.porcentaje as number, e.pagado) } : {}),
       })),
     },
   };

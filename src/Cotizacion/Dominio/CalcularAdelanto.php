@@ -13,7 +13,8 @@ use App\Dominio\Contrato\OperacionDominioInterface;
  * `CotizacionEnlaceService` al emitir el enlace del adelanto: un 50 % calculado en PHP podría pedir
  * un céntimo distinto del que el cliente ve en «Cómo reservar».
  *
- * Entrada `{total, porcentaje}` (USD y 0–100) → salida `{adelanto, saldo}`.
+ * Entrada `{total, porcentaje, pagado?}` (USD y 0–100) → salida `{adelanto, saldo, cubierto?}`.
+ * `cubierto` sólo si se manda `pagado`: es `adelantoCubierto()`, la misma regla que pax.
  */
 final class CalcularAdelanto implements OperacionDominioInterface
 {

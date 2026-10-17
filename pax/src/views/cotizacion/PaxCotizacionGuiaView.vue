@@ -2667,8 +2667,9 @@ const rotuloProcedencia = computed(() => {
                    pasarela, que paga el cliente como en alojamiento. Si el cobro no cupo en el tope
                    de la pasarela salen VARIOS, «parte 1 de 2»…: se pagan todos. -->
               <template v-if="store.comoReservar.enlacesPago.length">
-                <p v-if="store.comoReservar.enlacesPago.length > 1" class="mb-2 text-[11px] font-bold text-slate-500 leading-snug">
-                  {{ maestroStore.t('cot_pago_en_partes', { n: String(store.comoReservar.enlacesPago.length) }) || `El pago va en ${store.comoReservar.enlacesPago.length} partes, por el límite por operación de la pasarela: págalas todas.` }}
+                <!-- Cuántas partes dice el propio enlace («parte 2 de 2»), no cuántas quedan vivas. -->
+                <p v-if="(store.comoReservar.enlacesPago[0]?.partes ?? 1) > 1" class="mb-2 text-[11px] font-bold text-slate-500 leading-snug">
+                  {{ maestroStore.t('cot_pago_en_partes', { n: String(store.comoReservar.enlacesPago[0]?.partes) }) || `El pago va en ${store.comoReservar.enlacesPago[0]?.partes} partes, por el límite por operación de la pasarela: págalas todas.` }}
                 </p>
                 <a v-for="enlace in store.comoReservar.enlacesPago" :key="enlace.url"
                    :href="enlace.url"

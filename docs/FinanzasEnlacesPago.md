@@ -1544,9 +1544,11 @@ confirmación) y el botón «Cobrar con tarjeta» del panel de la reserva.
 (Jorge). Lo impone `FinEnlacePagoService::crear()`, por donde pasan todos —panel, skill, emisor—:
 al emitir uno, anula los vivos del mismo documento, con el documento bloqueado (`GET_LOCK`).
 **La única excepción son los tramos de UN mismo cobro** (`crearEnTramos()`, 16/10/2026): conviven
-porque pagarlos todos es lo correcto —la regla protege de dos cobros DISTINTOS—; el primer tramo
-anula lo que hubiera y los demás no (`construir(anularVivos: false)`). Un cobro nuevo los anula a
-todos. Y el
+porque pagarlos todos es lo correcto —la regla protege de dos cobros DISTINTOS—. Un cobro nuevo
+los anula a todos. **Atómico** (revisión del 16/10/2026): `crearEnTramos()` construye y valida
+todos (`construir(persistir: false)`) y después, con UN candado y en UNA transacción, anula lo vivo
+y guarda los N tramos con un solo flush. Por partes, un fallo en el segundo dejaba los anteriores
+anulados y medio cobro emitido. Qué tramo es un enlace lo lee `tramoDe()` de su concepto. Y el
 automático **no emite nada mientras haya uno manual vivo**: antes buscaba uno vivo *por su
 importe*, y el «Total» que el operador emitía a mano no coincidía con el adelanto, así que en el
 siguiente movimiento le ponía un adelanto al lado. Con deuda en dos monedas se cobra una y, pagada,
@@ -2549,7 +2551,7 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Los avisos antes de crear un enlace y el cargo por la diferencia | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` · `ReservaFinanzasPanel.vue` | `comprobarAntesDeCrear()` · `registrarCargoDelEnlace()` |
 | El aviso del cobro suelto («esta persona debe algo») | `src/Finanzas/Contract/FinDeudasDeContactoInterface.php` · `src/Pms/Finanzas/PmsDeudasDeContacto.php` · `FinanzasView.vue` | `deudasDe()` · `deudasDelContacto` |
 | La regla «un documento, un enlace vivo» | `src/Finanzas/Service/FinEnlacePagoService.php` | `construir()` · `tomarDocumento()` |
-| Partir un cobro que no cabe en el tope | `src/Finanzas/Service/FinEnlacePagoService.php` | `crearEnTramos()` · `partirEnTramos()` |
+| Partir un cobro que no cabe en el tope | `src/Finanzas/Service/FinEnlacePagoService.php` | `crearEnTramos()` · `partirEnTramos()` · `tramoDe()` |
 | Tocar el reto 3DS del navegador | `pax/src/views/pago/PagoCulqiForm.vue` | `autenticar3DS()` · `MINUTOS_DE_RETO` · `retoUsado` · `anotarReto()` |
 | Ver qué pasó en el navegador durante un reto | tabla `fin_pasarela_cobro_audit` | desenlaces `reto_*` (`DESENLACES_DEL_NAVEGADOR`) |
 | Leer más campos del webhook de Culqi | `src/Finanzas/Controller/Webhook/CulqiWebhookController.php` | `datosDelEvento()` — `data` llega como cadena y en camelCase |

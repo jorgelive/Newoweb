@@ -14,6 +14,7 @@ use App\Cotizacion\Enum\FileEstadoEnum;
 use App\Finanzas\Enum\FinAudienciaCobro;
 use App\Finanzas\Enum\FinMedioCobroTipo;
 use App\Cotizacion\Finanzas\CotizacionEnlaceService;
+use App\Cotizacion\Finanzas\CotizacionOrigenCobroResolver;
 use App\Finanzas\Repository\FinMedioCobroRepository;
 use App\Finanzas\Service\FinEnlacePagoService;
 use DateTimeImmutable;
@@ -108,9 +109,31 @@ final readonly class ComoReservarResolver
         return $primero?->setTime(0, 0);
     }
 
+    /**
+     * ¿Se le enseña el bloque a la propuesta VENDIDA? Sí mientras le quede saldo: es donde está el
+     * enlace del saldo que el WhatsApp `saldo_pendiente_viaje` le manda a pagar.
+     *
+     * 🔥 Antes desaparecía en cuanto se confirmaba —«Cómo reservar» sólo era para lo que se ofrece—,
+     * justo lo que pide el cartel de util tras recibir el adelanto: el aviso decía «puedes pagar el
+     * saldo con el botón de abajo» y el cliente no encontraba ni el bloque ni el botón (revisión del
+     * 16/10/2026). Sólo con el total a la vista y fuera de grupo: lo pagado y el enlace son de una
+     * persona, no de un grupo ni de un precio oculto.
+     */
+    public static function quedaPorPagar(CotizacionFile $file, Cotizacion $cotizacion): bool
+    {
+        $vendida = CuentaDelExpediente::vendida($file);
+
+        return $vendida !== null
+            && $vendida->getPropuesta() === $cotizacion->getPropuesta()
+            && $file->getEstado() === FileEstadoEnum::ABIERTO
+            && !$cotizacion->isTotalesOcultos()
+            && !$file->getModo()->ocultaTotalDeGrupo()
+            && CotizacionOrigenCobroResolver::saldoUsd($file, $cotizacion->origenFinancieroParaCliente()) > 0;
+    }
+
     public function para(CotizacionFile $file, Cotizacion $cotizacion, DateTimeImmutable $hoy): ?ComoReservar
     {
-        if (!self::seOfrece($file, $cotizacion)) {
+        if (!self::seOfrece($file, $cotizacion) && !self::quedaPorPagar($file, $cotizacion)) {
             return null;
         }
 
@@ -146,7 +169,9 @@ final readonly class ComoReservarResolver
             ],
             pagadoUsd: ($pagado = self::pagadoVisible($file, $cotizacion->getPropuesta(), $cotizacion->isPrecioOculto()))['usd'],
             pagadoPorMoneda: $pagado['porMoneda'],
-            enlacesPago: $this->enlacesVigentes($cotizacion),
+            // Con el precio oculto, ningún botón: su importe es el 50 % del viaje que no se enseña.
+            // Los de una operativa son los de su confirmada, que es la que se cobra.
+            enlacesPago: $cotizacion->isPrecioOculto() ? [] : $this->enlacesVigentes($cotizacion->origenFinancieroParaCliente()),
         );
     }
 
@@ -158,17 +183,19 @@ final readonly class ComoReservarResolver
     private function enlacesVigentes(Cotizacion $cotizacion): array
     {
         $vivos = $this->enlacesDeCotizacion->pagables($cotizacion);
-        $partes = \count($vivos);
         $lista = [];
 
         foreach ($vivos as $i => $enlace) {
+            // «Parte 2 de 2» del propio enlace, no contando lo que queda vivo: pagada la parte 1,
+            // contar los vivos la renombraba como única (revisión del 16/10/2026).
+            [$parte, $partes] = FinEnlacePagoService::tramoDe($enlace) ?? [$i + 1, \count($vivos)];
             $lista[] = new ComoReservarEnlace(
                 url: $this->enlaces->urlPublica($enlace),
                 montoTotal: $enlace->getMontoTotal(),
                 montoNeto: $enlace->getMontoNeto(),
                 moneda: $enlace->getMonedaCodigo() ?? 'USD',
                 recargoPorcentaje: $enlace->getRecargoPorcentaje(),
-                parte: $i + 1,
+                parte: $parte,
                 partes: $partes,
             );
         }
