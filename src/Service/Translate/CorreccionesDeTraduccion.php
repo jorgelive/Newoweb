@@ -52,6 +52,10 @@ final class CorreccionesDeTraduccion
     /** @var array<string, array<string, string>> idioma → [frase de Google → frase corregida] */
     private const array CORRECCIONES = [
         'en' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'these gas heaters need a strong jet of gas to ignite.'
+                => 'these gas heaters need a strong flow of water to ignite.',
             // Duchas: el agua caliente no se acaba (17/10/2026). «bathe in succession» sonaba a manual.
             'The heaters are gas-powered and instantaneous: they have no tank, so the hot water <strong>doesn&#39;t run out</strong> even if several people bathe in succession.'
                 => 'The water heaters are gas-fired and instantaneous: there&#39;s no tank, so the hot water <strong>won&#39;t run out</strong>, even if several people shower one after another.',
@@ -145,6 +149,10 @@ final class CorreccionesDeTraduccion
                 => 'Calle Saphy 644',
         ],
         'pt' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'esses aquecedores a gás precisam de um jato forte de gás para acender.'
+                => 'esses aquecedores a gás precisam de um fluxo forte de água para acender.',
             // Duchas: el agua caliente no se acaba (17/10/2026).
             'mesmo se várias pessoas tomarem banho em sequência.'
                 => 'mesmo que várias pessoas tomem banho uma após a outra.',
@@ -255,6 +263,10 @@ final class CorreccionesDeTraduccion
                 => 'Também guardamos por <strong>vários dias</strong>',
         ],
         'fr' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'ces chauffages à gaz ont besoin d&#39;un puissant jet de gaz pour s&#39;allumer.'
+                => 'ces chauffe-eau à gaz ont besoin d&#39;un fort débit d&#39;eau pour s&#39;allumer.',
             // Duchas: el agua caliente no se acaba (17/10/2026). «se baignent» es bañarse en el mar o la piscina.
             // Sin los dos puntos en la búsqueda: el francés lleva espacio duro delante.
             'ils n&#39;ont pas de réservoir, donc l&#39;eau chaude <strong>ne manque pas</strong> même si plusieurs personnes se baignent successivement.'
@@ -382,6 +394,19 @@ final class CorreccionesDeTraduccion
                 => '<strong>des transferts privés depuis l&#39;aéroport</strong>, avec supplément',
         ],
         'it' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'questi riscaldatori a gas necessitano di un forte getto di gas per accendersi.'
+                => 'questi scaldabagni a gas hanno bisogno di un getto d&#39;acqua forte per accendersi.',
+            // Duchas: de «tu», como el resto de la guía en italiano (mezclaba «voi»).
+            '👉 Apritelo <strong>completamente</strong> e aspettate qualche secondo:'
+                => '👉 Aprila <strong>completamente</strong> e aspetta qualche secondo:',
+            // Duchas: de «tu».
+            'non chiudete completamente il rubinetto'
+                => 'non chiudere completamente il rubinetto',
+            // Duchas: de «tu».
+            'Ruotate <strong>leggermente la leva'
+                => 'Ruota <strong>leggermente la leva',
             // Duchas: el agua caliente no se acaba (17/10/2026).
             'nemmeno se più persone fanno la doccia in successione.'
                 => 'nemmeno se più persone fanno la doccia una dopo l&#39;altra.',
@@ -600,6 +625,16 @@ final class CorreccionesDeTraduccion
                 => 'viene offerto il trasferimento gratuito dall&#39;aeroporto',
         ],
         'de' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'Diese Gasheizgeräte benötigen einen starken Gasstrahl zum'
+                => 'Diese Gas-Durchlauferhitzer brauchen einen kräftigen Wasserstrahl zum',
+            // Duchas: «es» por el Griff (masculino) es «ihn».
+            'Öffnen Sie es <strong>vollständig</strong>'
+                => 'Öffnen Sie ihn <strong>vollständig</strong>',
+            // Duchas, casa 6: el español dice «hacia ESE lado» (abajo derecha, arriba izquierda), no «a la izquierda».
+            'Schieben Sie den Hebel <strong>ganz nach</strong> links und warten'
+                => 'Schieben Sie den Hebel <strong>ganz</strong> auf diese Seite und warten',
             // Duchas: el agua caliente no se acaba (17/10/2026). «Sie haben» tras los dos puntos leía «USTED
             // tiene» en vez de «ellos tienen», y «baden» es bañarse en tina.
             'Die Durchlauferhitzer sind gasbetrieben und funktionieren sofort: Sie haben keinen Speicher, sodass das heiße Wasser auch dann <strong>nicht ausgeht,</strong> wenn mehrere Personen nacheinander baden.'
@@ -733,6 +768,13 @@ final class CorreccionesDeTraduccion
                 => 'Einige <strong>Genius</strong>-Kunden',
         ],
         'nl' => [
+            // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
+            // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
+            'deze gaskachels hebben een sterke gasstraal nodig om te ontsteken.'
+                => 'deze geisers hebben een sterke waterstraal nodig om aan te slaan.',
+            // Duchas: «boiler» es el calentador con depósito; el de paso a gas es «geiser».
+            'kan de boiler om veiligheidsredenen automatisch uitschakelen.'
+                => 'kan de geiser om veiligheidsredenen automatisch uitschakelen.',
             // Duchas: el agua caliente no se acaba (17/10/2026). «De boilers… geen boiler» se contradecía: en
             // neerlandés «boiler» ES el calentador con depósito; el de paso a gas es «geiser».
             'De boilers werken op gas en geven direct warm water: ze hebben geen boiler, dus het warme water <strong>raakt niet op,</strong> zelfs niet als meerdere mensen achter elkaar douchen.'
