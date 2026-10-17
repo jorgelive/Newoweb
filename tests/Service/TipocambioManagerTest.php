@@ -272,4 +272,44 @@ final class TipocambioManagerTest extends TestCase
         self::assertStringContainsString('fallo de la base', (string) $manager->ultimoFallo());
         self::assertStringNotContainsString('decolecta', (string) $manager->ultimoFallo());
     }
+
+    /**
+     * Guardar el mes NO pasa por el ORM: ni `persist()` ni `flush()`, sólo SQL con `ON DUPLICATE KEY`.
+     *
+     * Es la regresión del 17/10/2026. A `persistMonthData()` se llega desde un `prePersist` que
+     * corre dentro de un `onFlush`; su viejo `flush()` anidado le creaba a la reserva una segunda
+     * cabecera financiera y cerraba el EntityManager (`docs/PmsBeds24ReservasSync.md` §12.18). Las
+     * filas en otra moneda no se guardan.
+     */
+    public function testGuardarElMesVaPorSqlSinPersistNiFlush(): void
+    {
+        /** @var list<array{string, list<mixed>}> $sentencias */
+        $sentencias = [];
+        $conexion = $this->createMock(Connection::class);
+        $conexion->expects(self::exactly(2))
+            ->method('executeStatement')
+            ->willReturnCallback(static function (string $sql, array $params) use (&$sentencias): int {
+                $sentencias[] = [$sql, $params];
+
+                return 1;
+            });
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getConnection')->willReturn($conexion);
+        $em->expects(self::never())->method('persist');
+        $em->expects(self::never())->method('flush');
+
+        $manager = new TipocambioManager($em, new MockHttpClient([]), new NullLogger(), 'token-de-prueba');
+
+        $this->llamar($manager, 'persistMonthData', [
+            '2026-10-16' => new ExchangeRateDto(new \DateTimeImmutable('2026-10-16'), '3.425', '3.432', 'USD'),
+            '2026-10-17' => new ExchangeRateDto(new \DateTimeImmutable('2026-10-17'), '3.424', '3.431', 'USD'),
+            '2026-10-18' => new ExchangeRateDto(new \DateTimeImmutable('2026-10-18'), '1.000', '1.000', 'EUR'),
+        ]);
+
+        self::assertCount(2, $sentencias);
+        self::assertStringContainsString('ON DUPLICATE KEY UPDATE', $sentencias[0][0]);
+        self::assertStringNotContainsString('IGNORE', $sentencias[0][0]);
+        self::assertSame(['USD', '2026-10-17', '3.424', '3.431'], array_slice($sentencias[1][1], 1, 4));
+    }
 }

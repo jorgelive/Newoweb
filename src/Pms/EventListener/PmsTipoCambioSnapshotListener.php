@@ -53,6 +53,13 @@ use Doctrine\ORM\Events;
  * lanza nunca. Si aun así devuelve `null`, el registro nace sin tipo de cambio y se persiste
  * igual: un problema con la cotización no puede impedir anotar un cobro que ya se recibió.
  *
+ * ⚠️ **Y lo que se llame desde aquí no puede hacer `flush`, ni a tres llamadas de distancia.**
+ * `sellarFicha()` corre dentro del `onFlush` de `PmsInformacionFinancieraCoherenciaListener`.
+ * Hasta el 17/10/2026, `TipocambioManager` guardaba el mes con `persist()` + `flush()`: el flush
+ * anidado le creaba a la reserva una segunda cabecera, cuyo sellado volvía a llamar a decolecta…
+ * 1000 peticiones en dos minutos el 13/10 y el EntityManager cerrado. Ahora guarda por SQL
+ * directo; ver `TipocambioManager::persistMonthData()` y `docs/PmsBeds24ReservasSync.md` §12.18.
+ *
  * ── La CABECERA también, y por un motivo distinto ───────────────────────────
  * En un cargo o un cobro el tipo de cambio es memoria. En `PmsInformacionFinanciera` es el
  * **cambio de cuadre**: el que responde «te pago en soles lo que falta, ¿cuánto es?» y con el que

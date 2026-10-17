@@ -68,6 +68,14 @@ framework:
             # Avisar es red (WhatsApp o push) y lo pide un postFlush: ver FusionSugeridaListener.
             App\Message\Dispatch\AvisarFusionSugeridaDispatch: async
 
+            # Lo lanza un postPersist/postUpdate de `Message` (AvisoEnvioFallidoListener). Faltó
+            # esta línea desde que nació (12/08/2026) y se manejaba SÍNCRONO, aunque el mensaje y
+            # el handler dicen «vive en un worker»: push por red, un `em->refresh()` y, si el
+            # endpoint del navegador ya caducó (404/410), el `remove()` + `flush()` de
+            # `WebPushNotificationService::removeExpiredSubscription()` — un flush anidado dentro
+            # de otro. Lo encontró la búsqueda de flushes en listeners del 17/10/2026.
+            App\Message\Dispatch\AvisarEnvioFallidoDispatch: async
+
             # Con DelayStamp de 2 h: ver PedirHoraActionHandler.
             App\Pms\Dispatch\AvisarHoraSinRespuestaDispatch: async
 
