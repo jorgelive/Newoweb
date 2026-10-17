@@ -13,6 +13,8 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
 use App\Entity\User;
+use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Service\FinEnlacePagoService;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsPoliticaPrepago;
@@ -74,6 +76,7 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
     public function __construct(
         private EntityManagerInterface $em,
         private PmsPrepagoEnlaceService $prepagoEnlaces,
+        private FinEnlacePagoService $enlacesFinanzas,
     ) {}
 
     public function nombre(): string
@@ -220,22 +223,43 @@ final readonly class GenerarEnlacePrepagoPagoTotalSkill implements SkillInterfac
                 $this->em->flush();
             }
 
+            // Quién lo pidió va al log, no al enlace: el de la política nace como los automáticos,
+            // o apagaría el saldo tras el adelanto y el relevo del día de llegada. Ver `emitir()`.
             $emitido = $this->prepagoEnlaces->emitir($reserva, $this->autorPersistido($actor));
         } catch (DomainException $e) {
             return SkillResult::error($e->getMessage());
         }
 
+        // Por encima del tope de la pasarela el cobro sale en TRAMOS, y son todos para pagar: si el
+        // modelo sólo viera una URL, mandaría la parte 1 y el huésped creería haberlo pagado todo.
+        $partes = \count($emitido['enlaces']) > 1
+            ? array_map(fn (FinEnlacePago $enlace): array => [
+                'url' => $this->enlacesFinanzas->urlPublica($enlace),
+                'monto' => $enlace->getMontoNeto(),
+                'total_con_tarjeta' => $enlace->getMontoTotal(),
+            ], $emitido['enlaces'])
+            : null;
+
         return SkillResult::ok(array_filter([
             'confirmado' => true,
             'huesped' => $huesped,
             'localizador' => $reserva->getLocalizador(),
-            'url' => $emitido['url'],
+            'url' => $partes === null ? $emitido['url'] : null,
+            'enlaces_en_partes' => $partes,
+            'nota_partes' => $partes === null ? null : sprintf(
+                'Es UN cobro partido en %d enlaces por el límite por operación de la pasarela. '
+                . 'Mándale TODOS y dile que tiene que pagarlos todos.',
+                \count($partes),
+            ),
             'monto' => $emitido['monto'],
             'moneda' => $emitido['moneda'],
             // Lo que se le cobra a la tarjeta: el neto más la comisión de la pasarela. Se
             // dice porque es lo que el huésped verá en su extracto, y no coincide con el
             // adelanto — explicarlo después es peor que decirlo antes.
-            'total_con_tarjeta' => $emitido['enlace']->getMontoTotal(),
+            'total_con_tarjeta' => number_format(array_sum(array_map(
+                static fn (FinEnlacePago $e): float => (float) $e->getMontoTotal(),
+                $emitido['enlaces'],
+            )), 2, '.', ''),
             'recargo_porcentaje' => $emitido['enlace']->getRecargoPorcentaje(),
             'politica' => $politica,
             'que_se_pide' => $cobrarTotal ? 'total' : ($emitido['esSaldo'] ? 'saldo' : 'adelanto'),

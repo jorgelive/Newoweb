@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Service\FinEnlacePagoService;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
 use App\Finanzas\Enum\FinOrigenCobro;
@@ -291,9 +292,18 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             'cuadre' => $this->cuadre($totales),
             'cargos' => $this->cargos($info, $idioma),
             'pagos' => $this->pagos($info),
-            // El recargo se calcula sobre el CUADRE, no sobre una moneda suelta: es lo que se
-            // le va a cobrar si lo cierra todo de una vez con la tarjeta.
-            'pago_con_tarjeta' => $this->conRecargoTarjeta($totales->cuadre, $totales->monedaCuadre),
+            // El recargo sobre el saldo, con UNA moneda. Con dos no viaja (16/10/2026): iba el
+            // cuadre convertido más el 5,5 %, una cifra que ninguna tarjeta cobra —la pasarela
+            // cobra una divisa por enlace— y que el modelo tenía al lado de `enlace_de_pago`
+            // con otra distinta. Lo que cuesta pagarlo con tarjeta lo dicen entonces el enlace
+            // y `cuadre`. Y con una sola, en SU moneda: el cuadre va en la de la ficha, que puede
+            // no ser la de la deuda.
+            'pago_con_tarjeta' => $totales->esMixta()
+                ? null
+                : $this->conRecargoTarjeta(
+                    (string) (array_values($totales->porMoneda)[0]['saldo'] ?? '0'),
+                    (string) (array_key_first($totales->porMoneda) ?? $totales->monedaCuadre),
+                ),
             // Solo viaja si hay algo que pedir; `array_filter` lo quita cuando es null. El
             // saldo total y el prepago responden a preguntas distintas —«cuánto debes» y
             // «cuánto hay que adelantar ahora»— y confundirlos es cobrar de más.
@@ -446,7 +456,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
      * ⚠️ Sólo si `estaVigente()`. Un enlace anulado o caducado no se le pasa a nadie: pagar por
      * él es imposible y ofrecerlo es prometer algo que va a fallar.
      *
-     * @return array{url: string, monto_total: string, moneda: string, nota: string}|null
+     * ⚠️ **Con TRAMOS van todos** (16/10/2026). Un cobro por encima del tope de la pasarela sale en
+     * varios enlaces vivos a la vez; dando sólo el primero, el modelo mandaba la parte 1 y el
+     * huésped creía haberlo pagado todo.
+     *
+     * @return array<string, mixed>|null
      */
     private function enlaceDePago(PmsInformacionFinanciera $info): ?array
     {
@@ -456,25 +470,44 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             return null;
         }
 
-        foreach ($this->enlaces->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if (!$enlace->estaVigente()) {
-                continue;
-            }
+        $vivos = array_values(array_filter(
+            $this->enlaces->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId),
+            static fn (FinEnlacePago $e): bool => $e->estaVigente(),
+        ));
 
+        if ($vivos === []) {
+            return null;
+        }
+
+        $nota = 'Es un enlace REAL y ya emitido: pásaselo tal cual si pregunta cómo pagar con '
+            . 'tarjeta. NO inventes ninguna otra URL ni la modifiques. El importe es el que se le '
+            . 'cobra a la tarjeta, con el recargo incluido.';
+
+        if (\count($vivos) === 1) {
             return [
-                'url' => $this->enlacesServicio->urlPublica($enlace),
+                'url' => $this->enlacesServicio->urlPublica($vivos[0]),
                 // El TOTAL, que es lo que se le cobra a la tarjeta: el neto más el recargo de
                 // la pasarela. Va junto a la URL para que el modelo no mezcle esta cifra con el
                 // saldo ni con el prepago, que son otras dos y no coinciden.
-                'monto_total' => $enlace->getMontoTotal(),
-                'moneda' => $enlace->getMonedaCodigo() ?? '',
-                'nota' => 'Es un enlace REAL y ya emitido: pásaselo tal cual si pregunta cómo '
-                    . 'pagar con tarjeta. NO inventes ninguna otra URL ni la modifiques. El '
-                    . 'importe es el que se le cobra a la tarjeta, con el recargo incluido.',
+                'monto_total' => $vivos[0]->getMontoTotal(),
+                'moneda' => $vivos[0]->getMonedaCodigo() ?? '',
+                'nota' => $nota,
             ];
         }
 
-        return null;
+        return [
+            'partes' => array_map(fn (FinEnlacePago $e): array => [
+                'url' => $this->enlacesServicio->urlPublica($e),
+                'monto_total' => $e->getMontoTotal(),
+            ], $vivos),
+            'monto_total' => number_format(array_sum(array_map(static fn (FinEnlacePago $e): float => (float) $e->getMontoTotal(), $vivos)), 2, '.', ''),
+            'moneda' => $vivos[0]->getMonedaCodigo() ?? '',
+            'nota' => $nota . sprintf(
+                ' Es UN cobro partido en %d enlaces por el límite por operación de la pasarela: '
+                . 'pásaselos TODOS y dile que tiene que pagarlos todos.',
+                \count($vivos),
+            ),
+        ];
     }
 
     /**
@@ -716,6 +749,9 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             // cifra que no existe, y en el único bloque de esta skill que SÍ le puede dar
             // importes — los extras son lo que se nos paga a nosotros.
             'extras_por_moneda' => $this->extrasPorMoneda($cargos, $totalExtras > 0.0),
+            // Los extras también se pagan con el enlace que el equipo le haya emitido: sin esto,
+            // el huésped lo tenía en su app y el agente decía no saber de ninguno (16/10/2026).
+            'enlace_de_pago' => $this->enlaceDePago($info),
             'mensaje' => 'El alojamiento ya lo cobró la plataforma donde reservó. Lo que ves '
                 . 'aquí son SÓLO los extras consumidos aquí, que se pagan a nosotros. No '
                 . 'menciones el total de la reserva ni el saldo global: esas cifras son '

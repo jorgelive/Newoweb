@@ -1324,6 +1324,12 @@ Pero leer el que **ya existe** es otra cosa, y `consultar_cuenta` lo devuelve en
 `enlace_de_pago` (url, importe con recargo, moneda). El huésped ya lo tiene delante en su app
 con el botón «Pagar ahora»: enseñárselo también por el chat no le da acceso a nada nuevo.
 
+Desde el 16/10/2026: con un cobro **en tramos** (por encima del tope de la pasarela) viaja
+`partes` con todas las URL y una nota de mandarlas todas; viaja también en la cuenta de un canal
+que ya cobró cuando hay extras (`cuentaDeCanalQueCobra()`, donde faltaba); y `pago_con_tarjeta`
+ya no viaja con deuda en dos monedas, porque era el cuadre convertido más el 5,5 % —una cifra que
+ninguna tarjeta cobra— al lado de la del enlace. Ver `docs/FinanzasEnlacesPago.md` §11 bis.
+
 Sin eso quedaba un hueco raro con el flag encendido: `consultar_medios_pago` decía «sí hay
 enlace de tarjeta», `consultar_cuenta` daba el importe con recargo… y **la URL no estaba en
 ninguna parte**. El modelo podía confirmar que se puede pagar con tarjeta sin forma de hacérselo

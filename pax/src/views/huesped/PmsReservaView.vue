@@ -206,28 +206,40 @@ const conTarjeta = computed(() =>
  * en inglés veía «Transferencia bancaria».
  */
 /**
- * El enlace de pago que corresponde a lo que se está pidiendo.
+ * Los enlaces de pago que corresponden a lo que se está pidiendo: uno, o los TRAMOS de un cobro.
  *
  * ⚠️ **No es siempre el primero.** Pueden convivir dos vigentes —el del adelanto y el del
  * total, y los dos son legítimos— y el banner que había arriba los pintaba los dos, uno por
  * enlace. Al quedar un solo botón, mandar al primero sin mirar podía llevar al huésped a
  * pagar un importe distinto del que la tarjeta le acaba de enseñar.
  *
+ * ⚠️ **En la MONEDA de la tarjeta** (16/10/2026). Con deuda en dos monedas, sin este filtro el
+ * texto decía «US$ 84.40» y el botón —caído al primero— abría la pasarela en soles. El backend
+ * pone primero la moneda que se cobra (`PmsTotalesPorMoneda::monedaACobrar()`), así que lo
+ * normal es que coincidan; si no hay ninguno en esa moneda, no hay botón.
+ *
+ * ⚠️ **Los tramos van TODOS.** Por encima del tope de la pasarela un cobro sale en varios enlaces
+ * vivos a la vez («parte 1 de 2»); con uno solo, el huésped pagaba la mitad creyendo pagarlo todo.
+ *
  * Se elige por IMPORTE: el enlace cobra el total con recargo, que es justamente la cifra de
- * `conTarjeta`. Si ninguno cuadra —el equipo emitió otra cosa— se cae al primero, que es lo
- * que había antes, en vez de dejar al huésped sin botón.
+ * `conTarjeta`. Si ninguno cuadra —el equipo emitió otra cosa— se cae al primero de esa moneda,
+ * que es lo que había antes, en vez de dejar al huésped sin botón.
  */
-const enlaceDelImporte = computed(() => {
-    const enlaces = enlacesPago.value;
+const enlacesDelImporte = computed(() => {
+    const moneda = situacion.value?.importes[0]?.moneda;
+    const enlaces = enlacesPago.value.filter(e => !moneda || !e.moneda || e.moneda === moneda);
 
-    if (enlaces.length === 0) return null;
+    if (enlaces.length === 0) return [];
+
+    const tramos = enlaces.filter(e => (e.partes ?? 1) > 1);
+    if (tramos.length > 0) return tramos;
 
     const objetivo = conTarjeta.value?.importe;
     const exacto = objetivo
         ? enlaces.find(e => Number(e.montoTotal) === Number(objetivo))
         : undefined;
 
-    return exacto ?? enlaces[0];
+    return [exacto ?? enlaces[0]];
 });
 
 /**
@@ -702,7 +714,7 @@ function verDetalle(abrir: boolean): void {
  * que dispara cualquiera que tenga el enlace de la reserva.
  *
  * Ya no se pintan uno a uno: el banner que lo hacía se retiró y el pago vive ahora en el
- * cuadro del resumen. Cuál de ellos se ofrece lo decide `enlaceDelImporte`, por importe y no
+ * cuadro del resumen. Cuál de ellos se ofrece lo decide `enlacesDelImporte`, por importe y no
  * por orden — con dos vigentes, el primero puede no ser el que la tarjeta acaba de enseñar.
  * ───────────────────────────────────────────────────────────── */
 const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
@@ -1196,12 +1208,23 @@ const enlacesPago = computed(() => finanzas.value?.enlacesPago ?? []);
               <!-- Compacto a propósito: es la acción CARA. Tiene que verse y poder pulsarse
                    —de ahí el color y el peso— pero no ganarle superficie al cuadro, o empuja
                    a pagar de más a quien podía transferir. -->
-              <router-link v-if="enlaceDelImporte"
-                  :to="{ name: 'pago_enlace', params: { token: enlaceDelImporte.token } }"
-                  class="shrink-0 rounded-xl bg-[#E07845] px-3 py-2 text-center text-[12px] font-black uppercase tracking-wide leading-tight text-white shadow-md shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
-                {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
-              </router-link>
+              <!-- Con TRAMOS, un botón por parte, en columna: son todos para pagar. Los textos de
+                   las partes son los de Turismo (`cot_*`), que no dicen nada del viaje. -->
+              <div v-if="enlacesDelImporte.length" class="flex shrink-0 flex-col gap-1.5">
+                <router-link v-for="enlace in enlacesDelImporte" :key="enlace.token"
+                    :to="{ name: 'pago_enlace', params: { token: enlace.token } }"
+                    class="rounded-xl bg-[#E07845] px-3 py-2 text-center text-[12px] font-black uppercase tracking-wide leading-tight text-white shadow-md shadow-orange-100 transition-all hover:bg-[#D06535] active:scale-[0.98]">
+                  {{ maestroStore.t('res_pagar_online') || 'Pagar ahora' }}
+                  <span v-if="(enlace.partes ?? 1) > 1" class="block text-[10px] font-bold normal-case tracking-normal opacity-90">
+                    {{ maestroStore.t('cot_parte_de', { i: String(enlace.parte), n: String(enlace.partes) }) || `parte ${enlace.parte} de ${enlace.partes}` }}
+                    · {{ enlace.simbolo || enlace.moneda }} {{ enlace.montoTotal }}
+                  </span>
+                </router-link>
+              </div>
             </div>
+            <p v-if="(enlacesDelImporte[0]?.partes ?? 1) > 1" class="mt-1.5 text-[11px] font-medium text-slate-400 leading-snug">
+              {{ maestroStore.t('cot_pago_en_partes', { n: String(enlacesDelImporte[0]?.partes) }) || `El pago va en ${enlacesDelImporte[0]?.partes} partes, por el límite por operación de la pasarela: págalas todas.` }}
+            </p>
 
             <!-- ═══ Y AL LLEGAR ═══
                  El segundo momento del cobro, y por eso va al final y en gris: lo de arriba

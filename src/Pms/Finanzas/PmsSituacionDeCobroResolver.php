@@ -227,13 +227,24 @@ final readonly class PmsSituacionDeCobroResolver
     /**
      * Lo que se debe, **una entrada por moneda y sin convertir**.
      *
+     * ⚠️ **La primera es la que se cobra** (`PmsTotalesPorMoneda::monedaACobrar()`), no la primera
+     * del alfabeto. Los medios y la línea de la tarjeta salen de `$importes[0]`, y el enlace de
+     * pago cobra esa misma moneda: con otro orden, el huésped leía «US$» junto a un botón que
+     * abría la pasarela en soles (16/10/2026).
+     *
      * @return list<PmsImporteMoneda>
      */
     private function importesPendientes(PmsTotalesPorMoneda $totales, PmsReserva $reserva): array
     {
         $salida = [];
+        $primera = $totales->monedaACobrar();
+        $porMoneda = $totales->porMoneda;
 
-        foreach ($totales->porMoneda as $moneda => $cifras) {
+        if ($primera !== null) {
+            $porMoneda = [$primera => $porMoneda[$primera]] + $porMoneda;
+        }
+
+        foreach ($porMoneda as $moneda => $cifras) {
             if ((float) $cifras['saldo'] <= 0.0) {
                 continue;
             }

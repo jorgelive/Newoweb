@@ -246,6 +246,12 @@ final class FinEnlacePagoService
         return [(int) $m[1], (int) $m[2]];
     }
 
+    /** El concepto de un tramo sin su « · parte N de M»: el nombre del cobro entero. */
+    public static function conceptoSinTramo(FinEnlacePago $enlace): string
+    {
+        return (string) preg_replace('/ · parte \d+ de \d+$/u', '', $enlace->getConcepto());
+    }
+
     /** @return non-empty-list<string> */
     private function tramos(string $neto, string $monedaId, bool $conRecargo): array
     {

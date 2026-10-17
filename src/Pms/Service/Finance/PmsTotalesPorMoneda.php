@@ -153,6 +153,47 @@ final readonly class PmsTotalesPorMoneda
         return false;
     }
 
+    /**
+     * La moneda que se cobra PRIMERO cuando se debe en más de una: la de mayor deuda en VALOR,
+     * llevada a la moneda de cuadre con el tipo de cambio de la ficha. `null` si no se debe nada.
+     *
+     * Una pasarela cobra en una divisa, así que con deuda en dos se emite el enlace de una y,
+     * pagada, el de la otra. Lo que no puede pasar es que el enlace cobre una y la tarjeta del
+     * huésped enseñe la otra: el emisor (`PmsReservaOrigenCobroResolver`) y la tarjeta
+     * (`PmsSituacionDeCobroResolver::importesPendientes()`) preguntan aquí los dos.
+     *
+     * 🔥 Hasta el 16/10/2026 cada uno tenía su regla. El emisor comparaba los números CRUDOS
+     * —S/ 100 «ganaba» a US$ 80, que valen el triple— y la tarjeta tomaba la primera moneda por
+     * orden alfabético. Con US$ 80 y S/ 50 el texto decía dólares y «Pagar ahora» abría una
+     * pasarela en soles.
+     *
+     * Sin tipo de cambio se comparan los números tal cual: es el mismo caso que
+     * `hayMonedaSinConvertir()`, y ahí la tarjeta ya no ofrece nada.
+     */
+    public function monedaACobrar(): ?string
+    {
+        $tc = (float) ($this->tipoCambio ?? 0);
+        $mejor = null;
+        $mayor = 0.0;
+
+        foreach ($this->porMoneda as $moneda => $cifras) {
+            $saldo = (float) $cifras['saldo'];
+
+            if ($saldo <= 0.0) {
+                continue;
+            }
+
+            $valor = $tc > 0.0 ? self::aMonedaDeCuadre($moneda, $this->monedaCuadre, $saldo, $tc) : $saldo;
+
+            if ($mejor === null || $valor > $mayor) {
+                $mayor = $valor;
+                $mejor = $moneda;
+            }
+        }
+
+        return $mejor;
+    }
+
     /** ¿Hay algo que cobrar? Una ficha sin cargos no está «pagada»: es que no se ha cobrado. */
     public function hayCargos(): bool
     {
@@ -379,11 +420,7 @@ final readonly class PmsTotalesPorMoneda
                 continue;
             }
 
-            $enBase = match (true) {
-                $moneda === 'USD' && $base === 'PEN' => $saldo * $tc,
-                $moneda === 'PEN' && $base === 'USD' => $saldo / $tc,
-                default => $saldo,
-            };
+            $enBase = self::aMonedaDeCuadre($moneda, $base, $saldo, $tc);
 
             $total += $enBase;
             // En valor absoluto: lo que importa es cuánto dinero pasó por una tasa, no en qué
@@ -392,6 +429,16 @@ final readonly class PmsTotalesPorMoneda
         }
 
         return [self::dosDecimales($total), $convertido];
+    }
+
+    /** Un importe llevado a la moneda de cuadre. Par no soportado: se queda como está. `$tc > 0`. */
+    private static function aMonedaDeCuadre(string $moneda, string $base, float $importe, float $tc): float
+    {
+        return match (true) {
+            $moneda === 'USD' && $base === 'PEN' => $importe * $tc,
+            $moneda === 'PEN' && $base === 'USD' => $importe / $tc,
+            default => $importe,
+        };
     }
 
     /**

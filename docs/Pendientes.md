@@ -26,10 +26,10 @@ decidió dejar para después:
    (`docs/Cotizaciones.md` §6.a). `saldo_pendiente_viaje` se envió a Meta ese día: comprobar que
    la aprueba (`msg:meta:push saldo_pendiente_viaje --ver`); si la rechaza, el aviso del saldo de un
    viaje sólo sale dentro de la ventana de 24 h.
-   - **Y en alojamiento, si algún día una reserva pasa del tope de Culqi** (3000 USD): el enlace
-     emitido a mano ya sale en tramos (`crearEnTramos()`), pero el prepago automático
-     (`PmsPrepagoEnlaceService`) sigue con `crear()` y no emitiría, y la guía del huésped enseñaría
-     las partes sin el rótulo «parte 1 de 2» ni el aviso de pagarlas todas que tiene la cotización.
+   - Los tramos en alojamiento quedaron hechos el 16/10/2026 (`docs/FinanzasEnlacesPago.md` §11 bis).
+     **Queda una decisión de negocio:** si el automático debe emitir solo el total el día de llegada
+     a las reservas `SIN_PREPAGO` y a los extras de Airbnb/VRBO, o sólo cuando una persona marca
+     «Cobrar el total» (lo de hoy).
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):

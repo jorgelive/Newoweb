@@ -15,6 +15,7 @@ use Throwable;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Enum\PmsPoliticaPrepago;
 use App\Pms\Enum\PmsQueSePide;
 use App\Pms\Service\Finance\PmsPrepagoCalculador;
 use App\Pms\Service\Finance\PmsTotalesPorMoneda;
@@ -76,6 +77,19 @@ final readonly class PmsPrepagoEnlaceService
      * `app:pms:prepago:saldo-tras-adelanto`; ver `adelantoPagadoHaceRato()`.
      */
     public const int MINUTOS_SALDO_TRAS_ADELANTO = 30;
+
+    /**
+     * El «prepago» de una reserva cuya política no pide adelanto, cuando una PERSONA pidió cobrar
+     * el total (`cobroTotalPedido`, o la skill con `cobrar_total`). Ver `prepagoQueProcede()`.
+     *
+     * No lleva importe porque no se usa: pidiendo el total, la cifra es el saldo del resolver
+     * (`loQueSePide()`), y de esto sólo se lee la política para la respuesta.
+     */
+    private const array TOTAL_SIN_POLITICA = [
+        'monto' => '0.00',
+        'claveI18n' => '',
+        'politica' => PmsPoliticaPrepago::SIN_PREPAGO->value,
+    ];
 
     public function __construct(
         private PmsPrepagoCalculador $calculador,
@@ -146,7 +160,7 @@ final readonly class PmsPrepagoEnlaceService
         // Espejo de `emitir()`: la previsualización tiene que ver la misma puerta. Con
         // `$comoTotal` —el operador va a marcar «cobrar el total»— la puerta es la del total.
         $prepago = $comoTotal
-            ? ($this->calculador->pendiente($info) ?? $this->calculador->calcular($info))
+            ? ($this->calculador->pendiente($info) ?? $this->calculador->calcular($info) ?? self::TOTAL_SIN_POLITICA)
             : $this->prepagoQueProcede($info, $id);
 
         if ($prepago === null) {
@@ -161,7 +175,7 @@ final readonly class PmsPrepagoEnlaceService
             return null;
         }
 
-        $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
+        $existente = $this->vigentesPorImporte($id, $pide['monto'], $pide['moneda']);
 
         return [
             'monto' => $pide['monto'],
@@ -173,13 +187,33 @@ final readonly class PmsPrepagoEnlaceService
     }
 
     /**
-     * El enlace con el que se paga el prepago de esta reserva.
+     * El enlace con el que se paga el prepago de esta reserva, pedido por una PERSONA (la skill
+     * del agente). Lo emite o devuelve el que ya existe.
      *
-     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
+     * ### 🔥 Es el enlace del SISTEMA, aunque lo pida alguien (16/10/2026)
+     *
+     * Hasta hoy nacía con `creadoPor` = el operador y la caducidad por defecto de 7 días. En este
+     * módulo «con autor» significa «manual», y un manual apaga todo lo automático: el saldo media
+     * hora después del adelanto (`adelantoPagadoHaceRato()` y el barrido filtran
+     * `creado_por_id IS NULL`), el relevo por el total el día de llegada, y la reemisión cuando
+     * cambian los cargos (`hayManualVivo()`). Y caducaba a la semana sin que nadie lo viera: el
+     * único adelanto emitido así en producción, el de JCD7FR, acabó `expirado`.
+     *
+     * Lo que se emite aquí es la cifra de la POLÍTICA —la misma que emitiría el automático—, no
+     * una cantidad elegida por alguien; un enlace a medida se emite desde el panel. Así que nace
+     * como los automáticos: sin autor y sin caducidad. Quién lo pidió queda en el log.
+     *
+     * ### 🔒 Con el turno del automático
+     *
+     * Con «cobrar el total» la skill guarda la marca y su `postFlush` ya emite por
+     * `emitirPorCambioDeCargos()`; esto llega después y lo reutiliza. Sin el turno, los dos
+     * caminos podían cruzarse con un webhook de Beds24 sobre la misma reserva.
+     *
+     * @return array{enlace: FinEnlacePago, enlaces: non-empty-list<FinEnlacePago>, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
      *
      * @throws DomainException con un mensaje que se le puede leer al operador tal cual.
      */
-    public function emitir(PmsReserva $reserva, ?User $creadoPor = null): array
+    public function emitir(PmsReserva $reserva, ?User $pedidoPor = null): array
     {
         if (!$this->activo) {
             throw new DomainException(
@@ -195,56 +229,68 @@ final readonly class PmsPrepagoEnlaceService
             throw new DomainException('Esta reserva todavía no tiene cuenta financiera abierta.');
         }
 
-        // Misma puerta que el camino automático. Ver `prepagoQueProcede()`.
-        $prepago = $this->prepagoQueProcede($info, $id);
+        if (!$this->tomarElTurno($id)) {
+            throw new DomainException('Se está emitiendo otro enlace para esta reserva. Inténtalo en unos segundos.');
+        }
 
-        if ($prepago === null) {
-            throw new DomainException(
-                'Esta reserva no tiene nada que cobrar por enlace: o su establecimiento no pide '
-                . 'adelanto, o el canal cobró por nosotros, o ya hay un pago registrado y la '
-                . 'reserva todavía no ha llegado.'
+        try {
+            // Con el turno, la cabecera recién leída: el otro camino ha podido cambiarla.
+            $this->em->refresh($info);
+
+            // Misma puerta que el camino automático. Ver `prepagoQueProcede()`.
+            $prepago = $this->prepagoQueProcede($info, $id);
+
+            if ($prepago === null) {
+                throw new DomainException(
+                    'Esta reserva no tiene nada que cobrar por enlace: o su establecimiento no pide '
+                    . 'adelanto, o el canal cobró por nosotros, o ya hay un pago registrado y la '
+                    . 'reserva todavía no ha llegado.'
+                );
+            }
+
+            $pide = $this->loQueSePide($reserva, $info, $prepago);
+
+            if ($pide === null) {
+                throw new DomainException('Esta reserva ya no tiene saldo pendiente que cobrar.');
+            }
+
+            // Vale también un manual por ese importe: lo que se pide ya está en la calle.
+            $existentes = $this->vigentesPorImporte($id, $pide['monto'], $pide['moneda']);
+
+            if ($existentes !== null) {
+                return $this->respuesta($existentes, $prepago, reutilizado: true, esSaldo: $pide['esSaldo']);
+            }
+
+            // ⚠️ Sin anular nada antes: `crearEnTramos()` anula lo vivo —manuales incluidos, que
+            // aquí hay una persona decidiendo reemplazarlo— DESPUÉS de validar lo nuevo. Anulando
+            // aquí, un enlace que no podía existir (tope de la pasarela, credenciales) se llevaba
+            // por delante al que había y la reserva se quedaba sin ninguno.
+            $enlaces = $this->enlaces->crearEnTramos(
+                origenTipo: FinOrigenCobro::PMS_RESERVA,
+                origenId: $id,
+                montoNeto: $pide['monto'],
+                // El recargo de tarjeta se traslada igual que en cualquier otro cobro: la
+                // comisión de la pasarela no la absorbe la casa por ser un adelanto.
+                conRecargo: true,
+                // Ver la cabecera: el enlace de la política es del sistema.
+                vigenciaDias: 0,
+                concepto: $pide['concepto'],
+                creadoPor: null,
+                // Ver la nota de `emitirConTurno()`: el importe viene en la moneda de la cabecera
+                // y hay que decirlo.
+                moneda: $pide['moneda'],
             );
+
+            $this->logger->info('[prepago] enlace de la política emitido a petición de una persona.', [
+                'reserva' => (string) $id,
+                'pedido_por' => $pedidoPor?->getUserIdentifier(),
+                'enlaces' => \count($enlaces),
+            ]);
+
+            return $this->respuesta($enlaces, $prepago, reutilizado: false, esSaldo: $pide['esSaldo']);
+        } finally {
+            $this->soltarElTurno($id);
         }
-
-        $pide = $this->loQueSePide($reserva, $info, $prepago);
-
-        if ($pide === null) {
-            throw new DomainException('Esta reserva ya no tiene saldo pendiente que cobrar.');
-        }
-
-        $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
-
-        if ($existente !== null) {
-            return $this->respuesta($existente, $prepago, reutilizado: true, esSaldo: $pide['esSaldo']);
-        }
-
-        // ⚠️ El importe CAMBIÓ: se anula el enlace vivo por la cantidad vieja antes de emitir.
-        //
-        // Sin esto el huésped acaba con DOS enlaces vivos por importes distintos —el de antes
-        // del cargo extra y el de después— y puede pagar el que no toca. Con emisión manual
-        // casi no pasa, porque hay una persona mirando; en cuanto la emisión es automática
-        // (ver `emitirPorCambioDeCargos()`) pasa solo.
-        //
-        // Se anula, no se borra: el enlace que se mandó existió y su rastro es parte de lo que
-        // se le dijo a esa persona.
-        $this->anularVigentes($id);
-
-        $enlace = $this->enlaces->crear(
-            origenTipo: FinOrigenCobro::PMS_RESERVA,
-            origenId: $id,
-            montoNeto: $pide['monto'],
-            // El recargo de tarjeta se traslada igual que en cualquier otro cobro: la
-            // comisión de la pasarela no la absorbe la casa por ser un adelanto.
-            conRecargo: true,
-            concepto: $pide['concepto'],
-            // Ver la nota de `emitirPorCambioDeCargos()`: el importe viene en la moneda de la
-            // cabecera y hay que decirlo. El fallo era el mismo aquí, sólo que con una persona
-            // delante que podía notarlo.
-            moneda: $pide['moneda'],
-            creadoPor: $creadoPor,
-        );
-
-        return $this->respuesta($enlace, $prepago, reutilizado: false, esSaldo: $pide['esSaldo']);
     }
 
     /**
@@ -269,7 +315,9 @@ final readonly class PmsPrepagoEnlaceService
      *
      * `vigenciaDias: 0`. Un enlace automático no lo mira nadie: si caducara a los 7 días
      * moriría en silencio y el huésped se quedaría sin poder pagar sin que nadie se entere.
-     * El emitido a mano conserva su vigencia por defecto, porque ahí hay una persona detrás.
+     * El emitido a mano desde el panel conserva su vigencia por defecto, porque ahí hay una
+     * persona detrás. El de la skill no: cobra la cifra de la política y nace como éste (ver
+     * `emitir()`).
      *
      * ### 🔒 NUNCA lanza
      *
@@ -297,7 +345,7 @@ final readonly class PmsPrepagoEnlaceService
             // 🔒 EL TURNO. Comprobar → bloquear → volver a comprobar.
             //
             // Sin esto, dos workers concurrentes sobre la misma reserva —el del webhook de
-            // Beds24 y el del cron de facturas— pasan los dos por `vigentePorImporte()` sin
+            // Beds24 y el del cron de facturas— pasan los dos por `vigentesPorImporte()` sin
             // encontrar nada y emiten DOS enlaces vivos. Un doble cobro.
             //
             // Mismo patrón que `ProcessInboundIntentDispatchHandler::tomarElTurno()`, incluido
@@ -329,6 +377,8 @@ final readonly class PmsPrepagoEnlaceService
 
     /**
      * El cuerpo de la emisión, ya con el turno tomado. Ver `emitirPorCambioDeCargos()`.
+     *
+     * Devuelve el enlace emitido, o el primero de sus tramos.
      */
     private function emitirConTurno(PmsInformacionFinanciera $info, PmsReserva $reserva, Uuid $id): ?FinEnlacePago
     {
@@ -363,37 +413,31 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
-            $prepago = $this->calculador->pendiente($info);
+            // ⚠️ Sin adelanto pendiente, `prepagoQueProcede()` todavía puede abrir la puerta del
+            // SALDO. `pendiente()` devuelve null por cuatro motivos y no son equivalentes: el
+            // canal ya cobró, el establecimiento no pide adelanto, la base es cero — o **ya hay un
+            // pago registrado**. Ese cuarto no significa «no hay nada que cobrar» sino que lo que
+            // queda es el saldo, y se pide cuando `puedePedirseElSaldo()`.
+            $prepago = $this->prepagoQueProcede($info, $id);
 
             if ($prepago === null) {
-                // ⚠️ No hay adelanto pendiente. Antes eso cerraba la puerta siempre; desde el
-                // 06/09/2026, sólo casi siempre.
-                //
-                // `pendiente()` devuelve null por cuatro motivos y no son equivalentes: el canal
-                // ya cobró, el establecimiento no pide adelanto, la base es cero — o **ya hay un
-                // pago registrado**. Ese cuarto, con la reserva ya llegada, no significa «no hay
-                // nada que cobrar»: significa que lo que queda por pedir es el SALDO. Es el caso
-                // del huésped que adelantó la primera noche y llega debiendo el resto.
-                //
-                // `calcular()` es `pendiente()` sin la regla del pago, así que sirve exactamente
-                // para separar ese motivo de los otros tres. Y la puerta se abre con
-                // `puedePedirseElSaldo()`: el día de llegada, el total pedido o de última hora,
-                // o el adelanto pagado por enlace hace media hora (10/10/2026).
-                $prepago = $this->calculador->calcular($info);
-
-                if ($prepago === null || !$this->puedePedirseElSaldo($info, $id)) {
-                    // 🔴 Ya no procede pedir nada —el canal cobró, no hay política, la base es
-                    // cero, o pagó y todavía no ha llegado—, así que el enlace vivo tiene que
-                    // MORIR.
-                    //
-                    // Sin esto, y como los automáticos se emiten SIN caducidad, quedaría un
-                    // enlace pagable para siempre en el WhatsApp de alguien que ya pagó. La
-                    // ausencia de caducidad, correcta mientras el cobro procede, se vuelve una
-                    // trampa en cuanto deja de proceder.
-                    $this->anularAutomaticosVigentes($id);
-
+                // Pagó una parte de un cobro EN TRAMOS: las demás son el resto de ese mismo cobro,
+                // no algo que haya dejado de proceder. Anulándolas, el huésped que pagó la parte 1
+                // de 2 del adelanto se quedaba sin la 2 (16/10/2026).
+                if ($this->quedanTramosDeUnCobroEmpezado($info, $id)) {
                     return null;
                 }
+
+                // 🔴 Ya no procede pedir nada —el canal cobró, no hay política, la base es cero, o
+                // pagó y todavía no ha llegado—, así que el enlace vivo tiene que MORIR.
+                //
+                // Sin esto, y como los automáticos se emiten SIN caducidad, quedaría un enlace
+                // pagable para siempre en el WhatsApp de alguien que ya pagó. La ausencia de
+                // caducidad, correcta mientras el cobro procede, se vuelve una trampa en cuanto
+                // deja de proceder.
+                $this->anularAutomaticosVigentes($id);
+
+                return null;
             }
 
             // Adelanto, o el saldo entero desde el día de llegada (ver `loQueSePide()`). Va
@@ -410,9 +454,9 @@ final readonly class PmsPrepagoEnlaceService
                 return null;
             }
 
-            $existente = $this->vigentePorImporte($id, $pide['monto'], $pide['moneda']);
+            $existentes = $this->vigentesPorImporte($id, $pide['monto'], $pide['moneda']);
 
-            if ($existente !== null) {
+            if ($existentes !== null) {
                 // Ya hay uno vivo por ese importe: no se emite otro. Es lo que evita un enlace
                 // nuevo en cada recálculo.
                 //
@@ -423,21 +467,23 @@ final readonly class PmsPrepagoEnlaceService
                 // OPERADOR emitió a mano por el saldo coincide en importe, se reutiliza, y la
                 // función salía por aquí dejando vivo el adelanto viejo.
                 //
-                // `excepto` es el que se está reutilizando: si es el propio automático, no se
-                // suicida.
-                $this->anularAutomaticosVigentes($id, $existente);
+                // `excepto` son los que se reutilizan (uno, o los tramos del mismo cobro): si son
+                // los propios automáticos, no se suicidan.
+                $this->anularAutomaticosVigentes($id, $existentes);
 
                 return null;
             }
 
-            // ⚠️ SÓLO los automáticos. Aquí no hay nadie mirando —esto lo dispara el sync de
-            // Beds24, no un operador— así que un enlace manual por otro concepto o importe se
-            // queda vivo aunque el prepago recalculado ya no coincida con él. La versión sin
-            // filtrar (`anularVigentes()`) es la correcta en `emitir()`, el camino manual: ahí
-            // SÍ hay una persona decidiendo reemplazar lo que había. Ver docs/FinanzasEnlacesPago.md.
-            $this->anularAutomaticosVigentes($id);
-
-            return $this->enlaces->crear(
+            // ⚠️ SIN anular antes, y es lo que cambió el 16/10/2026. Se anulaban aquí los
+            // automáticos y DESPUÉS se creaba: si la creación fallaba —un saldo por encima del tope
+            // de la pasarela, credenciales—, el `catch` de arriba lo dejaba en el log y la reserva
+            // se quedaba sin NINGÚN enlace. `crearEnTramos()` anula lo vivo después de validar lo
+            // nuevo, en la misma transacción. Y aquí no hay manuales que respetar: con uno vivo
+            // se salió arriba, en `hayManualVivo()`.
+            //
+            // En TRAMOS si no cabe en el tope de la pasarela: «parte 1 de 2», «parte 2 de 2», los
+            // dos vivos a la vez. Ver `FinEnlacePagoService::crearEnTramos()`.
+            return $this->enlaces->crearEnTramos(
                 origenTipo: FinOrigenCobro::PMS_RESERVA,
                 origenId: $id,
                 montoNeto: $pide['monto'],
@@ -453,7 +499,7 @@ final readonly class PmsPrepagoEnlaceService
                 // Sin persona detrás: el enlace queda sin `creadoPorNombre`, que es la verdad.
                 creadoPor: null,
                 vigenciaDias: 0,
-            );
+            )[0];
     }
 
     /**
@@ -464,12 +510,33 @@ final readonly class PmsPrepagoEnlaceService
      * que queda es el SALDO, pero sólo cuando `puedePedirseElSaldo()`. Estuvo copiada en tres
      * sitios con la condición del día de llegada escrita a mano en cada uno.
      *
+     * ### El total que pide una persona no necesita política (16/10/2026)
+     *
+     * `calcular()` es null cuando no hay adelanto que calcular: un establecimiento `SIN_PREPAGO`,
+     * un canal que cobra por nosotros (Airbnb, VRBO) o una reserva sin cargo de alojamiento. Eso
+     * dice que no hay ADELANTO, no que no haya nada que cobrar: los extras de un huésped de Airbnb
+     * —una cena, un traslado— son nuestros. Con `cobroTotalPedido` puesto, el operador había
+     * pedido cobrar el total y la skill contestaba «el canal ya cobró»; marcar la casilla no hacía
+     * nada. Ahora la marca basta, y la cifra es el saldo (`loQueSePide()`).
+     *
+     * ⚠️ **Sólo la marca de una persona**, no el día de llegada ni la última hora. Que el
+     * automático pida solo el total a esas reservas es ampliar su público —un enlace que nadie
+     * pidió en el WhatsApp de todo huésped de Airbnb con un extra—, y eso es otra decisión.
+     *
      * @return array{monto: string, claveI18n: string, politica: string}|null
      */
     private function prepagoQueProcede(PmsInformacionFinanciera $info, Uuid $id): ?array
     {
-        return $this->calculador->pendiente($info)
-            ?? ($this->puedePedirseElSaldo($info, $id) ? $this->calculador->calcular($info) : null);
+        if (($pendiente = $this->calculador->pendiente($info)) !== null) {
+            return $pendiente;
+        }
+
+        if (!$this->puedePedirseElSaldo($info, $id)) {
+            return null;
+        }
+
+        return $this->calculador->calcular($info)
+            ?? ($info->isCobroTotalPedido() ? self::TOTAL_SIN_POLITICA : null);
     }
 
     /**
@@ -482,12 +549,72 @@ final readonly class PmsPrepagoEnlaceService
      * Un pago registrado A MANO (transferencia, efectivo) no abre la tercera puerta: ahí hay una
      * persona delante, y la detección que se pidió es la del enlace, que sólo marca pagado el
      * servidor cuando la pasarela confirma el cargo.
+     *
+     * ⚠️ Y la tercera puerta espera a que el adelanto esté ENTERO: con la parte 1 de 2 pagada,
+     * emitir el saldo anulaba la parte 2 y el aviso decía «tu adelanto ya está registrado» con la
+     * mitad pagada. Es la misma regla que `CotizacionEnlaceService::adelantoCubierto()`.
      */
     private function puedePedirseElSaldo(PmsInformacionFinanciera $info, Uuid $id): bool
     {
         return $this->calculador->yaLlegoElDia($info)
             || $this->calculador->pideElTotal($info)
-            || $this->adelantoPagadoHaceRato($id) !== null;
+            || ($this->adelantoPagadoHaceRato($id) !== null && !$this->quedanTramosDeUnCobroEmpezado($info, $id));
+    }
+
+    /**
+     * ¿Hay un cobro EN TRAMOS con alguna parte pagada por su enlace y otras todavía vivas?
+     *
+     * Las partes vivas son el resto de ese mismo cobro: no se anulan porque haya entrado un pago
+     * (era el suyo) ni se reemplazan por el saldo mientras falten. Ver `crearEnTramos()`.
+     *
+     * ⚠️ Sólo mientras **no haya entrado otro pago** desde que se emitieron. Si el resto llegó por
+     * transferencia, la parte viva ya cobraría dos veces lo mismo, y no hay forma de saber qué
+     * cubrió ese pago sin que lo diga una persona: se cae a la regla de siempre, que la anula. Lo
+     * encontró la prueba con datos reales: pagada la parte 2 por transferencia, seguía viva.
+     */
+    private function quedanTramosDeUnCobroEmpezado(PmsInformacionFinanciera $info, Uuid $id): bool
+    {
+        /** @var array<string, array{vivos: list<FinEnlacePago>, pagados: list<FinEnlacePago>}> $cobros */
+        $cobros = [];
+
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $id) as $enlace) {
+            $tramo = FinEnlacePagoService::tramoDe($enlace);
+
+            if ($tramo === null || $enlace->getCreadoPor() !== null) {
+                continue;
+            }
+
+            $clave = FinEnlacePagoService::conceptoSinTramo($enlace) . '|' . $tramo[1];
+            $cobros[$clave] ??= ['vivos' => [], 'pagados' => []];
+
+            if ($enlace->estaVigente()) {
+                $cobros[$clave]['vivos'][] = $enlace;
+            } elseif ($enlace->getEstado() === FinEnlacePagoEstado::PAGADO) {
+                $cobros[$clave]['pagados'][] = $enlace;
+            }
+        }
+
+        foreach ($cobros as $cobro) {
+            if ($cobro['vivos'] === [] || $cobro['pagados'] === []) {
+                continue;
+            }
+
+            $partes = [...$cobro['vivos'], ...$cobro['pagados']];
+            $suyos = array_map(static fn (FinEnlacePago $e): string => (string) $e->getId(), $partes);
+            $desde = min(array_map(static fn (FinEnlacePago $e): int => $e->getCreatedAt()?->getTimestamp() ?? 0, $partes));
+
+            foreach ($info->getPagos() as $pago) {
+                $deUnaParte = \in_array((string) $pago->getEnlacePagoId(), $suyos, true);
+
+                if (!$deUnaParte && ($pago->getCreatedAt()?->getTimestamp() ?? PHP_INT_MAX) >= $desde) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -525,25 +652,41 @@ final readonly class PmsPrepagoEnlaceService
      * con un enlace de 83.31 que el huésped todavía podía pagar.
      *
      * Sólo los manuales: los automáticos los releva este mismo emisor con su regla.
+     *
+     * ⚠️ **Se compara la SUMA por moneda**, no cada enlace (16/10/2026). El panel parte en tramos
+     * lo que no cabe en el tope de la pasarela: con US$ 3 200 en dos enlaces de 1 600 y una
+     * transferencia de 1 600, cada tramo «cabía» en la deuda y quedaban vivos 3 200 para 1 600.
+     * Vivos en una moneda sólo puede haber un cobro —uno solo, o sus tramos—, así que lo que
+     * excede se anula entero.
      */
     private function anularManualesQueExcedenLaDeuda(PmsInformacionFinanciera $info, Uuid $reservaId): void
     {
         $porMoneda = PmsTotalesPorMoneda::de($info)->porMoneda;
+        /** @var array<string, list<FinEnlacePago>> $vivos */
+        $vivos = [];
 
         foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if (!$enlace->estaVigente() || $enlace->getCreadoPor() === null) {
+            if ($enlace->estaVigente() && $enlace->getCreadoPor() !== null) {
+                $vivos[$enlace->getMonedaCodigo() ?? ''][] = $enlace;
+            }
+        }
+
+        foreach ($vivos as $moneda => $enlaces) {
+            $pide = array_sum(array_map(static fn (FinEnlacePago $e): float => (float) $e->getMontoNeto(), $enlaces));
+            $debe = (float) ($porMoneda[$moneda]['saldo'] ?? 0);
+
+            if ($pide <= $debe + 0.005) {
                 continue;
             }
 
-            $debe = (float) ($porMoneda[$enlace->getMonedaCodigo() ?? '']['saldo'] ?? 0);
+            $this->logger->info('[prepago] enlace manual por encima de la deuda: se anula.', [
+                'reserva' => (string) $reservaId,
+                'enlaces' => array_map(static fn (FinEnlacePago $e): string => (string) $e->getId(), $enlaces),
+                'pide' => $pide,
+                'debe' => $debe,
+            ]);
 
-            if ((float) $enlace->getMontoNeto() > $debe + 0.005) {
-                $this->logger->info('[prepago] enlace manual por encima de la deuda: se anula.', [
-                    'reserva' => (string) $reservaId,
-                    'enlace' => (string) $enlace->getId(),
-                    'pide' => $enlace->getMontoNeto(),
-                    'debe' => $debe,
-                ]);
+            foreach ($enlaces as $enlace) {
                 $this->enlaces->anular($enlace);
             }
         }
@@ -640,10 +783,15 @@ final readonly class PmsPrepagoEnlaceService
      * emitido a mano es la decisión de una persona —puede estar cobrando otra cosa, o queriendo
      * cobrar igual— y retirárselo sin avisar sería peor que dejarlo.
      */
-    private function anularAutomaticosVigentes(Uuid $reservaId, ?FinEnlacePago $excepto = null): void
+    /**
+     * @param list<FinEnlacePago> $excepto Los que se están reutilizando.
+     */
+    private function anularAutomaticosVigentes(Uuid $reservaId, array $excepto = []): void
     {
+        $respetar = array_map(static fn (FinEnlacePago $e): string => (string) $e->getId(), $excepto);
+
         foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if ((string) $enlace->getId() === (string) $excepto?->getId()) {
+            if (\in_array((string) $enlace->getId(), $respetar, true)) {
                 continue;
             }
 
@@ -654,66 +802,106 @@ final readonly class PmsPrepagoEnlaceService
     }
 
     /**
-     * Anula los enlaces de prepago vivos de esa reserva.
-     *
-     * Se llama justo antes de emitir uno por un importe distinto, para que no queden dos
-     * pagables a la vez. Un enlace ya PAGADO no está vigente, así que no entra aquí.
-     */
-    private function anularVigentes(Uuid $reservaId): void
-    {
-        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if ($enlace->estaVigente()) {
-                $this->enlaces->anular($enlace);
-            }
-        }
-    }
-
-    /**
-     * Enlace vivo por ese mismo importe, si lo hay.
+     * El cobro vivo por ese mismo importe, si lo hay: un enlace, o los TRAMOS que lo suman.
      *
      * `estaVigente()` y no `estado === PENDIENTE`: un FALLIDO sigue siendo pagable —que una
      * tarjeta rebote no invalida el enlace, el cliente reintenta con otra en la misma URL— y
      * emitir uno nuevo por cada rechazo llenaría la reserva de enlaces muertos.
+     *
+     * ⚠️ **Los tramos se comparan por su SUMA** (16/10/2026). Un saldo partido en dos por el tope
+     * de la pasarela no coincide con ningún enlace suelto, y sin esto cada recálculo emitía los
+     * tramos otra vez. Pagada la parte 1, lo que se pide es lo que vale la 2, y coincide sola.
+     *
+     * @return non-empty-list<FinEnlacePago>|null
      */
-    private function vigentePorImporte(Uuid $reservaId, string $monto, ?string $moneda): ?FinEnlacePago
+    private function vigentesPorImporte(Uuid $reservaId, string $monto, ?string $moneda): ?array
     {
-        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
-            if (!$enlace->estaVigente()) {
-                continue;
-            }
-
-            // ⚠️ **La MONEDA también, desde el 06/09/2026.** Comparaba sólo el número, así que un
-            // enlace vivo de 100 PEN se daba por bueno para un cobro de 100 USD: se reutilizaba y
-            // el huésped pagaba **cuatro veces menos** sin que fallara nada. Hacía falta una
-            // reserva con deuda en dos divisas y sin pagos —el único caso en que `pendiente()`
-            // pasa—, así que nunca llegó a ocurrir; es la misma familia que el fallo de la moneda
-            // que se DICE al crear, del que éste era la mitad que faltaba.
-            //
-            // Sin moneda declarada no se reutiliza nada: preferimos emitir de más a cobrar en la
-            // divisa equivocada.
-            if ($moneda === null || $enlace->getMonedaCodigo() !== $moneda) {
-                continue;
-            }
-
-            if ((float) $enlace->getMontoNeto() === (float) $monto) {
-                return $enlace;
-            }
+        // ⚠️ **La MONEDA también, desde el 06/09/2026.** Comparaba sólo el número, así que un
+        // enlace vivo de 100 PEN se daba por bueno para un cobro de 100 USD: se reutilizaba y el
+        // huésped pagaba **cuatro veces menos** sin que fallara nada.
+        //
+        // Sin moneda declarada no se reutiliza nada: preferimos emitir de más a cobrar en la
+        // divisa equivocada.
+        if ($moneda === null) {
+            return null;
         }
 
-        return null;
+        $tramos = [];
+        $suma = 0.0;
+
+        foreach ($this->repositorio->porOrigen(FinOrigenCobro::PMS_RESERVA, $reservaId) as $enlace) {
+            if (!$enlace->estaVigente() || $enlace->getMonedaCodigo() !== $moneda) {
+                continue;
+            }
+
+            if (FinEnlacePagoService::tramoDe($enlace) === null) {
+                if (abs((float) $enlace->getMontoNeto() - (float) $monto) < 0.005) {
+                    return [$enlace];
+                }
+
+                continue;
+            }
+
+            $tramos[] = $enlace;
+            $suma += (float) $enlace->getMontoNeto();
+        }
+
+        return $tramos !== [] && abs($suma - (float) $monto) < 0.005 ? $tramos : null;
     }
 
     /**
+     * Lo que el aviso del saldo (`saldo_pendiente`) puede anunciar: el cobro vivo del SISTEMA,
+     * sumando sus tramos, o `null` si no hay nada que anunciar.
+     *
+     * Tampoco si lo vivo son las partes que quedan de un cobro empezado: serían el resto del
+     * ADELANTO, y el aviso lo presentaría como el saldo.
+     *
+     * @return array{moneda: string, neto: string}|null
+     */
+    public function saldoVivoDelSistema(PmsReserva $reserva): ?array
+    {
+        $info = $reserva->getInformacionFinanciera();
+        $id = $reserva->getId();
+
+        if ($info === null || $id === null || $this->quedanTramosDeUnCobroEmpezado($info, $id)) {
+            return null;
+        }
+
+        $moneda = null;
+        $suma = 0.0;
+
+        foreach ($this->pagables($reserva) as $enlace) {
+            if ($enlace->getCreadoPor() !== null) {
+                continue;
+            }
+
+            $moneda ??= $enlace->getMonedaCodigo() ?? '';
+
+            if ($enlace->getMonedaCodigo() === $moneda) {
+                $suma += (float) $enlace->getMontoNeto();
+            }
+        }
+
+        return $moneda === null ? null : ['moneda' => $moneda, 'neto' => number_format($suma, 2, '.', '')];
+    }
+
+    /**
+     * `enlace` es el primero; con tramos, `enlaces` los trae todos y `monto` es lo que suman.
+     *
+     * @param non-empty-list<FinEnlacePago> $enlaces
      * @param array{monto: string, claveI18n: string, politica: string} $prepago
      *
-     * @return array{enlace: FinEnlacePago, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
+     * @return array{enlace: FinEnlacePago, enlaces: non-empty-list<FinEnlacePago>, url: string, monto: string, moneda: string, politica: string, reutilizado: bool, esSaldo: bool}
      */
-    private function respuesta(FinEnlacePago $enlace, array $prepago, bool $reutilizado, bool $esSaldo): array
+    private function respuesta(array $enlaces, array $prepago, bool $reutilizado, bool $esSaldo): array
     {
+        $enlace = $enlaces[0];
+
         return [
             'enlace' => $enlace,
+            'enlaces' => $enlaces,
             'url' => $this->enlaces->urlPublica($enlace),
-            'monto' => $enlace->getMontoNeto(),
+            'monto' => number_format(array_sum(array_map(static fn (FinEnlacePago $e): float => (float) $e->getMontoNeto(), $enlaces)), 2, '.', ''),
             'moneda' => $enlace->getMonedaCodigo() ?? '',
             'politica' => $prepago['politica'],
             'reutilizado' => $reutilizado,
@@ -721,14 +909,6 @@ final readonly class PmsPrepagoEnlaceService
         ];
     }
 
-    /**
-     * Lo que el huésped lee en la página de pago. Dice que es un adelanto, no el total.
-     *
-     * Pública porque la usan los DOS caminos que emiten un enlace de adelanto: la skill del
-     * agente por `emitir()`, y el atajo del panel, que la recibe prellenada en el formulario.
-     * Si cada uno redactara la suya, el mismo cobro tendría dos nombres en el extracto del
-     * huésped según quién lo emitiera.
-     */
     /**
      * Qué importe y con qué nombre se emite: el ADELANTO, o el TOTAL desde el día de llegada.
      *
@@ -859,6 +1039,14 @@ final readonly class PmsPrepagoEnlaceService
         ), 0, 255);
     }
 
+    /**
+     * Lo que el huésped lee en la página de pago. Dice que es un adelanto, no el total.
+     *
+     * Pública porque la usan los DOS caminos que emiten un enlace de adelanto: la skill del
+     * agente por `emitir()`, y el atajo del panel, que la recibe prellenada en el formulario.
+     * Si cada uno redactara la suya, el mismo cobro tendría dos nombres en el extracto del
+     * huésped según quién lo emitiera.
+     */
     public function concepto(PmsReserva $reserva): string
     {
         return substr(sprintf(

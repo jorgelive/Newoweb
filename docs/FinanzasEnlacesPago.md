@@ -1514,13 +1514,21 @@ que no pueden divergir:
 | Antes del día de llegada, sin pagos | adelanto | `Adelanto de reserva X — Casita N` | la fracción de la política, en la moneda de la **cabecera** |
 | **Última hora**: reservada con ≤ 2 días de antelación (10/10/2026) | total, **desde el primer enlace** | `Pago total de reserva X — Casita N` | el saldo entero |
 | **«Cobrar el total»** marcado por el operador o el agente (10/10/2026) | total, y se anula el del adelanto | `Pago total de reserva X — Casita N` | el saldo entero |
+| **«Cobrar el total»** en una reserva **sin adelanto que calcular**: `SIN_PREPAGO`, canal que ya cobró (extras de Airbnb), sin cargo de alojamiento (16/10/2026) | total | `Pago total de reserva X — Casita N` | el saldo entero (en Airbnb, los extras) |
 | Antes del día de llegada, adelanto **pagado por enlace hace ≥ 30 min** (10/10/2026) | saldo, y aviso `saldo_pendiente` al huésped | `Saldo de reserva X — Casita N` | lo que queda |
 | Antes del día de llegada, con un pago **registrado a mano** | nada, y se retira el vivo | — | — |
-| Desde el día de llegada, sin pagos | total | `Pago total de reserva X — Casita N` | el saldo entero de la moneda que **más se debe** |
+| Desde el día de llegada, sin pagos | total | `Pago total de reserva X — Casita N` | el saldo entero de la moneda que **más se debe en valor** (`PmsTotalesPorMoneda::monedaACobrar()`) |
+| Cualquiera de las de arriba, si el cobro **no cabe en el tope de la pasarela** (16/10/2026) | lo mismo, **en tramos** vivos a la vez | `… · parte 1 de 2` | el reparto de `partirEnTramos()` |
+| Pagada una parte de un cobro en tramos (16/10/2026) | nada: las demás partes **siguen vivas** | — | — |
 | Desde el día de llegada, con pago parcial | saldo | `Saldo de reserva X — Casita N` | lo que queda |
 | El adelanto ya ES el saldo (estancia de una noche) | total, **desde el primer día** | `Pago total de reserva X — Casita N` | el saldo entero |
 | Hay un enlace **manual** vivo | nada: el automático se abstiene (10/10/2026) | — | — |
-| Canal que ya cobró · sin política · base cero · saldo cero | nada, y se retira el vivo | — | — |
+| Canal que ya cobró · sin política · base cero · saldo cero (sin «Cobrar el total») | nada, y se retira el vivo | — | — |
+
+⚠️ **El día de llegada NO amplía el público.** A una reserva `SIN_PREPAGO` o de Airbnb con extras el
+automático no le emite el total por llegar el día: sólo si una persona marca «Cobrar el total». Que
+lo haga solo sería un enlace que nadie pidió en el WhatsApp de cada huésped de Airbnb con un extra,
+y es una decisión de negocio por tomar, no un fallo (revisión del 16/10/2026).
 
 **«Pago total» o «Saldo»**: sin ningún pago, el enlace por todo se llama «Pago total» —es lo que
 dice la guía del huésped, «Total a pagar»—; con algo pagado, «Saldo» («Saldo por pagar»). Lo decide
@@ -1540,6 +1548,16 @@ de estado: ver «Una estancia que cambia de estado mueve dinero», abajo.
 Más el camino a mano: `generar_enlace_prepago_pago_total` (`RESERVAS_WRITE`, dos pasos con
 confirmación) y el botón «Cobrar con tarjeta» del panel de la reserva.
 
+🔥 **El enlace de la skill es del SISTEMA, aunque lo pida una persona (16/10/2026).** Nacía con
+`creadoPor` = el operador y la caducidad de 7 días, y en este módulo «con autor» es «manual»: un
+manual apaga el saldo tras el adelanto (`adelantoPagadoHaceRato()` y el barrido filtran
+`creado_por_id IS NULL`), el relevo por el total el día de llegada y la reemisión al cambiar los
+cargos (`hayManualVivo()`). Y caducaba sin que nadie lo viera: el único adelanto emitido así en
+producción, el de JCD7FR, acabó `expirado`. La skill cobra la cifra de la POLÍTICA —la misma que el
+automático—, así que `PmsPrepagoEnlaceService::emitir()` la emite sin autor y sin caducidad, **con
+el mismo turno** (`tomarElTurno()`) que el automático; quién la pidió queda en el log. Un importe a
+medida se emite desde el panel, y ése sí es manual.
+
 **🔒 Un documento, un enlace vivo (10/10/2026).** «En ningún caso deben estar dos enlaces»
 (Jorge). Lo impone `FinEnlacePagoService::crear()`, por donde pasan todos —panel, skill, emisor—:
 al emitir uno, anula los vivos del mismo documento, con el documento bloqueado (`GET_LOCK`).
@@ -1548,7 +1566,25 @@ porque pagarlos todos es lo correcto —la regla protege de dos cobros DISTINTOS
 los anula a todos. **Atómico** (revisión del 16/10/2026): `crearEnTramos()` construye y valida
 todos (`construir(persistir: false)`) y después, con UN candado y en UNA transacción, anula lo vivo
 y guarda los N tramos con un solo flush. Por partes, un fallo en el segundo dejaba los anteriores
-anulados y medio cobro emitido. Qué tramo es un enlace lo lee `tramoDe()` de su concepto. Y el
+anulados y medio cobro emitido. Qué tramo es un enlace lo lee `tramoDe()` de su concepto.
+
+**Los tramos en ALOJAMIENTO (16/10/2026).** El prepago (automático y skill) emite con
+`crearEnTramos()` y **sin anular nada antes**: anulaba los automáticos y DESPUÉS creaba, así que un
+saldo por encima del tope —`crear()` lanza, el `catch` lo deja en el log— dejaba la reserva sin
+ningún enlace. Tres reglas siguen de ahí:
+
+| Regla | Dónde |
+|---|---|
+| La reutilización compara la **suma** de los tramos vivos con lo que se pide; pagada la parte 1, lo que se pide es la 2 y coincide sola | `vigentesPorImporte()` |
+| Pagada una parte **por su enlace**, las demás se quedan vivas aunque la puerta del saldo esté cerrada, y el saldo tras el adelanto espera a que no quede ninguna (`CotizacionEnlaceService::adelantoCubierto()` en Turismo) | `quedanTramosDeUnCobroEmpezado()` · `puedePedirseElSaldo()` |
+| …salvo que desde que se emitieron haya entrado **otro pago** (una transferencia): ya no se sabe qué cubrió, y se anulan como siempre | ídem |
+| Un manual en tramos se anula si la **suma** por moneda pasa de la deuda, no cada tramo | `anularManualesQueExcedenLaDeuda()` |
+
+Lo que lo enseña: la guía del huésped pinta un botón por parte con «parte 1 de 2» y el aviso de
+pagarlas todas (textos `cot_parte_de` y `cot_pago_en_partes`, compartidos con Turismo);
+`saldo_pendiente` anuncia la suma (`saldoVivoDelSistema()`); y `consultar_cuenta` y la skill dan
+**todas** las URL. Ninguna reserva ha pasado del tope todavía (máximo histórico: 1548.90 USD con
+recargo): esto es para que el primer caso no deje al huésped sin botón. Y el
 automático **no emite nada mientras haya uno manual vivo**: antes buscaba uno vivo *por su
 importe*, y el «Total» que el operador emitía a mano no coincidía con el adelanto, así que en el
 siguiente movimiento le ponía un adelanto al lado. Con deuda en dos monedas se cobra una y, pagada,
@@ -1568,8 +1604,8 @@ mismo servicio que emite.
 `{{ account_url }}`: el mensaje manda a la ficha, y la ficha enseña los enlaces vigentes. Así no
 puede quedar un importe escrito contradiciendo lo que el enlace cobra.
 
-**Vigencia.** Los automáticos nacen con `vigenciaDias: 0` —sin caducidad—; los manuales conservan
-la de por defecto. El porqué, abajo.
+**Vigencia.** Los automáticos —y el de la skill, que cobra lo mismo— nacen con `vigenciaDias: 0`
+—sin caducidad—; los del panel conservan la de por defecto. El porqué, abajo.
 
 ⚠️ **Vacío no es `0`.** Si el operador borra el campo «Vigencia (días)», el `v-model.number` del
 panel manda `""`. Hasta el 26/09/2026 el `(int)` lo convertía en `0` —**sin caducidad**— sin que
@@ -1612,12 +1648,15 @@ esa reserva vuelve a pasar por el mismo recálculo.
 #### Sin caducidad, y anulando el anterior
 
 **`vigenciaDias: 0`.** Un enlace automático no lo mira nadie: si caducara a los 7 días moriría en
-silencio y el huésped se quedaría sin poder pagar sin que nadie se entere. El emitido **a mano**
-conserva su vigencia por defecto, porque ahí hay una persona detrás.
+silencio y el huésped se quedaría sin poder pagar sin que nadie se entere. El emitido **a mano
+desde el panel** conserva su vigencia por defecto, porque ahí hay una persona detrás (el de la
+skill no: ver «El enlace de la skill es del SISTEMA», arriba).
 
 ⚠️ **Y al emitir por un importe distinto se ANULA el vivo anterior.** Sin eso, un cargo extra
 dejaba dos enlaces pagables por cantidades distintas y el huésped podía pagar el que no toca. Se
-anula, no se borra: el enlace que se mandó existió.
+anula, no se borra: el enlace que se mandó existió. **Lo anula `crearEnTramos()` después de validar
+el nuevo** (16/10/2026): el emisor lo anulaba antes, y si el nuevo no podía existir la reserva se
+quedaba sin ninguno.
 
 🐛 **Y hasta el 05/09/2026 se anulaba CUALQUIER enlace vivo de la reserva, no sólo los
 automáticos.** El camino automático (`emitirConTurno()`) llamaba a `anularVigentes()` —la versión
@@ -1632,10 +1671,19 @@ operador antes de emitir el automático de turno. Arreglado usando `anularAutoma
 
 ⚠️ **Y la moneda se DICE, no se deduce.** `pendiente()` devuelve el importe en la moneda de la
 **cabecera** (`base()` lo convierte), pero `crear()` sin el parámetro `moneda` se lo pregunta al
-resolver, que responde «la de mayor saldo». En una reserva con cargos en soles y cabecera en
+resolver, que responde «la que se cobra primero». En una reserva con cargos en soles y cabecera en
 dólares son monedas distintas: el enlace habría cobrado **46.42 PEN donde el cálculo decía 46.42
 USD**, cuatro veces menos. Pasa en los dos caminos —el automático y el manual— y en el manual
 llevaba tiempo ahí, tapado porque había una persona delante.
+
+💱 **Con deuda en dos monedas, una sola regla para el enlace y la tarjeta (16/10/2026):**
+`PmsTotalesPorMoneda::monedaACobrar()`, la de mayor deuda **en valor** con el tipo de cambio de la
+ficha. La preguntan el resolver (`PmsReservaOrigenCobroResolver::resolver()` sin moneda) y la
+tarjeta del huésped (`PmsSituacionDeCobroResolver::importesPendientes()` la pone primera, y de
+`$importes[0]` salen los medios y la línea de la tarjeta). Antes el resolver comparaba los números
+crudos —S/ 100 «ganaba» a US$ 80— y la tarjeta tomaba la primera por orden alfabético: el texto
+decía dólares y «Pagar ahora» abría la pasarela en soles. La guía, además, sólo ofrece enlaces de
+la moneda que enseña.
 
 ⚠️ **Cuando el adelanto deja de proceder, el enlace se ANULA.** `pendiente()` a `null` —lo pagó
 por transferencia, cambió la política— o cabecera inactiva: en los dos casos se retiran los
@@ -2604,7 +2652,10 @@ distingue en un minuto entre un frontend viejo, una pasarela que rechaza y un ba
 | Cambiar cómo lo ve el operador | `util/src/components/reservas/ReservaFinanzasPanel.vue` | fila «Prepago pendiente» del resumen |
 | Cambiar qué sabe el agente del prepago | `src/Agent/Skill/Pms/ConsultarCuentaSkill.php` | `prepago()` |
 | Encender/apagar los enlaces de prepago | `.env` → `FINANZAS_ENLACES_PREPAGO` | + `composer dump-env prod` (§12.1) |
-| Cambiar cuándo se reaprovecha un enlace | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `vigentePorImporte()` (§11 bis) |
+| Cambiar cuándo se reaprovecha un enlace | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `vigentesPorImporte()` (§11 bis; suma tramos) |
+| Cambiar qué moneda se cobra primero con deuda en dos | `src/Pms/Service/Finance/PmsTotalesPorMoneda.php` | `monedaACobrar()` — la leen el resolver y la tarjeta del huésped |
+| Cambiar qué pasa con las partes vivas de un cobro en tramos | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `quedanTramosDeUnCobroEmpezado()` |
+| Cobrar el total sin política de adelanto (Airbnb, `SIN_PREPAGO`) | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `prepagoQueProcede()` · `TOTAL_SIN_POLITICA` |
 | Cambiar el concepto que lee el huésped al pagar | `src/Pms/Finanzas/PmsPrepagoEnlaceService.php` | `concepto()` |
 | Cambiar el botón de pagar del pax | `pax/src/views/huesped/PmsReservaView.vue` | bloque «PAGAR ONLINE» |
 | Cambiar los atajos de importe del panel | `util/src/components/reservas/ReservaEnlacesPagoSection.vue` | `presets` (§11 bis) |

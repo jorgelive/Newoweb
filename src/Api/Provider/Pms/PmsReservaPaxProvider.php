@@ -7,6 +7,7 @@ namespace App\Api\Provider\Pms;
 use ApiPlatform\Doctrine\Orm\State\ItemProvider;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\Finanzas\Service\FinEnlacePagoService;
 use App\Pms\Entity\PmsChannel;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Pms\Entity\PmsInformacionFinanciera;
@@ -145,6 +146,10 @@ final class PmsReservaPaxProvider implements ProviderInterface
         $filas = [];
 
         foreach ($this->prepagoEnlaces->pagables($reserva) as $enlace) {
+            // Un cobro por encima del tope de la pasarela va en TRAMOS vivos a la vez: la app los
+            // pinta todos, con su «parte 1 de 2». Se lee del concepto, como en Turismo.
+            [$parte, $partes] = FinEnlacePagoService::tramoDe($enlace) ?? [1, 1];
+
             $filas[] = [
                 'token' => $enlace->getToken(),
                 'concepto' => $enlace->getConcepto(),
@@ -157,6 +162,8 @@ final class PmsReservaPaxProvider implements ProviderInterface
                 'moneda' => $enlace->getMonedaCodigo(),
                 'simbolo' => $enlace->getMonedaSimbolo(),
                 'expiraEn' => $enlace->getExpiraEn()?->format(DATE_ATOM),
+                'parte' => $parte,
+                'partes' => $partes,
             ];
         }
 

@@ -294,6 +294,47 @@ final class PmsTotalesPorMonedaTest extends TestCase
         self::assertTrue($totales->cuadra());
     }
 
+    // ── La moneda que se cobra primero ───────────────────────────────────────
+
+    public function testSeCobraPrimeroLaMayorDeudaEnVALORNoElNumeroMasAlto(): void
+    {
+        // US$ 80 al 3.400 son S/ 272: pesan más que S/ 100 aunque el número sea menor. Comparando
+        // crudo, el enlace salía en soles y la tarjeta del huésped decía dólares.
+        $info = $this->ficha();
+        $this->cargo($info, '80.00', $this->usd);
+        $this->cargo($info, '100.00', $this->pen);
+
+        self::assertSame('USD', PmsTotalesPorMoneda::de($info)->monedaACobrar());
+    }
+
+    public function testSiLosSolesPesanMasSeCobranPrimeroLosSoles(): void
+    {
+        $info = $this->ficha();
+        $this->cargo($info, '20.00', $this->usd);
+        $this->cargo($info, '300.00', $this->pen);
+
+        self::assertSame('PEN', PmsTotalesPorMoneda::de($info)->monedaACobrar());
+    }
+
+    public function testUnaMonedaYaPagadaNoSeCobra(): void
+    {
+        $info = $this->ficha();
+        $this->cargo($info, '500.00', $this->usd);
+        $this->pago($info, '500.00', $this->usd);
+        $this->cargo($info, '30.00', $this->pen);
+
+        self::assertSame('PEN', PmsTotalesPorMoneda::de($info)->monedaACobrar());
+    }
+
+    public function testSaldadaNoHayMonedaQueCobrar(): void
+    {
+        $info = $this->ficha();
+        $this->cargo($info, '50.00', $this->usd);
+        $this->pago($info, '50.00', $this->usd);
+
+        self::assertNull(PmsTotalesPorMoneda::de($info)->monedaACobrar());
+    }
+
     public function testElCuadreDeUnCruceRealCaeDentroDelUmbral(): void
     {
         // XTHRMQ: base soles, debe 176.90 en soles y tiene 52.00 dólares a favor, al 3.400.

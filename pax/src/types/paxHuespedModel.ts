@@ -308,6 +308,9 @@ export interface PmsResumenFinanciero {
         moneda?: string | null;
         simbolo?: string | null;
         expiraEn?: string | null;
+        /** Qué tramo es (`parte` de `partes`): un cobro por encima del tope de la pasarela va en varios enlaces vivos. Sin tramos, 1 de 1. */
+        parte?: number;
+        partes?: number;
     }>;
     tipoCambioReferencial?: string;
     monedaReferencial?: string;

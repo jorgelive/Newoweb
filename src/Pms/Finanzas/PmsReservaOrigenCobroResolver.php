@@ -59,13 +59,13 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
         // Una pasarela cobra en UNA divisa. Si la reserva debe US$ 65 y S/ 50, cobrarle «un
         // total» exigiría convertir — justo lo que se retiró (§12.2b). Se emite un enlace por
         // moneda y cada uno pide exactamente lo que se debe en ella.
-        //
-        // Sin `$moneda`, la de mayor saldo: es lo que respondía antes para los llamantes que no
-        // saben de esto, y es la respuesta útil cuando sólo hay una.
-        $porMoneda = $info === null ? [] : PmsTotalesPorMoneda::de($info)->porMoneda;
+        $totales = $info === null ? null : PmsTotalesPorMoneda::de($info);
+        $porMoneda = $totales === null ? [] : $totales->porMoneda;
+        // Sin `$moneda`, la que se cobra primero: la de mayor deuda EN VALOR, la misma que enseña
+        // la tarjeta del huésped. Ver `PmsTotalesPorMoneda::monedaACobrar()`.
         $eleccion = $moneda !== null && isset($porMoneda[$moneda])
             ? $moneda
-            : $this->monedaConMasSaldo($porMoneda);
+            : $totales?->monedaACobrar();
 
         // Sin cabecera financiera no hay saldo que cobrar todavía: se devuelve 0 y el
         // servicio lo rechaza con un mensaje claro en vez de reventar por null.
@@ -89,31 +89,6 @@ final class PmsReservaOrigenCobroResolver implements FinOrigenCobroResolverInter
             clienteEmail: $reserva->getEmailCliente(),
             clienteTelefono: $this->telefonos->para($reserva),
         );
-    }
-
-    /**
-     * La moneda con más saldo pendiente, o `null` si no hay ninguna con deuda.
-     *
-     * Con una sola moneda —lo normal— devuelve esa. Con dos, la que más se debe: es la que un
-     * operador que no ha elegido querría cobrar primero.
-     *
-     * @param array<string, array{cargos: string, pagos: string, saldo: string}> $porMoneda
-     */
-    private function monedaConMasSaldo(array $porMoneda): ?string
-    {
-        $mejor = null;
-        $mayor = 0.0;
-
-        foreach ($porMoneda as $moneda => $cifras) {
-            $saldo = (float) $cifras['saldo'];
-
-            if ($saldo > $mayor) {
-                $mayor = $saldo;
-                $mejor = $moneda;
-            }
-        }
-
-        return $mejor;
     }
 
     /**

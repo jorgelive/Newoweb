@@ -42,15 +42,10 @@ final readonly class SaldoPendiente
     {
         $id = (string) $reserva->getId();
 
-        // El enlace vivo del sistema. Si no lo hay —se pagó, se anuló, no quedaba saldo—, no hay
-        // nada que avisar: el mensaje mandaría a pagar algo que no existe.
-        $vivo = null;
-        foreach ($this->prepago->pagables($reserva) as $enlace) {
-            if ($enlace->getCreadoPor() === null) {
-                $vivo = $enlace;
-                break;
-            }
-        }
+        // El cobro vivo del sistema. Si no lo hay —se pagó, se anuló, no quedaba saldo—, no hay
+        // nada que avisar: el mensaje mandaría a pagar algo que no existe. Con TRAMOS, la suma:
+        // tomando el primero, `{{importe_saldo}}` anunciaba sólo la parte 1 (16/10/2026).
+        $vivo = $this->prepago->saldoVivoDelSistema($reserva);
 
         if ($vivo === null) {
             return false;
@@ -90,7 +85,7 @@ final readonly class SaldoPendiente
         $mensaje->setLanguageCode($hilo->getIdioma()->getId() ?? 'es');
         // El NETO del enlace: con transferencia no hay comisión, y la de la tarjeta se ve al pagar.
         $mensaje->setVariablesPlantilla([
-            'importe_saldo' => trim(sprintf('%s %s', $vivo->getMonedaCodigo() ?? '', $vivo->getMontoNeto())),
+            'importe_saldo' => trim(sprintf('%s %s', $vivo['moneda'], $vivo['neto'])),
         ]);
 
         $hilo->addMessage($mensaje);
