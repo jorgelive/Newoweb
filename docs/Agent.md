@@ -609,9 +609,9 @@ primera. Vale la pena descartarlo con el log antes que con la intuición.
 
 | Salvaguarda | Dónde | Qué evita |
 |---|---|---|
-| **Cierre forzado** con `functionCallingConfig: NONE` | `GoogleAIEngine::cerrarSinHerramientas()` | Que el turno caro sea **además** mudo |
+| **Cierre forzado** sin herramientas | `GoogleAIEngine::cerrarSinHerramientas()` (`mode: NONE`), `DeepSeekEngine::cerrarSinHerramientas()` (`tool_choice: none`), `AnthropicEngine::forzarCierre()` (`toolChoice: none` vía runner) | Que el turno caro sea **además** mudo |
 | **Racha de fallos** (`MAX_FALLOS_SEGUIDOS = 3`) | `ControlDeVueltas::finDeVuelta()`, en los tres motores | Que la racha llegue a ocho vueltas |
-| **Llamada repetida** (`skill + argumentos`) | idem, mapa `$servidas` | Pagar dos veces por la misma pregunta, y que una skill de escritura escriba dos veces |
+| **Llamada repetida** (`skill + argumentos`) | `ControlDeVueltas::yaServida()`; en Anthropic, dentro de cada herramienta | Pagar dos veces por la misma pregunta, y que una skill de escritura escriba dos veces |
 
 **El cierre forzado es el que más vale.** Antes, agotar las vueltas devolvía
 `ConversationResponse::vacia()`: el operador veía un silencio tras diez segundos y los 200 000
