@@ -1491,10 +1491,22 @@ principio —el docblock del primero describe exactamente este caso— y **no lo
 Faltaba el cable. Ahora:
 
 ```
-número entrante → user.telefono ?
-                    ├── sí  → delEquipoPorChat()  → sus roles, skills de operación
-                    └── no  → huesped()           → acotado a SU reserva
+mensaje entrante → ¿WhatsApp de Meta? ─ no ─→ huésped (el número no está verificado)
+                        │ sí
+                   telefono_origen (el REMITENTE) → user.telefono ?
+                        ├── sí  → delEquipoPorChat()  → sus roles, skills de operación
+                        └── no  → huesped()           → acotado a SU reserva
 ```
+
+🔒 **La pregunta la contesta `RemitenteDelEquipo::de()` desde el 16/10/2026, y en ningún otro
+sitio.** Se comparaba el teléfono de la CABECERA del hilo en cualquier canal: en un hilo de OTA ese
+número lo teclea el huésped en la reserva (con el móvil de un operador ahí, el chat de Booking
+recibía sus roles con escritura), y en un hilo con varios números es el de otra persona. Sólo vale
+WhatsApp de Meta —firma el webhook con el número dentro— y el número de quien escribió
+(`Message::getTelefonoOrigen()`, que estampa `WhatsappMetaReceivePersister`). Sin él, huésped: caer
+a la cabecera reabriría el agujero. Lo consultan las cuatro piezas que tenían su copia: el actor y
+el «leído» de `AiConversationProcessor`, y las esperas de ráfaga de `MessageAutoResponderListener`
+y `ProcessInboundIntentDispatchHandler`. Ver `docs/Agent.md` §2.
 
 **El formato del teléfono es lo que más falla.** La comparación es contra el número ya
 normalizado por `PhoneSanitizer::cleanPhoneNumber($n, 'PE')`, que devuelve código de país +
@@ -7601,7 +7613,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar cuál se elige si un número tiene varias reservas | `PmsReservaRepository` | `findVivasByTelefono()` (orden) + `tramoRelevante()` — actual > próxima |
 | Que el operador vea (o no) las reservas canceladas al buscar | `BuscarReservaSkill` | Filtro por `isCancelada()` + parámetro `incluir_canceladas` |
 | Cambiar el orden en que se le presentan las reservas al operador | `BuscarReservaSkill` | `ordenarPorPertinencia()` — alojado ahora > por llegar > ya se fue |
-| **Reconocer al equipo en el chat entrante** (pendiente) | `AiConversationProcessor::generar()` | Hoy siempre `AgentActor::huesped()`. Falta consultar `UserRepository::findByTelefono()` y, si hay usuario, `delEquipoPorChat()`. El actor se arma **una vez** y lo usan los tres pasos (triaje, charla, camino largo): cambiarlo ahí cambia también qué skills ve el clasificador, §13.1 |
+| Reconocer al equipo en el chat entrante | `src/Message/Service/Conversacion/RemitenteDelEquipo.php` | `de()` — WhatsApp de Meta y el número del remitente; lo usan el actor, el «leído» y las esperas de ráfaga |
 | Cambiar qué tipos de cargo suman en una cuenta anulada | `PmsInformacionFinancieraRecalculoService` **y** `RegistrarCargoSkill` | el `AND (i2.activa = 1 OR …)` del SQL y la `$advertencia` de la skill — los dos o la previsualización vuelve a mentir |
 | **Cuánto espera el bot a que el huésped termine de escribir** | `.env` | `AGENT_IA_ESPERA_RAFAGA` — §9. Si lo subes, revisa `check_delayed_interval` en `messenger.yaml`: el retraso real es la suma |
 | Que el retraso de la espera de ráfaga se note en el chat | `config/packages/messenger.yaml` | `check_delayed_interval` — cada cuánto mira el worker los diferidos, §9 |
