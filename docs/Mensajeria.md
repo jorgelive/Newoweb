@@ -2522,6 +2522,16 @@ El acuse de recibo pasa a ser **el suelo, no la política**: se manda cuando no 
 no cuando la respuesta no nos gusta. De paso cubre casos que antes eran silencio total (el
 proveedor declinó, faltaban permisos).
 
+🔥 **Un `sin_respuesta` puede ser el TOPE, no el modelo (17/10/2026).** Con Gemini 3.x el
+pensamiento sale del mismo `maxOutputTokens`. El turno del agente iba con 1024, y al confirmar un
+cambio de precio sobre noches ya vendidas —una contradicción que obliga a deliberar— el modelo gastó
+**984 tokens pensando y 0 contestando**, dos veces seguidas: a Jorge le llegó «un compañero te
+responderá» en mitad de una conversación que iba bien. El tope es ahora
+`AiConversationProcessor::TOPE_DEL_TURNO` = **4096** —un techo, no una reserva: no cuesta nada
+mientras el turno no lo use— y `AgentReplayCommand` usa el mismo, para que un ensayo no falle por el
+tope. Y cuando una vuelta vuelve sin texto ni herramientas, `GoogleAIEngine` registra el motivo de
+fin, el pensamiento y el tope: antes sólo quedaba «sin_respuesta» y hubo que deducirlo por los 984.
+
 ⚠️ **El riesgo que queda, escrito para que nadie lo redescubra:** ante «¿a qué hora es el
 check-in?» el modelo puede contestar de memoria en vez de mirar la guía. El freno para eso son
 las reglas del prompt (*«NUNCA inventes precios, disponibilidad, horarios ni políticas»*), no
@@ -6936,6 +6946,26 @@ aviso_promedio: «esas noches tienen 2 precios distintos (45.00, 65.00). Un rang
 
 Se dice aparte porque es lo que el operador **no** espera: dos temporadas distintas quedan
 igualadas.
+
+##### 💲 «Ponlo a 24» no es «+24» (17/10/2026)
+
+`ajuste` es una DIFERENCIA, y un importe sin signo se leía como subida. El modelo pasó el precio
+final ahí —`"24"` queriendo dejar la noche EN 24, y ya `confirmado`— y para la skill era 35,40 →
+**59,40**. No se aplicó sólo porque esas noches estaban vendidas. Ahora:
+
+- **`precio`**: el precio por noche al que tiene que quedar («ponle 45»). La descripción le dice al
+  modelo que lo use en vez de calcular el ajuste. `ajuste` y `precio` a la vez se rechazan.
+- **Un ajuste sin signo se rechaza** con el motivo (««+24» sube 24 y «-24» baja 24; si tiene que
+  QUEDAR en 24, pásamelo en «precio»»), en vez de adivinarse.
+- **`aviso_vendidas`**: sin `solo_libres`, la previsualización avisa de cuántas noches del tramo
+  ya están vendidas. Ese día se cambió así el precio de seis noches vendidas de la Casita 3 sin
+  que nadie lo dijera: no cambia lo que pagó el huésped, pero no es una promoción.
+
+Tests: `AjusteOPrecioTest`. El precio fijo y el aviso, comprobados contra la base local.
+
+⚠️ **Lo que sigue abierto**: nada comprueba que el `confirmado: true` coincida con la
+previsualización que el operador aprobó (ver el docblock de `GuardiaDeSkills`). Ese mismo día el
+modelo confirmó con otros datos —`"24"` y `solo_libres`— que los de la previsualización (`-11.40`).
 
 ##### ✂️ Las noches vendidas parten el ajuste en varios rangos
 

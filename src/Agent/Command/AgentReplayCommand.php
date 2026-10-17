@@ -234,7 +234,10 @@ final class AgentReplayCommand extends Command
                     // así que el valor coincide; se deja explícito para que se lea como lo que es
                     // —un ensayo no escribe— y no como una copia que se quedó atrás.
                     permitirEscritura: false,
-                    maxTokens: 1024,
+                    // El mismo techo que el turno real (`AiConversationProcessor::TOPE_DEL_TURNO`):
+                    // con uno más bajo, el ensayo fallaría por el tope —el pensamiento sale de
+                    // ahí— y no por lo que se esté probando.
+                    maxTokens: 4096,
                     modelo: $conModelo,
                     contexto: $this->porNombre($contextoDe, [
                         'conversacion' => $conversacion,

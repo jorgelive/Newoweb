@@ -92,15 +92,20 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
                 . 'distintas te devolveré el promedio del que parto: DÍSELO, porque significa '
                 . 'que dos temporadas quedan al mismo precio. Con solo_libres=true se saltan '
                 . 'las noches ya vendidas, que es lo normal al hacer una promoción: cambiar el '
-                . 'precio de una noche vendida no cambia lo que se cobró. Para ver precios sin '
-                . 'tocar nada usa consultar_tarifas.',
+                . 'precio de una noche vendida no cambia lo que se cobró. Si el operador dice el '
+                . 'precio final («ponlo a 24»), pásalo en «precio» y no lo conviertas en ajuste. '
+                . 'Para ver precios sin tocar nada usa consultar_tarifas.',
             parametros: [
                 SkillParameter::texto('casita', 'Nombre o slug de la casita.'),
                 SkillParameter::texto('desde', 'Primer día del ajuste, YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Último día (la noche de salida), YYYY-MM-DD.'),
-                SkillParameter::texto('ajuste', 'Cuánto cambiar. Admite importe fijo ("-5", '
-                    . '"+10") o porcentaje ("-10%", "+15%"). El signo manda: sin signo se '
-                    . 'entiende como subida.'),
+                SkillParameter::texto('ajuste', 'Cuánto SUBE o BAJA, siempre con signo: importe '
+                    . '("-5", "+10") o porcentaje ("-10%", "+15%"). Si el operador dice el precio '
+                    . 'al que tiene que quedar («ponlo a 24», «déjalo en 45»), NO lo calcules: '
+                    . 'usa «precio».', requerido: false),
+                SkillParameter::texto('precio', 'El precio por noche al que tiene que QUEDAR, '
+                    . 'cuando el operador lo dice así («ponle 45», «a 24 dólares»). Sólo el '
+                    . 'número. Usa esto o «ajuste», no los dos.', requerido: false),
                 SkillParameter::booleano('solo_libres', 'true para ajustar sólo las noches que '
                     . 'no están vendidas. Es lo normal en una promoción.', requerido: false),
                 SkillParameter::booleano('confirmado', 'true SÓLO tras la aprobación explícita '
@@ -138,6 +143,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
         $hasta = $this->fecha($e->textoONull('hasta'));
         $casitaPedida = trim($e->texto('casita'));
         $ajusteTexto = trim($e->texto('ajuste'));
+        $precioTexto = trim($e->texto('precio'));
 
         // Todo lo que falte, junto: preguntar la casita y luego el ajuste son dos viajes.
         $faltan = [];
@@ -150,7 +156,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             $faltan[] = 'fechas';
         }
 
-        if ($ajusteTexto === '') {
+        if ($ajusteTexto === '' && $precioTexto === '') {
             $faltan[] = 'ajuste';
         }
 
@@ -160,8 +166,8 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             return SkillResult::ok([
                 'falta_datos' => $faltan,
                 'pregunta' => 'Pregúntale al operador, todo de una vez: qué casita, qué fechas, '
-                    . 'y cuánto sube o baja (puede ser un importe como «-5» o un porcentaje '
-                    . 'como «-10%»). Luego vuelve a llamarme con esos datos.',
+                    . 'y cuánto sube o baja (un importe como «-5» o un porcentaje como «-10%») '
+                    . 'o en qué precio tiene que quedar. Luego vuelve a llamarme con esos datos.',
             ]);
         }
 
@@ -177,13 +183,41 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             ));
         }
 
-        $ajuste = $this->interpretarAjuste($ajusteTexto);
+        // 💲 **«Ponlo a 24» no es «+24».** (17/10/2026) El modelo pasaba el precio final como si
+        // fuera el ajuste —`"24"` donde se quería dejar la noche EN 24— y un importe sin signo se
+        // leía como subida: 35,40 → 59,40. No llegó a aplicarse sólo porque esas noches estaban
+        // vendidas. Ahora el precio final va en su propio parámetro, y un ajuste sin signo se
+        // rechaza en vez de adivinarse. Ver docs/Mensajeria.md, «ajustar_tarifas».
+        if ($ajusteTexto !== '' && $precioTexto !== '') {
+            return SkillResult::error('Dame «ajuste» o «precio», no los dos: o cuánto sube o baja, o en cuánto queda.');
+        }
 
-        if ($ajuste === null) {
-            return SkillResult::error(
-                'No entiendo el ajuste. Dímelo como importe ("-5", "+10") o como porcentaje '
-                . '("-10%", "+15%").'
-            );
+        $precioFijo = null;
+        $ajuste = null;
+
+        if ($precioTexto !== '') {
+            $precioFijo = $this->interpretarPrecio($precioTexto);
+
+            if ($precioFijo === null) {
+                return SkillResult::error('No entiendo el precio. Dámelo como número, por ejemplo «24» o «45.50».');
+            }
+        } else {
+            if (self::sinSigno($ajusteTexto)) {
+                return SkillResult::error(sprintf(
+                    'Sin signo no sé si subir o bajar: «+%1$s» sube %1$s y «-%1$s» baja %1$s. Si el '
+                    . 'operador quiere que la noche QUEDE en %1$s, pásamelo en «precio».',
+                    ltrim($ajusteTexto, '+')
+                ));
+            }
+
+            $ajuste = $this->interpretarAjuste($ajusteTexto);
+
+            if ($ajuste === null) {
+                return SkillResult::error(
+                    'No entiendo el ajuste. Dímelo como importe ("-5", "+10") o como porcentaje '
+                    . '("-10%", "+15%"), o el precio final en «precio».'
+                );
+            }
         }
 
         $unidad = $this->resolverUnidad($casitaPedida);
@@ -205,7 +239,8 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
         }
 
         $soloLibres = $e->booleano('solo_libres');
-        $ocupadas = $soloLibres ? $this->nochesOcupadas($unidad, $desde, $hasta) : [];
+        $vendidas = $this->nochesOcupadas($unidad, $desde, $hasta);
+        $ocupadas = $soloLibres ? $vendidas : [];
 
         $afectadas = array_filter(
             $diarios,
@@ -227,7 +262,7 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
         // cruza dos temporadas hay que aplanarlas — y decirlo.
         $precios = array_map(static fn (array $d): float => (float) $d['price'], $afectadas);
         $promedio = array_sum($precios) / count($precios);
-        $nuevo = round($this->aplicar($promedio, $ajuste), 2);
+        $nuevo = $precioFijo ?? round($this->aplicar($promedio, $ajuste), 2);
 
         if ($nuevo <= 0.0) {
             return SkillResult::error(sprintf(
@@ -273,7 +308,19 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
                     $nuevo
                 )
                 : null,
-            'ajuste' => $ajusteTexto,
+            // 🛏️ Sin `solo_libres`, las noches vendidas TAMBIÉN cambian de precio. No altera lo que
+            // pagó ese huésped, pero rara vez es lo que se quiere: el 17/10/2026 se cambió así el
+            // precio de seis noches ya vendidas sin que nadie lo dijera. Se avisa, para que el
+            // operador elija antes de aprobar.
+            'aviso_vendidas' => !$soloLibres && $vendidas !== []
+                ? sprintf(
+                    'Ojo: %d de esas noches ya están vendidas. Cambiarles el precio no cambia lo '
+                    . 'que pagó ese huésped. DÍSELO y pregúntale si quiere ajustar sólo las libres '
+                    . '(solo_libres=true).',
+                    count($vendidas)
+                )
+                : null,
+            'ajuste' => $precioFijo !== null ? sprintf('queda en %.2f', $precioFijo) : $ajusteTexto,
             'precio_nuevo' => sprintf('%.2f %s', $nuevo, $moneda),
             'rangos_a_crear' => count($tramos),
             'prioridad_nueva' => $prioridad,
@@ -466,8 +513,27 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
         return $tramos;
     }
 
+    /** ¿Un importe sin signo? Es lo que el modelo manda cuando quiere decir «el precio final». */
+    private static function sinSigno(string $texto): bool
+    {
+        return preg_match('/^\d+(?:[.,]\d+)?%?$/', str_replace(' ', '', $texto)) === 1;
+    }
+
+    private function interpretarPrecio(string $texto): ?float
+    {
+        $limpio = str_replace([' ', ',', '$', 'USD', 'usd'], ['', '.', '', '', ''], $texto);
+
+        if (!preg_match('/^\d+(?:\.\d+)?$/', $limpio)) {
+            return null;
+        }
+
+        $precio = round((float) $limpio, 2);
+
+        return $precio > 0.0 ? $precio : null;
+    }
+
     /**
-     * Lee «-5», «+10», «-10%» o «15%».
+     * Lee «-5», «+10», «-10%» o «+15%».
      *
      * @return array{tipo: 'importe'|'porcentaje', valor: float}|null
      */
@@ -479,8 +545,8 @@ final readonly class AjustarTarifasSkill implements SkillInterface, SkillDominio
             return null;
         }
 
-        // Sin signo se entiende como subida: es lo que dice la descripción, y adivinar lo
-        // contrario en una skill que publica precios sería caro.
+        // Un importe sin signo ya no llega aquí: `sinSigno()` lo rechaza antes, porque era el
+        // precio final disfrazado de subida. El `+` explícito sí es subida.
         $signo = $m[1] === '-' ? -1.0 : 1.0;
 
         return [

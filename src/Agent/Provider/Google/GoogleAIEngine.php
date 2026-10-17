@@ -184,6 +184,22 @@ final readonly class GoogleAIEngine implements AgentEngineInterface, MotorSondea
             }
 
             if ($leida->llamadas === []) {
+                // Sin texto y sin herramientas, el turno acaba en «sin_respuesta» y al cliente le
+                // llega el acuse. Que el log diga POR QUÉ: hasta el 17/10/2026 sólo quedaba
+                // «sin_respuesta», y hubo que deducir por los 984 tokens de pensamiento que el
+                // modelo se había comido el tope (`MAX_TOKENS`) deliberando.
+                if (trim($leida->texto) === '') {
+                    $this->logger->warning(sprintf(
+                        'Agent (google): %s volvió SIN texto ni herramientas para %s (fin: %s · pensamiento %s · salida %s · tope %d).',
+                        $modelo,
+                        $peticion->actor->etiqueta(),
+                        $leida->motivoFin !== '' ? $leida->motivoFin : '—',
+                        (string) ($leida->consumo->pensamiento ?? '?'),
+                        (string) ($leida->consumo->salida ?? '?'),
+                        $peticion->maxTokens
+                    ));
+                }
+
                 return $this->desenlace($leida->texto, $usadas);
             }
 

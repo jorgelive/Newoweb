@@ -49,6 +49,9 @@ use Throwable;
 final readonly class AiConversationProcessor
 {
     /** Mensajes de historial que se mandan al modelo. Acota coste y latencia. */
+    /** Techo de salida de un turno del agente, pensamiento incluido. Ver la llamada al motor. */
+    private const int TOPE_DEL_TURNO = 4096;
+
     private const int HISTORIAL_MAX = 20;
 
     /** Para fechar el prompt. El negocio y quien escribe están en Perú. */
@@ -795,7 +798,13 @@ final readonly class AiConversationProcessor
             // se pone `true` a secas para que eso quede dicho en el código y no dependa de que
             // los roles estén bien puestos.
             permitirEscritura: $actor->esDelEquipo(),
-            maxTokens: 1024,
+            // 🔥 **El PENSAMIENTO sale de este mismo tope** en Gemini 3.x. Con 1024, un turno que
+            // obliga a deliberar —el 17/10/2026, confirmar un cambio de precio sobre noches ya
+            // vendidas— gastó 984 tokens pensando y no le quedó nada para contestar: ni texto ni
+            // herramienta, «sin_respuesta», y al operador le llegó «un compañero te responderá»
+            // dos veces seguidas. Es un TECHO, no una reserva: subirlo no cuesta nada mientras el
+            // turno no lo use, y una respuesta normal sigue rondando los 50–200 tokens.
+            maxTokens: self::TOPE_DEL_TURNO,
             modelo: $elegido->modelo,
         ));
 
