@@ -1798,6 +1798,19 @@ cerrar el agua que ya tenía su asistente, y el asistente de la 6 y la 7 sus til
 `CorreccionesDeTraduccion` sólo casan si Google repite la misma frase. Tras lanzarlo se revisan
 las traducciones nuevas y `app:traduccion:corregir --dry-run` lista las huérfanas.
 
+### Lo que lee el ASISTENTE no pasa por las correcciones de traducción (17/10/2026)
+
+El asistente recibe siempre el español de `agente_contenido` y `agente_pasos` y traduce él mismo
+(`ConsultarGuiaSkill`, `$idioma = 'es'`). Así que lo que se arregla en `CorreccionesDeTraduccion`
+no le llega, y lo que confundió a Google le puede confundir a él: «un chorro fuerte» salió
+«chorro de gas» en los seis idiomas de la app. Como ese texto es sólo para el modelo, se aclara en
+el propio español —«chorro fuerte de agua»— sin tocar lo publicado
+(`app:pms:guia:duchas-agente`, archivado). De paso, los pasos de la escalera ganaron las tildes
+que el repaso de tildes no les puso («Pídele», «balón», «en qué baño está»…).
+
+⚠️ La skill recorta el texto a `MAX_CARACTERES` (1 800); la ducha más larga, la 7, tiene ~970.
+Si se le añade más, mirar que el final no quede fuera.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
