@@ -41,20 +41,10 @@ decidió dejar para después:
 
 Analizado entero contra el original en francés. Tres fallos se arreglaron el mismo día (líneas
 que Google se comía, la estancia mínima que el agente ignoraba, «c'est bien noté» sonando a
-reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). Quedan dos, con diagnóstico y medida:
+reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). El idioma, el 17/10. Queda uno:
 
-1. **El idioma del hilo salta a inglés con un mensaje corto.** `WhatsappMetaReceivePersister` usa
-   `GuestLanguageDetectorService` (la librería local), que con «Parfait merci !» devuelve `ch`
-   —chamorro—; como no está en `maestro_idioma`, cae a `en` y le cambia el idioma al hilo. El
-   siguiente mensaje del equipo salió en inglés a una francesa. Además los dos filtros de longitud
-   no coinciden: el detector salta con `< 15` y `MessageTranslator` con `> 15`, así que justo 15
-   caracteres no los para ninguno.
-   - Medido sobre 60 días: el detector deja el **23 %** de los entrantes fuera del maestro
-     («Muchas gracias Susan» → gaélico). Google corrige casi todos después; el daño neto,
-     **36 de 941 salientes nuestros en otro idioma que el del huésped, en 16 conversaciones**
-     (con ruido: hay huéspedes bilingües).
-   - **Arreglo:** restringir el detector a los idiomas del maestro, que lo desconocido conserve el
-     idioma actual en vez de caer a `en`, y un solo umbral para los dos sitios.
+1. ~~**El idioma del hilo salta a inglés con un mensaje corto.**~~ **Arreglado el 17/10/2026**:
+   `DetectorDeIdiomaLocal`, ver `docs/Mensajeria.md` «Cómo se decide el idioma del hilo».
 
 2. **La hora de salida se apunta en la estancia equivocada cuando la reserva se alargó.** La noche
    extra se crea como un segundo evento en la misma casita (10→14 y 14→15).

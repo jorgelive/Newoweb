@@ -147,33 +147,26 @@ readonly class WhatsappMetaReceivePersister
             $message->setContentExternal($safeContent);
 
             // =================================================================
-            // DETECCIÓN DINÁMICA DE IDIOMA (Blindada y Normalizada)
+            // DETECCIÓN DE IDIOMA — ver DetectorDeIdiomaLocal
             // =================================================================
-            $detectedLangCode = 'es';
-            if (!empty($textoRecibido)) {
-                $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+            // Sólo idiomas del maestro, y lo que no se puede decidir conserva el actual. Antes, un
+            // idioma que no teníamos («Parfait merci !» → chamorro) caía a inglés y le cambiaba el
+            // idioma al hilo: el siguiente mensaje del equipo salía en inglés a una francesa.
+            $detectedLangCode = $currentConversationLang;
 
-                // Normalizamos extrayendo solo las 2 primeras letras (ej: 'en-US' -> 'en')
-                $iso2LangCode = substr(strtolower($rawDetected), 0, 2);
+            if ($textoRecibido !== '') {
+                $detectedLangCode = $this->languageDetector->codigoDe($textoRecibido, $currentConversationLang);
 
-                $repoIdioma = $this->em->getRepository(MaestroIdioma::class);
+                // ⚠️ **El cerrojo manda.** `idiomaFijado` es el checkbox «Fijado» del panel:
+                // alguien miró y decidió en qué idioma se le escribe a esta persona. La detección
+                // automática NO puede llevarle la contraria — el huésped peruano que escribe
+                // «Thanks! See you tomorrow» pasaba el hilo a inglés y el recordatorio de saldo
+                // salía en inglés, sin un solo error.
+                if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
+                    $nuevoIdioma = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
 
-                // Buscamos el detectado, o aplicamos fallback a inglés
-                $newIdiomaEntity = $repoIdioma->find($iso2LangCode) ?? $repoIdioma->find('en');
-
-                if ($newIdiomaEntity instanceof MaestroIdioma) {
-                    $detectedLangCode = $newIdiomaEntity->getId() ?? 'es';
-
-                    // ⚠️ **El cerrojo manda.** `idiomaFijado` es el checkbox «Fijado» del panel:
-                    // alguien miró y decidió en qué idioma se le escribe a esta persona. La
-                    // detección automática NO puede llevarle la contraria — el huésped peruano
-                    // que escribe «Thanks! See you tomorrow» pasaba el hilo a inglés y el
-                    // recordatorio de saldo salía en inglés, sin un solo error.
-                    //
-                    // Sólo lo respetaba `upsertFromContext()`, o sea que protegía del contexto y
-                    // no de los dos únicos sitios que cambian el idioma solos.
-                    if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
-                        $conversation->setIdioma($newIdiomaEntity);
+                    if ($nuevoIdioma instanceof MaestroIdioma) {
+                        $conversation->setIdioma($nuevoIdioma);
                     }
                 }
             }

@@ -139,18 +139,19 @@ class MessageTranslator
 
             $detectedLang = $results['detectedLanguage'] ?? $currentConvLang;
 
-            // 🔥 FILTRO DE ENTROPÍA LINGÜÍSTICA
-            // Verificamos si el texto tiene "peso" real para justificar un cambio de idioma.
-            // Más de 15 caracteres o más de 2 palabras descarta casos como "ok", "yes", "muchas gracias".
-            $cleanText = trim(strip_tags($rawExternal));
-            $isLongEnoughToSwitch = mb_strlen($cleanText) > 15 || str_word_count($cleanText) > 2;
+            // 🔥 ¿Tiene el texto material para cambiar el idioma del hilo? La MISMA regla que el
+            // detector local: aquí era «más de 15 caracteres o más de 2 palabras», allí «menos de
+            // 15 bytes», y justo 15 —«Parfait merci !»— no lo paraba ninguna de las dos.
+            $isLongEnoughToSwitch = LongitudParaIdioma::basta($rawExternal);
 
             if ($detectedLang && $detectedLang !== $currentConvLang) {
                 if ($isLongEnoughToSwitch) {
                     // El texto es largo, el cambio de idioma es legítimo
                     $iso2LangCode = substr(strtolower($detectedLang), 0, 2);
-                    $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode)
-                        ?? $this->entityManager->getRepository(MaestroIdioma::class)->find('en');
+                    // Un idioma que no está en el maestro NO es inglés: es «no lo sé», y se
+                    // conserva el que había. Caer a `en` es lo que pasaba al hilo de una
+                    // francesa a inglés. Ver DetectorDeIdiomaLocal.
+                    $idiomaEntity = $this->entityManager->getRepository(MaestroIdioma::class)->find($iso2LangCode);
 
                     // Ver el mismo aviso en `WhatsappMetaReceivePersister`: el checkbox «Fijado»
                     // es una decisión de persona y la detección automática no la pisa.

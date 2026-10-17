@@ -195,31 +195,26 @@ readonly class Beds24ReceivePersister
                 }
 
                 // =================================================================
-                // 🧠 DETECCIÓN DINÁMICA DE IDIOMA (Local y Costo Cero)
+                // 🧠 DETECCIÓN DE IDIOMA — la misma regla que WhatsApp (DetectorDeIdiomaLocal)
                 // =================================================================
-                $idiomaEntity = null;
-                $detectedLangCode = 'es';
+                // ⚠️ Aquí había dos fallos más que en WhatsApp: un idioma fuera del maestro caía a
+                // inglés igual, y además **no se respetaba el idioma fijado a mano** — un mensaje
+                // por Booking le cambiaba el idioma a un hilo que alguien había fijado.
+                $detectedLangCode = $currentConversationLang;
 
                 if (!empty($textoRecibido)) {
-                    $rawDetected = $this->languageDetector->detectLanguageCode($textoRecibido, $currentConversationLang);
+                    $detectedLangCode = $this->languageDetector->codigoDe($textoRecibido, $currentConversationLang);
 
-                    // 🔥 EL TOQUE MAESTRO: Extraer solo las 2 primeras letras para normalizar
-                    // formatos regionales (ej: 'he-IL' pasa a ser 'he', 'en-US' pasa a 'en')
-                    $iso2LangCode = substr(strtolower($rawDetected), 0, 2);
+                    if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
+                        $nuevoIdioma = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
 
-                    // Buscar el idioma detectado (normalizado); si no existe en la tabla, fallback a 'en'
-                    $idiomaEntity = $this->em->getRepository(MaestroIdioma::class)->find($iso2LangCode)
-                        ?? $this->em->getRepository(MaestroIdioma::class)->find('en');
-
-                    $detectedLangCode = $idiomaEntity?->getId() ?? 'es';
+                        if ($nuevoIdioma instanceof MaestroIdioma) {
+                            $conversation->setIdioma($nuevoIdioma);
+                        }
+                    }
                 }
 
                 $message->setLanguageCode($detectedLangCode);
-
-                // Auto-corrección del idioma de la conversación
-                if ($idiomaEntity && $detectedLangCode !== $currentConversationLang) {
-                    $conversation->setIdioma($idiomaEntity);
-                }
 
                 // =================================================================
                 // 🎯 INTERCEPTOR DE MENÚS E INTENCIONES (Menu Fallback)

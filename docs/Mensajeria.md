@@ -2572,6 +2572,39 @@ respuesta del propio bot redefina el idioma del huésped es un bucle esperando a
 ⚠️ El aviso de `escalar_al_equipo` **sí** rellena los dos a propósito: va a una conversación
 `staff`, ya está en español y no hay nada que traducir.
 
+#### 🌐 Cómo se decide el idioma del hilo, y por qué ya no cae a inglés (17/10/2026)
+
+Tres sitios lo deciden al llegar un mensaje, y los tres usan ahora la **misma** regla:
+
+```
+WhatsappMetaReceivePersister ─┐
+Beds24ReceivePersister ───────┼─▶ GuestLanguageDetectorService::codigoDe()  (local, sin API)
+                              │        └─ DetectorDeIdiomaLocal
+MessageTranslator (Google) ───┴─▶ LongitudParaIdioma::basta()  + «fuera del maestro = no lo sé»
+```
+
+1. **Sólo idiomas del maestro.** La librería (`patrickschur/language-detection`) se carga con los
+   códigos que les corresponden —38, incluidas variantes como `pt-BR`/`pt-PT` o `nb`/`nn`→`no`—.
+   Antes se llamaba sin restricción (110 idiomas) aunque el comentario de al lado decía lo
+   contrario, y lo que no estaba en el maestro **caía a inglés**: «Parfait merci !» salió
+   chamorro, el hilo de una francesa pasó a inglés y el siguiente mensaje del equipo le llegó en
+   inglés (Clémence Mougin, 14/10/2026).
+2. **Lo dudoso conserva el idioma actual**, nunca inglés: menos de 3 palabras o de 15 caracteres
+   (`LongitudParaIdioma`, una sola regla para los tres sitios; antes eran dos y justo 15 no lo
+   paraba ninguna), un resultado vacío, o un idioma que Google devuelve y no tenemos.
+3. **Cambiar cuesta más que quedarse** (`DetectorDeIdiomaLocal::MARGEN_PARA_CAMBIAR = 0,04`): si
+   el actual puntúa casi como el ganador, se queda. «Me confirmas porfa» daba portugués 0,533
+   frente a español 0,504.
+4. **El idioma fijado a mano manda** en los tres. Beds24 no lo respetaba.
+
+Medido sobre 542 entrantes reales de 60 días, antes de desplegar: cambios de idioma equivocados
+**121 → 27** mensajes; hilos con alguno, **25 → 12** de 59; y de los 21 hilos que de verdad
+estaban en otro idioma, los **21** se siguen detectando. La tabla de márgenes está en el docblock
+de `DetectorDeIdiomaLocal`.
+
+⚠️ El detector guarda los **códigos** del maestro, nunca las entidades: corre en un worker que
+limpia el EntityManager entre mensajes, y una `MaestroIdioma` guardada quedaría desconectada.
+
 #### ⚠️ Lo que el operador lee puede tener una línea MENOS que lo que escribió el huésped (16/10/2026)
 
 Con un espacio al final de una línea, Google Translate **se come la línea siguiente entera**. Una
