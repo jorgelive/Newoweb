@@ -424,8 +424,13 @@ declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar mod
 > seis que lista el comando: **Camino Inca hecho** (día 1, `PROMOCIONES_POR_DIA`); las dos de
 > **Two Day MAPI** se quedan sin principal a propósito; quedan **Skylodge, Starlodge y Vertical
 > Sky**. Y dos cosas de dato encontradas al revisarlas:
-> - 🔴 **Vertical Sky, día 2:** el segmento «Circuito Completo de Aventura» **no tiene ningún
->   componente** — la actividad que se vende no está en la plantilla.
+> - ~~🔴 **Vertical Sky, día 2:** el segmento «Circuito Completo de Aventura» **no tiene ningún
+>   componente**.~~ **Hecho el 17/10/2026**: «Experiencia Circuito Vertical Sky» a 0,00, principal
+>   del día 2 (08:00–11:30). Ver `docs/Travel.md` «Plantillas de varios días».
+> - 🔴 **Vertical Sky, el precio:** las actividades van a 0 y el importe debería estar en el
+>   alojamiento, pero la cápsula usa el genérico «Alojamiento en Ollantaytambo» (tarifas de hotel a
+>   0,00 o de cabaña a 200 PEN). **La plantilla se cotiza sin el precio de Vertical Sky.** Hace
+>   falta un alojamiento propio con sus tarifas: pendiente del tarifario del proveedor.
 > - ⚠️ **Alojamiento de la cápsula:** Skylodge usa «Alojamiento en Skylodge Starlodge», pero
 >   Starlodge y Vertical Sky usan «Alojamiento en Ollantaytambo». En Starlodge parece un error.
 

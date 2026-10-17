@@ -1812,6 +1812,7 @@ día en esta plantilla», §4): por eso se marca sólo el segmento que cae en es
 | Plantilla | Día | Componente | |
 |---|---|---|---|
 | Two Day Camino inca | 1 | Pool Camino Inca 2d (07:30–15:00, la caminata del km 104) | hecho el 17/10/2026 |
+| Two Day Vertical Sky con actividades | 2 | Experiencia Circuito Vertical Sky (08:00–11:30) | hecho el 17/10/2026 |
 
 Revisadas el mismo día las seis plantillas de varios días que lista `app:travel:proponer-puntos`:
 
@@ -1820,6 +1821,24 @@ Revisadas el mismo día las seis plantillas de varios días que lista `app:trave
 - **Camino Inca, día 2**: Machu Picchu clásico, tampoco lleva.
 - **Skylodge, Starlodge y Vertical Sky**: paquete de proveedor; pendientes de montar el
   componente por día (`docs/Pendientes.md`, «Origen y fin de servicio»).
+
+**Vertical Sky, día 2 (17/10/2026).** El segmento «Circuito Completo de Aventura Vertical» —Vía
+Ferrata, puente colgante y tirolesa— no tenía **ningún componente**: la actividad que se vende era
+sólo texto, no sumaba y el día no tenía hora. `app:travel:montar-circuito-vertical-sky` crea
+«Experiencia Circuito Vertical Sky» (pool) con el patrón de Skylodge, que Jorge confirmó ese día:
+**las actividades van a 0,00 («Incluido en el Paquete») y el precio vive en el alojamiento**, que
+en Skylodge tiene una tarifa por combinación (Via Ferrata, Zip Line, FULL). Dos pivotes, como manda
+`docs/TravelCargaDeCatalogo.md` §4: el global sin día ni hora y el de la plantilla, día 2,
+08:00–11:30, como principal. La hora no viene de un tarifario —no se encontró el original— sino
+del texto del traslado de salida («después del desayuno, o al culminar las actividades de aventura
+por la mañana») y de que ese traslado sale a las 12:00: se corrige en el panel si el proveedor dice
+otra.
+
+⚠️ **Lo que sigue roto en Vertical Sky es el PRECIO.** Con las actividades a 0, todo el importe
+tiene que estar en el alojamiento, y la cápsula usa «Alojamiento en Ollantaytambo», un componente
+genérico cuyas tarifas son de hotel u hostal (0,00) o de cabaña (200 PEN por persona). Ninguna es de
+Vertical Sky Suites: una cotización con esta plantilla sale a 0 o a precio de cabaña. Hace falta un
+alojamiento propio con sus tarifas, y eso pide el tarifario.
 
 La plantilla del Camino Inca decía además «Duración: 1 día» con dos días: corregida por migración
 (`Version20261017120000`), era la única con `duracion_dias` distinto del `MAX(dia)` de sus segmentos.
