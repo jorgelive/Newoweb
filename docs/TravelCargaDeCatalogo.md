@@ -1153,6 +1153,13 @@ Crearle encima las de la constante las duplicaría sin que nada lo impida: `trav
 tiene clave natural (§4 bis). Las suyas las puso quien negoció el precio, así que el comando las
 lee y toma la primera como `tarifaPredeterminada` en vez de escribir las propias.
 
+⚠️ **«La primera» no es «la buena», y en Titicaca salió mal dos veces (16/10/2026).** Los dos
+componentes reutilizados llevaban, junto a la de Qhapaq, una tarifa vieja de «Titicaca Tours» sin
+prestador ni comprador. El 2D con Taquile se quedó con ésa por defecto (S/200 en vez de S/160) y
+el Clásico, sin ninguna. Lo arregló `app:travel:titicaca-tarifa-qhapaq`, que además borró las de
+Titicaca Tours (Jorge; ninguna cotización las usaba). **Al reutilizar, mira qué tarifas trae el
+componente y elige la del proveedor del tarifario**, no la que salga primero por orden alfabético.
+
 ### ⚠️ Los ítems van en una pasada APARTE del bucle de rutas
 
 Consecuencia directa de lo anterior: si viven dentro del bucle, un componente que se creó sin
