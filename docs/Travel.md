@@ -1834,6 +1834,30 @@ del texto del traslado de salida («después del desayuno, o al culminar las act
 por la mañana») y de que ese traslado sale a las 12:00: se corrige en el panel si el proveedor dice
 otra.
 
+**Skylodge y Starlodge contra el tarifario 2026 de Natura Vive (17/10/2026).** Revisados contra
+los PDF del proveedor; `app:travel:aplicar-tarifario-natura-vive-2026` aplica lo que no cuadraba:
+tres importes de la tarifa confidencial (Skylodge FULL por persona 1 375,00; Starlodge Zip Line
+por cápsula 5 337,50; Starlodge FULL por cápsula 5 635,00), la **edad mínima de Skylodge, 15 años**
+(Starlodge es 12), la capacidad de 4 personas en las tarifas por cápsula, Natura Vive como
+prestador de la cápsula y de sus actividades, y dos horas del itinerario oficial (retorno de
+Skylodge a las 11:30; actividades de Starlodge desde las 15:00, porque las 14:30 son la charla).
+
+- 🔴 **Starlodge se cotizaba sin precio**: su cápsula usaba el genérico «Alojamiento en
+  Ollantaytambo», y sus tarifas siempre estuvieron en «Alojamiento en Skylodge Starlodge». Ahora
+  usa el correcto. El segmento de cada cápsula lo usa una sola plantilla, así que cambiar la fila
+  global no tocó a nadie más.
+- **La cápsula lleva tarifa predeterminada, la FULL por persona**, porque las dos plantillas son
+  «con actividades». Va en una fila DE PLANTILLA, como el transporte: la global sólo dice que el
+  componente existe en el segmento.
+- **Las actividades van a 0,00 porque su precio está en la cápsula**: el tarifario cobra por
+  combinación (Skylodge 01 = Zip Line + noche, 02 = Via Ferrata + noche, FULL = las dos).
+- **Comisión: la estándar** (Jorge), aunque el tarifario llame «no comisionables» a las tarifas por
+  cápsula.
+- ⚠️ **Lo que el catálogo NO modela y hay que añadir a mano**: el **+25 %** de las noches del 24 y
+  del 31 de diciembre, y el **IGV del 10,5 %** que pagan los peruanos y los residentes (los precios
+  van sin IGV). Y las tarifas rigen hasta el 31/12/2026: el tarifario de 2027 hay que volver a
+  cotejarlo.
+
 ⚠️ **El transporte NO va en el paquete, a diferencia de Skylodge** (Jorge, 17/10/2026). En Skylodge
 y Starlodge el paquete lo incluye todo y sus transportes llevan «Van (Incluido en paquete externo)»
 a 0,00. **Vertical Sky recoge en Ollantaytambo**: el tramo Cusco ↔ Ollantaytambo lo ponemos

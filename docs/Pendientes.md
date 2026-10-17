@@ -431,8 +431,10 @@ declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar mod
 >   alojamiento, pero la cápsula usa el genérico «Alojamiento en Ollantaytambo» (tarifas de hotel a
 >   0,00 o de cabaña a 200 PEN). **La plantilla se cotiza sin el precio de Vertical Sky.** Hace
 >   falta un alojamiento propio con sus tarifas: pendiente del tarifario del proveedor.
-> - ⚠️ **Alojamiento de la cápsula:** Skylodge usa «Alojamiento en Skylodge Starlodge», pero
->   Starlodge y Vertical Sky usan «Alojamiento en Ollantaytambo». En Starlodge parece un error.
+> - ~~⚠️ **Alojamiento de la cápsula:** Starlodge usaba «Alojamiento en Ollantaytambo».~~
+>   **Corregido el 17/10/2026** con el tarifario 2026 de Natura Vive, junto con tres importes, la
+>   edad de Skylodge y las tarifas predeterminadas (`docs/Travel.md`, «Plantillas de varios días»).
+>   Vertical Sky sigue con el genérico: es otro proveedor y falta su tarifario.
 
 Las cinco plantillas de varios días no tienen principal **por día**, y el mecanismo ya lo admite:
 la unicidad es `(plantilla, día)`, así que un Camino Inca de 4 días acepta cuatro marcados.
