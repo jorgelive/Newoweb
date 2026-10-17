@@ -64,10 +64,9 @@ final readonly class BuscarTarifasSkill implements SkillInterface, SkillDominioI
     {
         return new SkillDefinition(
             descripcion: 'Las tarifas del CATÁLOGO de servicios y tours —no las de las casitas—, '
-                . 'con su precio, sus restricciones y quién las presta. Úsala para «¿qué tarifas '
-                . 'tiene el boleto de Machu Picchu?», «¿cuánto cuesta el city tour para '
-                . 'extranjeros?», «¿qué precio tenemos con el Ministerio de Cultura?». Busca por '
-                . 'nombre del componente. '
+                . 'con su precio y sus restricciones. Úsala para «¿qué tarifas tiene el boleto de '
+                . 'Machu Picchu?», «¿cuánto cuesta el city tour para extranjeros?». Busca por '
+                . 'nombre del componente, NO por empresa o prestador. '
                 . 'Cada tarifa vuelve con sus CONDICIONES —privado o compartido, nacional o '
                 . 'extranjero, categoría, edades y capacidad— y eso es lo que hay que leer antes '
                 . 'de decir un precio: dos tarifas del mismo servicio se distinguen por ahí, no '

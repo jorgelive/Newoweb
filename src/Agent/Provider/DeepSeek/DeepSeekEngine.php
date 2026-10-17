@@ -138,20 +138,10 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             } catch (Throwable $e) {
                 $this->logger->error(sprintf('Agent (deepseek): %s', $e->getMessage()));
 
-                // Con algo ya redactado se entrega eso; si no, se declara no disponible y quien
-                // llama decide. Nunca se propaga: al otro lado hay un huésped esperando.
-                //
-                // ⚠️ `sinSkill()` SÓLO si de verdad no se usó ninguna. Es el motivo que alimenta
-                // la métrica de «respuestas sin datos detrás», y devolverlo con skills ya
-                // ejecutadas la ensucia — además de que algún canal descarta por ese motivo un
-                // texto que sí salía de los datos.
-                if ($texto === null) {
-                    return ConversationResponse::noDisponible();
-                }
-
-                return $usadas === []
-                    ? ConversationResponse::sinSkill($texto)
-                    : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
+                // Se declara no disponible y quien llama decide. Nunca se propaga: al otro lado hay
+                // un huésped esperando. Lo redactado en vueltas anteriores no se entrega: era un
+                // preámbulo a las herramientas, no una respuesta (ver abajo).
+                return ConversationResponse::noDisponible();
             }
 
             $leida = DeepSeekRespuesta::fromArray($respuesta);
@@ -176,12 +166,15 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
                 break;
             }
 
-            $contenido = trim($leida->texto);
-            if ($contenido !== '') {
-                $texto = $contenido;
-            }
-
+            // 🔥 Sólo cuenta el texto de una vuelta SIN herramientas (16/10/2026). El que acompaña a
+            // una llamada es un preámbulo —«un momento, reviso tu reserva…»—, y se guardaba: si la
+            // vuelta siguiente fallaba o se agotaba el tope, salía como respuesta final, marcada
+            // `ia`, por WhatsApp. Ahora esos casos acaban en `noDisponible()`/`vacia()` y el canal
+            // decide (el acuse genérico), en vez de dejar al huésped esperando algo que no llega.
             if ($leida->llamadas === []) {
+                $contenido = trim($leida->texto);
+                $texto = $contenido !== '' ? $contenido : null;
+
                 break;
             }
 

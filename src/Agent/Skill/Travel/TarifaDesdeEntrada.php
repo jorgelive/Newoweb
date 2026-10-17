@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Travel;
 use App\Entity\Maestro\MaestroMoneda;
 use App\Travel\Entity\TravelComponente;
 use App\Travel\Entity\TravelTarifa;
+use App\Travel\Enum\TarifaCalculoEnum;
 use App\Travel\Enum\TarifaCategoriaEnum;
 use App\Travel\Enum\TarifaModalidadEnum;
 use App\Travel\Enum\TarifaProcedenciaEnum;
@@ -92,6 +93,9 @@ final readonly class TarifaDesdeEntrada
             'modalidad' => TarifaModalidadEnum::class,
             'categoria' => TarifaCategoriaEnum::class,
             'procedencia' => TarifaProcedenciaEnum::class,
+            // «Ponle una tarifa de grupo» (16/10/2026): sin esto la tarifa nacía INDIVIDUAL y el
+            // total del grupo se multiplicaba por cada pasajero.
+            'calculo' => TarifaCalculoEnum::class,
         ] as $clave => $enum) {
             if (trim($e->texto($clave)) === '') {
                 continue;
@@ -113,6 +117,7 @@ final readonly class TarifaDesdeEntrada
                 $caso instanceof TarifaModalidadEnum => $tarifa->setModalidad($caso),
                 $caso instanceof TarifaCategoriaEnum => $tarifa->setCategoria($caso),
                 $caso instanceof TarifaProcedenciaEnum => $tarifa->setProcedencia($caso),
+                $caso instanceof TarifaCalculoEnum => $tarifa->setCalculo($caso),
             };
         }
 
@@ -137,6 +142,18 @@ final readonly class TarifaDesdeEntrada
 
         if ($exigeNombre && trim((string) $tarifa->getNombreInterno()) === '') {
             return 'Una tarifa nueva necesita nombre: es lo que distingue «Adulto extranjero» de «Niño».';
+        }
+
+        // 🔒 Y precio y moneda (16/10/2026). Sin moneda, la previsualización pasaba y al confirmar
+        // el flush reventaba en `moneda_id` NOT NULL —y cerraba el EntityManager: el turno perdía
+        // su respuesta—; sin precio, nacía una tarifa a 0.00. En una nueva no hay «lo que no viene
+        // no se toca»: no hay nada que conservar.
+        if ($exigeNombre && $tarifa->getMoneda() === null) {
+            return 'Una tarifa nueva necesita moneda: USD o PEN.';
+        }
+
+        if ($exigeNombre && (!$e->tiene('precio') || $e->texto('precio') === '')) {
+            return 'Una tarifa nueva necesita precio. Si de verdad es gratis, dímelo con precio 0.';
         }
 
         return $this->coherente($tarifa);
@@ -174,7 +191,11 @@ final readonly class TarifaDesdeEntrada
     public function retrato(TravelTarifa $t): array
     {
         return array_filter([
-            'tarifa_id' => $t->getId() !== null ? (string) $t->getId() : null,
+            // Sólo si existe en la base: una tarifa sin guardar ya tiene id (`IdTrait` lo genera al
+            // construir), y uno distinto en cada previsualización que, pasado a modificar_tarifa,
+            // daba «no encuentro esa tarifa».
+            'tarifa_id' => $t->getId() !== null && $this->em->contains($t) ? (string) $t->getId() : null,
+            'calculo' => $t->getCalculo()->value,
             'componente' => $t->getComponente()?->getNombreInterno(),
             'nombre' => $t->getNombreInterno(),
             'precio' => $t->getMonto(),
@@ -228,6 +249,9 @@ final readonly class TarifaDesdeEntrada
             \App\Agent\Skill\SkillParameter::texto('modalidad', 'privado o compartido.', requerido: false),
             \App\Agent\Skill\SkillParameter::texto('categoria', 'estandar, economico, superior o premium.', requerido: false),
             \App\Agent\Skill\SkillParameter::texto('procedencia', 'nacional, extranjero o can.', requerido: false),
+            \App\Agent\Skill\SkillParameter::texto('calculo', 'individual (el precio es por persona, lo normal), '
+                . 'grupal (el precio es el total del grupo: «tarifa de grupo») u operativa (costo del '
+                . 'grupo que el cliente no ve como línea).', requerido: false),
             \App\Agent\Skill\SkillParameter::entero('edad_minima', 'Edad mínima. 0 para quitar el límite.', requerido: false),
             \App\Agent\Skill\SkillParameter::entero('edad_maxima', 'Edad máxima. 0 para quitar el límite.', requerido: false),
             \App\Agent\Skill\SkillParameter::entero('capacidad_minima', 'Personas mínimas. 0 para quitar.', requerido: false),

@@ -25,6 +25,9 @@ final readonly class AnthropicEngine implements AgentEngineInterface
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
 
+    /** Vueltas de herramientas por turno: las mismas que `DeepSeekEngine::MAX_VUELTAS`. */
+    private const int MAX_VUELTAS = 8;
+
     public function __construct(
         private AnthropicClientFactory $anthropic,
         private SkillRegistry $skills,
@@ -97,6 +100,9 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             // potencia); el registro ya comprobó que pertenece a este proveedor.
             model: $peticion->modelo ?? $this->anthropic->modelo(),
             tools: $tools,
+            // 🔒 Un tope, como los otros dos motores (16/10/2026). Sin él `BetaToolRunner` gira
+            // SIN LÍMITE: un modelo en bucle llamando a la misma skill no paraba nunca.
+            maxIterations: self::MAX_VUELTAS,
             extraParams: ['system' => $this->bloquesDeSistema($peticion)],
         );
 
@@ -119,6 +125,13 @@ final readonly class AnthropicEngine implements AgentEngineInterface
                 ));
 
                 return ConversationResponse::rechazada();
+            }
+
+            // 🔥 Sólo cuenta el texto de un mensaje que NO pide herramientas (16/10/2026): el que
+            // acompaña a un `tool_use` es un preámbulo —«un momento, reviso tu reserva…»—, y si
+            // la vuelta siguiente no traía texto o se agotaba el tope, salía como respuesta final.
+            if ($mensaje->stopReason === 'tool_use') {
+                continue;
             }
 
             foreach ($mensaje->content as $bloque) {

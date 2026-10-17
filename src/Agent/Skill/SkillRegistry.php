@@ -35,31 +35,7 @@ final readonly class SkillRegistry
         $permitidas = [];
 
         foreach ($this->skills as $skill) {
-            // Apagada por configuración: no existe para nadie, ni siquiera para un
-            // SUPER_ADMIN. Va ANTES que los roles porque no es una cuestión de permisos —
-            // la skill no puede funcionar, se tengan los que se tengan.
-            if ($skill instanceof SkillConmutableInterface && !$skill->estaActiva()) {
-                continue;
-            }
-
-            // De otro NEGOCIO: no existe para este actor. Va antes que los roles por el mismo
-            // motivo que el interruptor de arriba — «esta herramienta no es de lo tuyo» es
-            // previo a «no tienes permiso», y así el motivo que quede en el log es el de verdad.
-            //
-            // El equipo se lo salta entero: quien atiende alojamiento y tours por el mismo
-            // WhatsApp interno necesita las dos cajas a la vez, y qué puede tocar de cada una
-            // ya lo deciden sus roles.
-            if (!$actor->esDelEquipo() && !$this->esDelDominioDe($skill, $actor)) {
-                continue;
-            }
-
-            if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
-                continue;
-            }
-
-            // 💵 En una consulta de OTA el precio lo pone la plataforma: las herramientas de
-            // dinero no existen para ese actor. Ver RestriccionCanal::ocultaImportes().
-            if ($skill instanceof SkillDeImportesInterface && $actor->restriccion()->ocultaImportes()) {
+            if (self::motivoDeExclusion($skill, $actor) !== null) {
                 continue;
             }
 
@@ -78,6 +54,57 @@ final readonly class SkillRegistry
     }
 
     /**
+     * Por qué esta skill NO es para este actor, o `null` si lo es. La política entera del
+     * catálogo salvo la escritura, que depende del canal y la decide quien llama.
+     *
+     * Pública y estática porque la usa también `GuardiaDeSkills`, el último cierre al ejecutar: sólo
+     * miraba los roles, así que por la CLI (`app:agent:skill`) se ejecutaba una skill apagada, de
+     * otro negocio o de dinero en una consulta de OTA (revisión del 16/10/2026). Una sola política
+     * en vez de dos que divergen.
+     */
+    public static function motivoDeExclusion(SkillInterface $skill, ActorInterface $actor): ?string
+    {
+        // Apagada por configuración: no existe para nadie, ni siquiera para un SUPER_ADMIN. Va
+        // ANTES que los roles porque no es una cuestión de permisos — la skill no puede funcionar,
+        // se tengan los que se tengan.
+        if ($skill instanceof SkillConmutableInterface && !$skill->estaActiva()) {
+            return sprintf('"%s" está desactivada.', $skill->nombre());
+        }
+
+        // De otro NEGOCIO: no existe para este actor. Va antes que los roles por el mismo motivo
+        // — «esta herramienta no es de lo tuyo» es previo a «no tienes permiso», y así el motivo
+        // que quede en el log es el de verdad.
+        //
+        // El equipo se lo salta entero: quien atiende alojamiento y tours por el mismo WhatsApp
+        // interno necesita las dos cajas a la vez, y qué puede tocar de cada una ya lo deciden
+        // sus roles.
+        if (!$actor->esDelEquipo() && !self::esDelDominioDe($skill, $actor)) {
+            return sprintf('"%s" no es de este negocio.', $skill->nombre());
+        }
+
+        if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
+            return sprintf(
+                'No tienes permiso para usar "%s". Hace falta uno de estos roles: %s.',
+                $skill->nombre(),
+                implode(', ', $skill->rolesRequeridos())
+            );
+        }
+
+        // 💵 En una consulta de OTA el precio lo pone la plataforma: las herramientas de dinero no
+        // existen para ese actor. Ver RestriccionCanal::ocultaImportes().
+        if ($skill instanceof SkillDeImportesInterface && $actor->restriccion()->ocultaImportes()) {
+            return sprintf('"%s" maneja importes y aquí no se dan.', $skill->nombre());
+        }
+
+        // Sin el contexto que necesita —una reserva, un hilo— no puede funcionar.
+        if ($skill instanceof SkillConContextoInterface && !$skill->disponiblePara($actor)) {
+            return sprintf('"%s" necesita una conversación que aquí no hay.', $skill->nombre());
+        }
+
+        return null;
+    }
+
+    /**
      * ¿Esta skill es de algún negocio al que llegue el actor?
      *
      * **Los dos vacíos dicen «no acotes», y ninguno dice «no».** Una skill sin
@@ -90,7 +117,7 @@ final readonly class SkillRegistry
      * nada— en vez de dejar a alguien sin herramientas en silencio, que es el fallo que no se
      * ve hasta que un cliente se queja de que el bot no sabe nada.
      */
-    private function esDelDominioDe(SkillInterface $skill, ActorInterface $actor): bool
+    private static function esDelDominioDe(SkillInterface $skill, ActorInterface $actor): bool
     {
         if (!$skill instanceof SkillDominioInterface) {
             return true;

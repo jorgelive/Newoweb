@@ -105,11 +105,11 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
         $e = new EntradaDeSkill($entrada);
-        // 🔒 Misma frontera que en consultar_guia: el contexto manda sobre el parámetro, o un
-        // huésped podría pedir la contraseña de otra casita escribiendo un UUID.
-        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
+        // 🔒 El contexto de RESERVA manda sobre el parámetro: un huésped no puede pedir lo de otra
+        // casita escribiendo un UUID. Ver `ReservaDeLaConsulta::de()`.
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
 
-        if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
+        if (ReservaDeLaConsulta::contexto($actor) === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
         }
 

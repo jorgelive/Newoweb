@@ -173,7 +173,21 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
             ));
         }
 
-        $incluirNoParticipa = $e->booleano('incluir_no_participa');
+        // El rol se lee ANTES de filtrar a la gente: pedir `rol=no_participa` es pedir a los que no
+        // participan, y quitarlos antes daba siempre 0 (revisión del 16/10/2026).
+        $rolTexto = trim($e->texto('rol'));
+        $rol = $this->rolPedido($entrada);
+
+        // Un rol que no existe se devuelve con las opciones, como el subgrupo y el servicio. Se
+        // ignoraba en silencio, y «¿cuántos estudiantes hay?» contestaba con el expediente entero.
+        if ($rolTexto !== '' && $rol === null) {
+            return SkillResult::ok([
+                'error_de_nombre' => sprintf('«%s» no es ningún rol de pasajero.', $rolTexto),
+                'opciones' => array_map(static fn (PasajeroTipoEnum $c): string => $c->value, PasajeroTipoEnum::cases()),
+            ]);
+        }
+
+        $incluirNoParticipa = $e->booleano('incluir_no_participa') || $rol === PasajeroTipoEnum::NO_PARTICIPA;
 
         /** @var list<CotizacionFilepasajero> $gente */
         $gente = array_values(array_filter(
@@ -212,7 +226,6 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
 
         $persona = trim($e->texto('persona'));
         $negar = $e->booleano('negar_servicio');
-        $rol = $this->rolPedido($entrada);
         $documentos = mb_strtolower(trim($e->texto('documentos')));
 
         $cumplen = array_values(array_filter($gente, function (CotizacionFilepasajero $p) use (
@@ -503,10 +516,15 @@ final readonly class ConsultarPadronSkill implements SkillInterface, SkillDomini
                 continue;
             }
 
+            // ⚠️ También «clave nombre», que es como se ENSEÑAN las opciones (`opcionesDeSubgrupo()`,
+            // `buscar_expediente`): el modelo copiaba «IFBI5Q Arajet» de la lista que le dio esta
+            // misma skill, no casaba, y volvía a recibir la lista — un bucle hasta el tope de vueltas.
             $candidatos = [
                 $this->comparable($g->getClave()),
                 $this->comparable($g->getNombre()),
                 $this->comparable(trim($g->getEtiquetaDeEje().' '.$g->getClave())),
+                $this->comparable(trim($g->getClave().' '.($g->getNombre() ?? ''))),
+                $this->comparable(trim($g->getEtiquetaDeEje().' '.$g->getClave().' '.($g->getNombre() ?? ''))),
             ];
 
             if (in_array($buscado, array_filter($candidatos), true)) {

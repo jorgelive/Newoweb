@@ -198,11 +198,60 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        $resultado = $this->consultar($entrada, $actor);
+
+        // 🔒 En una consulta de OTA sin reservar no viaja NINGÚN enlace (16/10/2026). La política
+        // de la plataforma lo prohíbe —cualquier enlace propio saca la conversación fuera, ver
+        // `RestriccionCanal::variablesBloqueadas()`—, y la guía los fabrica en varios caminos: las
+        // imágenes y vídeos de `resolverBloquesDelFront()`, el botón del ítem, la guía pública. Se
+        // filtran a la SALIDA, que es la única puerta común: el prompt pidiéndole que no los
+        // mande sería una petición, no un cierre.
+        if ($resultado->esError() || !$actor->restriccion()->restringe()) {
+            return $resultado;
+        }
+
+        return SkillResult::ok(self::sinEnlaces($resultado->datos));
+    }
+
+    /**
+     * Quita las URL de todo el resultado, y las claves que sólo llevan una.
+     *
+     * @param array<array-key, mixed> $datos
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function sinEnlaces(array $datos): array
+    {
+        $limpio = [];
+
+        foreach ($datos as $clave => $valor) {
+            if (in_array($clave, ['enlace', 'url', 'url_guia', 'imagen', 'video'], true)) {
+                continue;
+            }
+
+            $limpio[$clave] = match (true) {
+                is_array($valor) => self::sinEnlaces($valor),
+                is_string($valor) => (string) preg_replace(
+                    '~\((?:imagen|vídeo) que puedes enviarle: [^)]*\)|https?://\S+~u',
+                    '(en este canal no se pueden mandar enlaces ni imágenes)',
+                    $valor,
+                ),
+                default => $valor,
+            };
+        }
+
+        return $limpio;
+    }
+
+    /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
+    private function consultar(array $entrada, ActorInterface $actor): SkillResult
+    {
         $e = new EntradaDeSkill($entrada);
         // 🔒 El contexto MANDA sobre el parámetro. Si quien pregunta está atado a una reserva
         // —un huésped por chat—, es la suya y sólo la suya: aceptar aquí un `reserva_id` sería
         // regalarle la guía de cualquiera, con sus códigos de puerta, escribiendo un UUID.
-        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
+        // Ver `ReservaDeLaConsulta::de()`.
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
 
         // 🚪 SEGUNDA PUERTA: por casita y sin reserva ninguna.
         //
@@ -225,7 +274,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             );
         }
 
-        if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
+        if (ReservaDeLaConsulta::contexto($actor) === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
         }
 

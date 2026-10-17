@@ -8,19 +8,23 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Contract\InstruccionesDeDominioInterface;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Contract\MapaDeHitos;
+use App\Cotizacion\Entity\CotizacionConversacionEnlace;
 
 /**
  * El bloque de prompt de TURISMO: que el agente sepa que también vendemos tours.
  *
- * ── Hoy sólo habla en la VENTA ──────────────────────────────────────────────
- * No dice soportar ningún `context_type` y no es el dominio por defecto. Entra por la puerta que
- * {@see \App\Agent\Conversation\InstruccionesDominioRegistry::para()} abre a quien no trae
- * contexto de ningún negocio —el prospecto, un hilo `manual`—: a ése se le vende de todo, y cada
- * negocio pone su bloque detrás del de por defecto.
+ * ── Dos puertas ─────────────────────────────────────────────────────────────
+ * 1. **Sin contexto de ningún negocio** —el prospecto, un hilo `manual`— entra por la puerta que
+ *    {@see \App\Agent\Conversation\InstruccionesDominioRegistry::para()} abre a todos: a ése se
+ *    le vende de todo, y cada negocio pone su bloque detrás del de por defecto.
+ * 2. **Un expediente (`cotizacion_file`) es SUYO** desde el 16/10/2026. Antes caía al camino sin
+ *    contexto, y a un interesado (expediente sin pagos) le llegaban las reglas de consulta de OTA
+ *    del alojamiento —«NO DES PRECIOS, lo ve en el anuncio de la plataforma»— en vez de la venta.
+ *    Y la fase de la estancia («LLEGA HOY… la casita puede no estar lista») por los hitos que
+ *    también rellena Turismo. Con el equipo no dice nada, y el registro cede el turno al resto.
  *
- * El pasajero de un expediente (`cotizacion_file`) merece su propio bloque —su viaje, sus
- * fechas, su punto de encuentro— y no éste. Mientras no exista, esos hilos siguen cayendo al
- * mismo camino sin contexto y reciben, como mínimo, que vendemos tours.
+ * El pasajero de un expediente merece algún día su propio bloque —su viaje, sus fechas, su punto
+ * de encuentro—; mientras no exista, recibe el de la venta.
  *
  * ── Por qué no nombra ningún tour ───────────────────────────────────────────
  * El catálogo cambia desde `util` sin desplegar, y este texto va en el prefijo cacheado. Los
@@ -30,7 +34,7 @@ final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDo
 {
     public function supports(?string $contextType): bool
     {
-        return false;
+        return $contextType === CotizacionConversacionEnlace::CONTEXT_TYPE;
     }
 
     public function esPorDefecto(): bool
@@ -41,9 +45,12 @@ final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDo
     public function para(PerfilConversacion $perfil): string
     {
         return match ($perfil) {
-            PerfilConversacion::Prospecto, PerfilConversacion::Huesped => self::VENTA,
-            // La consulta de una OTA se cierra en la plataforma, y el equipo ya sabe lo que hay.
-            PerfilConversacion::Interesado, PerfilConversacion::Personal, PerfilConversacion::Colaborador => '',
+            // El interesado que llega aquí es el de un EXPEDIENTE sin pagos: la consulta de una OTA
+            // cuelga de una reserva, y ésa la habla el alojamiento sin pasar por este dominio. Hasta
+            // el 16/10/2026 devolvía '' y el expediente recibía las reglas de OTA del alojamiento.
+            PerfilConversacion::Prospecto, PerfilConversacion::Interesado, PerfilConversacion::Huesped => self::VENTA,
+            // El equipo ya sabe lo que hay: '' cede el turno a su bloque de siempre (ver el registro).
+            PerfilConversacion::Personal, PerfilConversacion::Colaborador => '',
         };
     }
 

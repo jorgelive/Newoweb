@@ -8,6 +8,7 @@ use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\EntradaDeSkill;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillConContextoInterface;
 use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -57,7 +58,7 @@ use Throwable;
  * Como `anotar_peticion`: el chat del huésped abre las skills en sólo lectura, y es él quien dice
  * la hora. Escribe sólo en SU estancia y sólo la hora: ni el día, ni la casilla, ni la cuenta.
  */
-final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioInterface
+final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioInterface, SkillConContextoInterface
 {
     /**
      * Para la confirmación: «🕐 {{huesped}} ha confirmado su horario: {{detalle}}…». La crea
@@ -112,6 +113,12 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
                     . 'de cuál habla.', requerido: false),
             ],
         );
+    }
+
+    /** Confirma la hora de la reserva de ESTA conversación: sin ella, no existe. */
+    public function disponiblePara(ActorInterface $actor): bool
+    {
+        return $actor->contextoTipo() === 'pms_reserva' && $actor->contextoId() !== null;
     }
 
     public function rolesRequeridos(): array

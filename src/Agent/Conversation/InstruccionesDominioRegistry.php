@@ -42,13 +42,22 @@ final readonly class InstruccionesDominioRegistry
      * 🔥 Hasta el 11/10/2026 aquí también ganaba uno solo, el por defecto (alojamiento), y un
      * desconocido que preguntó por transporte a Machu Picchu recibió «no organizamos transporte»
      * con el tour publicado en la web: del negocio de tours el agente no sabía ni que existía.
+     *
+     * ⚠️ **Si el dominio propio no tiene NADA que decirle a ese perfil, cede el turno** al camino
+     * sin contexto (16/10/2026). Es lo que deja a Turismo reconocer sus expedientes sin que un
+     * compañero del equipo que escribe en uno pierda su bloque de siempre: Turismo no le dice
+     * nada al personal, y entonces habla el resto.
      */
     public function para(?string $contextType, PerfilConversacion $perfil): string
     {
         $propio = $this->propio($contextType);
 
         if ($propio !== null) {
-            return $propio->para($perfil);
+            $suyo = $propio->para($perfil);
+
+            if ($suyo !== '') {
+                return $suyo;
+            }
         }
 
         $bloques = [];

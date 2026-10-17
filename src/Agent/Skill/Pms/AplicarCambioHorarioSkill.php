@@ -253,6 +253,24 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         $vaABloquear = $puedeBloquear && ($horaPedida === '' || $decisionBloqueo === true);
         $equipoNoBloquea = $puedeBloquear && $horaPedida !== '' && $decisionBloqueo === false;
 
+        // Sin hora y con la noche vendida no hay NADA que hacer: marcar sin hora es bloquear, y no
+        // se puede. Respondía `aplicado: true` y «Registrada la hora de salida a las .» sin haber
+        // guardado nada (revisión del 16/10/2026).
+        if ($nocheOcupada && $horaPedida === '') {
+            return SkillResult::ok($resumen + [
+                'aplicado' => false,
+                'motivo' => 'noche_vendida_sin_hora',
+                'mensaje' => sprintf(
+                    'La noche %s (%s) ya está vendida, así que no se puede bloquear, y sin una hora no '
+                    . 'hay nada que apuntar. Pregúntale al operador a qué hora %s el huésped y vuelve a '
+                    . 'llamarme con «hora».',
+                    $esSalida ? 'posterior a la salida' : 'anterior a la entrada',
+                    $alerta['fecha'],
+                    $esSalida ? 'sale' : 'llega',
+                ),
+            ]);
+        }
+
         if ($nocheOcupada) {
             $resumen['no_se_puede_bloquear'] = sprintf(
                 'La noche %s (%s) ya está vendida%s, así que NO se bloquea: sólo se registra la '

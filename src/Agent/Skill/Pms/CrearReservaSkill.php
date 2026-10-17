@@ -114,6 +114,8 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                     . 'obligatorio, pero sin él no hay WhatsApp ni le llegan la guía ni los '
                     . 'recordatorios: pregúntalo siempre.', requerido: false),
                 SkillParameter::texto('email', 'Correo del huésped.', requerido: false),
+                SkillParameter::booleano('sin_telefono', 'true SÓLO si el operador dijo que no tiene '
+                    . 'el teléfono y que la cree igual.', requerido: false),
                 SkillParameter::texto('estado', '"pendiente" (por defecto) o "confirmada".',
                     requerido: false),
                 SkillParameter::texto('precio_final', 'Precio cerrado del alojamiento, si se ha '
@@ -209,7 +211,10 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
         // el resto y NO bloquea: se puede crear y añadirlo luego.
         $recomendados = [];
 
-        if ($telefono === '') {
+        // «No lo tengo, créala igual» tiene que poder decirse (16/10/2026): sin `sin_telefono` la
+        // pregunta volvía en cada llamada aunque la respuesta dijera `se_puede_crear_sin_esto`, y
+        // al modelo sólo le quedaba inventarse un teléfono.
+        if ($telefono === '' && !$e->booleano('sin_telefono')) {
             $recomendados[] = 'telefono';
             $preguntas[] = '¿tienes su teléfono con prefijo? sin él no hay WhatsApp ni le llegan '
                 . 'la guía ni los recordatorios';
@@ -255,6 +260,9 @@ final readonly class CrearReservaSkill implements SkillInterface, SkillDominioIn
                 // Sin los obligatorios no se puede crear; sin el teléfono sí, y el operador
                 // tiene que poder decir «no lo tengo, créala igual».
                 'se_puede_crear_sin_esto' => $faltan === [] ? true : null,
+                'si_no_lo_tiene' => $recomendados !== []
+                    ? 'Si el operador dice que no tiene el teléfono, vuelve a llamarme con sin_telefono=true.'
+                    : null,
             ], static fn ($v) => $v !== null));
         }
 

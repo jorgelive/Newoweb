@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Cotizacion;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillConContextoInterface;
 use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -45,7 +46,7 @@ use App\Agent\Skill\EntradaDeSkill;
  * quien puede llamarla —está pidiendo él—, y el daño de una de más es que alguien lea una línea
  * que no hacía falta.
  */
-final readonly class AnotarPedidoCotizacionSkill implements SkillInterface, SkillDominioInterface
+final readonly class AnotarPedidoCotizacionSkill implements SkillInterface, SkillDominioInterface, SkillConContextoInterface
 {
     /** Lo que cabe en una línea de la lista de pendientes de Cotizaciones. */
     private const int MAX_TEXTO = 180;
@@ -86,6 +87,12 @@ final readonly class AnotarPedidoCotizacionSkill implements SkillInterface, Skil
     }
 
     /** El propio cliente incluido, que es quien pide. Ver el docblock: es `Interna` por esto. */
+    /** Anota el pedido en el hilo en curso: en el panel o por voz no hay hilo. */
+    public function disponiblePara(ActorInterface $actor): bool
+    {
+        return $actor->conversacionId() !== null;
+    }
+
     public function rolesRequeridos(): array
     {
         return [Roles::HUESPED, Roles::PROSPECTO, Roles::MENSAJES_SHOW];

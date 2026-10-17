@@ -10,6 +10,7 @@ use App\Agent\Entity\AgentConocimiento;
 use App\Agent\Entity\AgentConocimientoCategoria;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Las dos fases de la consulta de conocimiento, y el filtro de quién puede ver qué.
@@ -125,6 +126,13 @@ final readonly class ConocimientoGenerico
      */
     public function item(string $id, ActorInterface $actor): ?AgentConocimiento
     {
+        // La clave es un UUID binario: un `find()` con «pagos» o «mascotas» —el modelo confunde a
+        // veces la categoría con el ítem— lanza `ConversionException` en vez de devolver null, y el
+        // modelo perdía el aviso guiado de «aquí no hay respuesta escrita».
+        if (!Uuid::isValid($id)) {
+            return null;
+        }
+
         $item = $this->em->getRepository(AgentConocimiento::class)->find($id);
 
         if ($item === null) {

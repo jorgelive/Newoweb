@@ -526,6 +526,18 @@ habría escrito sin que nadie la aprobara. Por eso el camino de previsualizació
 `$em->refresh()` y descarta los cambios. `crear_tarifa` no lo necesita: sin `persist()`,
 Doctrine no sabe que la entidad existe.
 
+🔥 **Y también cuando `aplicar()` devuelve un error** (16/10/2026): los setters van según se
+valida, y con «precio 50, moneda XYZ» el precio ya estaba puesto cuando falló la moneda. El turno
+lo guardaba en su flush.
+
+🔒 **Una tarifa nueva exige precio y moneda** (16/10/2026). Sin moneda la previsualización pasaba
+y al confirmar el flush reventaba en `moneda_id` NOT NULL —y cerraba el EntityManager: el turno
+perdía la respuesta—; sin precio nacía a 0.00. La previsualización ya no enseña un `tarifa_id`
+(`IdTrait` lo genera al construir: uno distinto en cada preview, que no existe en la base). Y
+`calculo` (individual, grupal, operativa) se puede dictar: «ponle una tarifa de grupo» creaba una
+por persona. Las descripciones de `buscar_componentes`/`buscar_tarifas` ya no prometen buscar por
+empresa: desde que el componente no fija prestador, no lo hacen.
+
 ### `dominios()` vacío, a propósito
 
 El catálogo Travel es transversal —tours, tickets, traslados y también componentes de

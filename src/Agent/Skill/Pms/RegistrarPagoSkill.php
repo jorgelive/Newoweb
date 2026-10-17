@@ -288,7 +288,20 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
         // deuda en USD?» a secas.
         $tipoDelDiaParaPreview = $this->tipoCambio->venta();
 
-        if ($candidata !== null && $imputacion === '') {
+        // Qué moneda se salda, leído con cuidado (16/10/2026). La pregunta es «¿va contra la deuda
+        // en USD?», así que «sí» es la respuesta natural; antes «si» iba a `MonedaResolver`, no
+        // existía la moneda «SI» y caía a USD por defecto — un error de dinero cuando la deuda era
+        // en soles. Ahora vale «sí» o el código de la candidata; «no» deja el cobro en su moneda;
+        // cualquier otra cosa se vuelve a preguntar.
+        $imputaA = match (true) {
+            $candidata === null => null,
+            in_array($imputacion, ['si', 'sí', 'yes', 's'], true) => $candidata,
+            strtoupper($imputacion) === $candidata => $candidata,
+            default => null,
+        };
+        $noImputa = in_array($imputacion, ['no', 'nada', 'ninguna'], true);
+
+        if ($candidata !== null && $imputaA === null && !$noImputa) {
             $faltan[] = 'salda_deuda_en';
         }
 
@@ -442,9 +455,19 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
 
         $totales = PmsTotalesPorMoneda::de($info);
 
-        $monedaSaldada = $candidata !== null && !in_array($imputacion, ['', 'no', 'nada', 'ninguna'], true)
-            ? $this->monedas->resolve(strtoupper($imputacion))
-            : null;
+        $monedaSaldada = $imputaA !== null ? $this->monedas->resolve($imputaA) : null;
+
+        // Imputar a otra moneda es convertir, y sin tipo de cambio no hay con qué: en soles era una
+        // división por cero, y en dólares abonaba 0 sin avisar y lo guardaba así.
+        if ($monedaSaldada !== null && ($tipoDelDia === null || (float) $tipoDelDia <= 0.0)) {
+            return SkillResult::error(sprintf(
+                'Hoy no tengo tipo de cambio, así que no puedo aplicar este cobro en %s a la deuda en '
+                . '%s. Regístralo sin imputar (salda_deuda_en=no) y que lo impute una persona desde el '
+                . 'panel, o inténtalo más tarde.',
+                $codigoOrigen,
+                $imputaA,
+            ));
+        }
 
         // El saldo de la moneda en la que de verdad se va a aplicar el dinero.
         $monedaAfectada = ($monedaSaldada ?? $monedaOrigen)->getId();
@@ -492,11 +515,13 @@ final readonly class RegistrarPagoSkill implements SkillInterface, SkillDominioI
                     $monedaAfectada
                 )
                 : sprintf(
-                    'ATENCIÓN: el pago excede lo pendiente (%.2f %s). La cuenta queda en %.2f a '
+                    'ATENCIÓN: el pago excede lo pendiente (%.2f %s). La cuenta queda en %.2f %s a '
                     . 'favor del huésped. Confírmalo con el operador antes de aplicarlo.',
                     $saldoAntes,
-                    $codigoCuenta,
-                    $saldoDespues
+                    // La moneda del saldo, no la de la cabecera: con un cobro imputado son otras.
+                    $monedaAfectada,
+                    $saldoDespues,
+                    $monedaAfectada,
                 );
         }
 

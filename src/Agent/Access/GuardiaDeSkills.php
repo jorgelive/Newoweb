@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Access;
 
 use App\Agent\Skill\SkillInterface;
+use App\Agent\Skill\SkillRegistry;
 
 /**
  * El último filtro antes de ejecutar una skill. **Aquí se cierra, no se pide.**
@@ -43,16 +44,12 @@ final readonly class GuardiaDeSkills
      */
     public function motivoDeBloqueo(SkillInterface $skill, ActorInterface $actor): ?string
     {
-        // Los roles se vuelven a mirar aquí a propósito, aunque el registro ya los mirase: es
-        // barato y es el único punto por el que pasa TODA ejecución, venga del catálogo o no.
-        if (!$actor->tieneAlguno($skill->rolesRequeridos())) {
-            return sprintf(
-                'No tienes permiso para usar "%s". Hace falta uno de estos roles: %s.',
-                $skill->nombre(),
-                implode(', ', $skill->rolesRequeridos())
-            );
-        }
-
-        return null;
+        // Se vuelve a mirar aquí a propósito, aunque el registro ya lo mirase: es barato y es el
+        // único punto por el que pasa TODA ejecución, venga del catálogo o no.
+        //
+        // 🔥 La política ENTERA del catálogo, no sólo los roles (16/10/2026): apagada, de otro
+        // negocio, de dinero en una consulta de OTA o sin su contexto. Sólo miraba los roles, y
+        // por la CLI (`app:agent:skill`), que no pasa por el catálogo, se ejecutaba lo demás.
+        return SkillRegistry::motivoDeExclusion($skill, $actor);
     }
 }

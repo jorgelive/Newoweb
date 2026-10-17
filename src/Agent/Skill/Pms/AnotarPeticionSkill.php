@@ -7,6 +7,7 @@ namespace App\Agent\Skill\Pms;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
+use App\Agent\Skill\SkillConContextoInterface;
 use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -45,7 +46,7 @@ use App\Agent\Skill\EntradaDeSkill;
  * sólo anota lo que pidió. Si el huésped necesita saber el precio o la disponibilidad, eso es
  * una respuesta —la guía o el conocimiento— y ocurre aparte.
  */
-final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominioInterface
+final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominioInterface, SkillConContextoInterface
 {
     /** Lo que cabe en una línea de una lista que se mira preparando una casita. */
     private const int MAX_TEXTO = 180;
@@ -92,6 +93,12 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     /**
      * El huésped incluido, que es quien pide. Ver el docblock: es `Interna` por esto mismo.
      */
+    /** Escribe sobre la reserva de ESTA conversación: sin ella, no existe. */
+    public function disponiblePara(ActorInterface $actor): bool
+    {
+        return $actor->contextoTipo() === 'pms_reserva' && $actor->contextoId() !== null;
+    }
+
     public function rolesRequeridos(): array
     {
         return [Roles::HUESPED, Roles::MENSAJES_SHOW];

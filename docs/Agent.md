@@ -141,6 +141,22 @@ acompañante), y `localizar_conversacion` y `listar_entradas_salidas` usan ahora
 la reserva (`EnlacesDeConversacion::hiloTitularDe()`, `pms_conversacion_enlace.es_titular`), con la
 cabecera sólo de respaldo.
 
+### 2.0 Qué skills ve un actor, y por qué la guardia dice lo mismo (16/10/2026)
+
+`SkillRegistry::motivoDeExclusion()` es **la** política del catálogo: apagada
+(`SkillConmutableInterface`), de otro negocio, sin rol, de dinero en una consulta de OTA
+(`SkillDeImportesInterface`) o **sin el contexto que necesita** (`SkillConContextoInterface`, nueva:
+`anotar_peticion` y `confirmar_hora` piden la conversación de una reserva; `anotar_pedido_cotizacion`,
+un hilo — se ofrecían al equipo en el panel, en Alexa y en su hilo de avisos, y fallaban siempre).
+La usan `paraActor()` (lo que se ofrece) y `GuardiaDeSkills` (lo que se ejecuta), que antes sólo
+miraba los roles: por `app:agent:skill`, que no pasa por el catálogo, se ejecutaba lo demás. La
+escritura sigue fuera: depende del canal y la decide quien arma el catálogo.
+
+⚠️ **De qué reserva pregunta el equipo** en `consultar_codigos`, `consultar_wifi` y
+`consultar_guia`: `ReservaDeLaConsulta`. El huésped, siempre la suya; el equipo, la que nombre. Se
+hacía `contextoId() ?? parametro` sin mirar el tipo, y en el hilo de avisos del equipo
+(`staff:<uuid>`) el «contexto» era el UUID de una persona: el parámetro se ignoraba.
+
 ### 2.1 `sistema()`, y por qué no vale `prospecto()`
 
 El actor de sistema nace **sin roles, sin `User`, sin contexto y sin conversación**, y las cinco
@@ -550,6 +566,13 @@ así que contarlos infla cualquier respuesta sobre cuánta gente va.
 
 ## 5.5 El bucle de herramientas: cómo se corta y cómo se diagnostica (25/08/2026)
 
+> 🔥 **Anthropic y DeepSeek, 16/10/2026:** guardaban el texto que acompaña a una llamada a
+> herramienta —«un momento, reviso tu reserva…»— y, si la vuelta siguiente fallaba o se agotaba el
+> tope, lo entregaban como respuesta final, marcada `ia`. Ahora sólo cuenta el texto de una vuelta
+> **sin** herramientas; si no lo hay, `noDisponible()`/`vacia()` y el canal decide. Y Anthropic no
+> tenía tope (`toolRunner` sin `maxIterations` gira sin límite): ahora 8, como DeepSeek. Siguen sin
+> el corte por llamadas repetidas ni el cierre sin herramientas de Google; producción usa Google.
+
 Un turno del panel gastó **208 000 tokens de entrada en ocho vueltas y no contestó nada**. Así se
 ve, y conviene reconocer la firma porque es siempre la misma:
 
@@ -858,10 +881,18 @@ huésped de una casita (pms_reserva)
   (`CotizacionFileConversacionListener`, el mismo que resincroniza el enlace al editar el
   expediente). Ver `docs/Cotizaciones.md` §6.a.
 
-⚠️ **Lo que queda por hacer:** el pasajero de un expediente (`cotizacion_file`) no tiene bloque
-propio —su viaje, sus fechas— y cae al camino sin contexto (alojamiento + venta de tours).
-`CotizacionFrentes::frentesVivos()` devuelve vacío porque la enumeración de frentes aún no la lee
-nadie para el prompt.
+**Un expediente es de Turismo (16/10/2026):** `CotizacionInstruccionesDominio::supports('cotizacion_file')`.
+Antes caía al camino sin contexto, y al **interesado** (expediente sin pagos) le llegaban las
+reglas de consulta de OTA del alojamiento —«NO DES PRECIOS, lo ve en el anuncio de la
+plataforma»— y la fase de la estancia («LLEGA HOY… la casita puede no estar lista»). Ahora recibe
+la venta (`VENTA`) y ningún contexto volátil. Con el equipo Turismo no dice nada, y
+`InstruccionesDominioRegistry::para()` tiene la regla que lo hace posible: **si el dominio propio
+no tiene nada que decirle a ese perfil, cede el turno al resto** (el compañero conserva su bloque
+de siempre).
+
+⚠️ **Lo que queda por hacer:** el pasajero de un expediente no tiene bloque propio —su viaje, sus
+fechas, su punto de encuentro—: recibe el de la venta. `CotizacionFrentes::frentesVivos()`
+devuelve vacío porque la enumeración de frentes aún no la lee nadie para el prompt.
 
 ## 6. Dónde tocar para cambiar X
 

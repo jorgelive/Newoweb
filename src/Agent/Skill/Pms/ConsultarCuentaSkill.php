@@ -208,7 +208,10 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
             true
         );
 
-        if ($espejo) {
+        // Sólo para el huésped: la regla existe para no enseñarle cifras que no cuadran con lo que
+        // pagó a la plataforma. El equipo necesita la contabilidad entera de la reserva —el
+        // depósito espejo, el alojamiento—, y se la tapaba igual (revisión del 16/10/2026).
+        if ($espejo && !$actor->esDelEquipo()) {
             return $this->cuentaDeCanalQueCobra($reservaId, $reserva, $info, $moneda, $idioma);
         }
 

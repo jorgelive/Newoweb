@@ -3553,6 +3553,26 @@ Consecuencia directa: **la seguridad de las escrituras depende hoy de la capacid
 que es justo de lo que no debería depender. Ver §11.1 para qué modelo aguanta eso y para los dos
 niveles de freno real que quedan por implementar.
 
+#### 🔎 Revisión de las skills del PMS (16/10/2026)
+
+Lo que se corrigió y la regla que deja cada caso; el detalle, en el docblock de cada skill.
+
+| Skill | Qué pasaba | Regla |
+|---|---|---|
+| `modificar_reserva` | los setters del huésped iban antes de validar la estancia: la pregunta de la casita o un estado de pago inválido dejaban la reserva cambiada, y el flush del turno (`marcarLeidaSiEsDelEquipo()`) la guardaba | todo lo que no termina aplicado se `refresh()`-ea en un `finally` |
+| `confirmar_estancia`, `modificar_reserva` | una consulta de OTA (`abierto`) no puede pasar a confirmada (`PmsEventoEstado::transicionOtaPermitida()`): la preview lo prometía y al confirmar el listener de seguridad lanzaba **dentro del flush**, que cierra el EntityManager | se dice antes, como error de negocio; y las consecuencias se leen antes del `setEstado` («de «confirmada» a CONFIRMADA») |
+| `registrar_pago` | «sí» a «¿va contra la deuda en USD?» llegaba a `MonedaResolver` como «SI» → USD por defecto; sin tipo de cambio, división por cero (o abonar 0 sin aviso) | vale «sí» o el código; lo demás se repregunta; sin TC no se imputa |
+| `registrar_cargo` | en una cuenta anulada simulaba «+0.00» con la regla vieja | simula el importe entero y dice a qué casita se imputa |
+| `buscar_reserva` | volcaba los códigos de las cajas (`CLAVES_DE_ACCESO`) con sólo `RESERVAS_SHOW`; recortaba a 9 antes de quitar canceladas | sin códigos; se recorta después de filtrar |
+| `crear_reserva` | sin teléfono no había forma de crearla | `sin_telefono=true` |
+| `consultar_cuenta` | a una reserva de Airbnb le tapaba la contabilidad también al equipo | el recorte es sólo para el huésped |
+| `consultar_codigos`, `consultar_guia` | en una consulta de OTA sin reservar daban el teléfono de emergencia y enlaces o imágenes propios | `RestriccionCanal::restringe()` los quita; la guía filtra las URL a la salida |
+| `aplicar_cambio_horario` | sin hora y con la noche vendida respondía `aplicado: true` sin guardar nada | `aplicado: false` y pide la hora |
+
+`consultar_conocimiento` valida el UUID antes del `find()` (un `item_id` como «mascotas» lanzaba
+`ConversionException`). Lo que **no** era un fallo: las fechas sin `America/Lima` (`Kernel::boot()`
+fija la zona, ver `docs/ZonasHorarias.md`) y la extensión `intl` (está en producción).
+
 ### 11.1 Qué modelo aguanta este prompt
 
 El catálogo son ~1.600 tokens en 12 descripciones. La dificultad no está en el tamaño, sino en

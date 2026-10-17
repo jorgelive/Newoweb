@@ -190,11 +190,11 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
         $e = new EntradaDeSkill($entrada);
-        // 🔒 El contexto manda sobre el parámetro: un huésped no puede pedir los códigos de
-        // otra casita escribiendo un UUID. Misma frontera que consultar_guia y consultar_wifi.
-        $reservaId = $actor->contextoId() ?? trim($e->texto('reserva_id'));
+        // 🔒 El contexto de RESERVA manda sobre el parámetro: un huésped no puede pedir lo de otra
+        // casita escribiendo un UUID. Ver `ReservaDeLaConsulta::de()`.
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
 
-        if ($actor->contextoId() === null && !$actor->esDelEquipo()) {
+        if (ReservaDeLaConsulta::contexto($actor) === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
         }
 
@@ -263,7 +263,10 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         // Condiciones 1 y 2: si la ventana está cerrada no hay nada que enseñar, y el motivo
         // es el mismo para todos los códigos.
         if (!$acceso->estaAbierto()) {
-            $contacto = $this->contacto($unidad);
+            // 🔒 Sin teléfonos en una consulta de OTA sin reservar: la política de la plataforma
+            // prohíbe dar un canal alternativo (`RestriccionCanal`), y aquí salía el de emergencia
+            // —que es justo el caso normal de una consulta, con el acceso cerrado— (16/10/2026).
+            $contacto = $actor->restriccion()->restringe() ? null : $this->contacto($unidad);
 
             return SkillResult::ok($base + array_filter([
                 'disponible' => false,
@@ -356,7 +359,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
         // puerta no sirve una advertencia sobre el futuro del código, sirve saber que la entrada
         // es suya y dónde están los pasos.
         $enLaPuerta = $this->esElDiaDeLlegada($evento);
-        $contacto = $this->contacto($unidad);
+        $contacto = $actor->restriccion()->restringe() ? null : $this->contacto($unidad);
         $frase = $enLaPuerta
             ? (self::PASOS[$idioma] ?? self::PASOS['es'])
             : (self::AVISO[$idioma] ?? self::AVISO['es']);

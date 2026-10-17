@@ -86,15 +86,45 @@ final class InstruccionesDominioRegistryTest extends TestCase
     }
 
     #[Test]
-    public function el_de_tours_le_vende_al_prospecto_y_no_a_la_consulta_de_ota(): void
+    public function el_de_tours_le_vende_al_prospecto_y_al_interesado_de_un_expediente(): void
     {
         $tours = new CotizacionInstruccionesDominio();
 
         self::assertStringContainsString('consultar_tours', $tours->para(PerfilConversacion::Prospecto));
         self::assertStringContainsString('anotar_pedido_cotizacion', $tours->para(PerfilConversacion::Prospecto));
-        self::assertSame('', $tours->para(PerfilConversacion::Interesado), 'La consulta de una OTA se cierra en la plataforma.');
+        self::assertStringContainsString('consultar_tours', $tours->para(PerfilConversacion::Interesado));
         self::assertSame('', $tours->para(PerfilConversacion::Personal));
         self::assertFalse($tours->esPorDefecto(), 'Sólo puede haber un por defecto, y es el alojamiento.');
         self::assertFalse($tours->supports(null));
+        self::assertTrue($tours->supports('cotizacion_file'));
+    }
+
+    #[Test]
+    public function un_expediente_no_recibe_las_reglas_del_alojamiento(): void
+    {
+        // Hasta el 16/10/2026 caía al camino sin contexto y el interesado de un tour oía «NO DES
+        // PRECIOS, lo ve en el anuncio de la plataforma».
+        $registro = new InstruccionesDominioRegistry([
+            new CotizacionInstruccionesDominio(),
+            $this->dominio('alojamiento', 'pms_reserva', true, 'REGLAS DE OTA'),
+        ]);
+
+        $prompt = $registro->para('cotizacion_file', PerfilConversacion::Interesado);
+
+        self::assertStringContainsString('consultar_tours', $prompt);
+        self::assertStringNotContainsString('REGLAS DE OTA', $prompt);
+        self::assertSame('', $registro->contextoVolatil('cotizacion_file', $this->createStub(ActorInterface::class), MapaDeHitos::vacio()));
+    }
+
+    #[Test]
+    public function si_el_dominio_propio_calla_habla_el_resto(): void
+    {
+        // Un compañero del equipo en un expediente conserva su bloque de siempre.
+        $registro = new InstruccionesDominioRegistry([
+            new CotizacionInstruccionesDominio(),
+            $this->dominio('alojamiento', 'pms_reserva', true, 'BLOQUE DEL EQUIPO'),
+        ]);
+
+        self::assertSame('BLOQUE DEL EQUIPO', $registro->para('cotizacion_file', PerfilConversacion::Personal));
     }
 }

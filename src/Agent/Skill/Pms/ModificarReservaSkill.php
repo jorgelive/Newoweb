@@ -158,101 +158,115 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
             ));
         }
 
-        $cambios = [];
-        $consecuencias = [];
-
-        $this->camposDelHuesped($entrada, $reserva, $cambios);
-
-        // Adultos, niños y estado de pago son de UNA estancia. Sólo se resuelve cuál si de
-        // verdad se pide alguno: preguntar por la casita para corregir un email sería absurdo.
-        $tocaLaEstancia = $this->pidenAlgoDeLaEstancia($entrada);
+        // 🔒 Todo lo que no termine aplicado se DESHACE en memoria (16/10/2026). Los setters se
+        // llaman para poder describir el «antes → después», y sólo la previsualización hacía
+        // `refresh()`: cualquier otra salida —la pregunta de la casita, un estado de pago no
+        // válido, «esa casita no es de esta reserva»— dejaba la reserva cambiada en el
+        // UnitOfWork, y el flush del propio turno (`marcarLeidaSiEsDelEquipo()`, la respuesta) la
+        // guardaba sin que nadie lo aprobara.
+        $aplicado = false;
         $evento = null;
 
-        if ($tocaLaEstancia) {
-            $eventos = $reserva->getEventosActivosGuia();
+        try {
+            $cambios = [];
+            $consecuencias = [];
 
-            if ($eventos === []) {
-                return SkillResult::error('Esta reserva no tiene ninguna estancia activa que corregir.');
+            $this->camposDelHuesped($entrada, $reserva, $cambios);
+
+            // Adultos, niños y estado de pago son de UNA estancia. Sólo se resuelve cuál si de
+            // verdad se pide alguno: preguntar por la casita para corregir un email sería absurdo.
+            $tocaLaEstancia = $this->pidenAlgoDeLaEstancia($entrada);
+            $evento = null;
+
+            if ($tocaLaEstancia) {
+                $eventos = $reserva->getEventosActivosGuia();
+
+                if ($eventos === []) {
+                    return SkillResult::error('Esta reserva no tiene ninguna estancia activa que corregir.');
+                }
+
+                $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
+
+                if ($eleccion['ambiguo']) {
+                    return SkillResult::ok([
+                        'reserva_id' => $reservaId,
+                        'huesped' => $reserva->getNombreApellido(),
+                        'falta_datos' => ['casita'],
+                        'casitas' => array_values(array_filter(array_map(
+                            static fn (PmsEventoCalendario $e): ?string => $e->getPmsUnidad()?->getNombre(),
+                            $eleccion['candidatas']
+                        ))),
+                        'pregunta' => 'Esta reserva tiene varias casitas y lo que quieres corregir es '
+                            . 'de una en concreto (la gente y el estado de pago van por estancia, no '
+                            . 'por reserva). Pregúntale al operador de cuál y vuelve a llamarme con '
+                            . '«casita».',
+                    ]);
+                }
+
+                $evento = $eleccion['evento'];
+
+                if ($evento === null) {
+                    return SkillResult::error('Esa casita no es de esta reserva.');
+                }
+
+                $error = $this->camposDeLaEstancia($entrada, $evento, $cambios, $consecuencias);
+
+                if ($error !== null) {
+                    return SkillResult::error($error);
+                }
             }
 
-            $eleccion = $this->estancias->resolver($eventos, trim($e->texto('casita')));
-
-            if ($eleccion['ambiguo']) {
-                return SkillResult::ok([
-                    'reserva_id' => $reservaId,
-                    'huesped' => $reserva->getNombreApellido(),
-                    'falta_datos' => ['casita'],
-                    'casitas' => array_values(array_filter(array_map(
-                        static fn (PmsEventoCalendario $e): ?string => $e->getPmsUnidad()?->getNombre(),
-                        $eleccion['candidatas']
-                    ))),
-                    'pregunta' => 'Esta reserva tiene varias casitas y lo que quieres corregir es '
-                        . 'de una en concreto (la gente y el estado de pago van por estancia, no '
-                        . 'por reserva). Pregúntale al operador de cuál y vuelve a llamarme con '
-                        . '«casita».',
-                ]);
+            if ($cambios === []) {
+                return SkillResult::error(
+                    'No me has dicho qué cambiar. Puedo corregir teléfono, correo, idioma, adultos, '
+                    . 'niños y estado de pago.'
+                );
             }
 
-            $evento = $eleccion['evento'];
+            $resumen = array_filter([
+                'reserva_id' => $reservaId,
+                'huesped' => $reserva->getNombreApellido(),
+                'localizador' => $reserva->getLocalizador(),
+                'casita' => $evento?->getPmsUnidad()?->getNombre(),
+                'cambios' => $cambios,
+            ], static fn ($v) => $v !== null);
 
-            if ($evento === null) {
-                return SkillResult::error('Esa casita no es de esta reserva.');
+            if (!$e->booleano('confirmado')) {
+                return SkillResult::ok($resumen + array_filter([
+                    'aplicado' => false,
+                    'motivo' => 'falta_confirmacion',
+                    'que_va_a_pasar' => $consecuencias !== [] ? $consecuencias : null,
+                    'pregunta_aprobacion' => '¿Apruebas el cambio?',
+                    'previsualizacion' => sprintf(
+                        'Se corregirá la reserva de %s (%s): %s.%s',
+                        $resumen['huesped'] ?? 'el huésped',
+                        $resumen['localizador'] ?? 'sin localizador',
+                        implode('; ', $cambios),
+                        $consecuencias !== []
+                            ? ' Léele al operador «que_va_a_pasar» ENTERO antes de pedirle el sí.'
+                            : ''
+                    ),
+                ], static fn ($v) => $v !== null));
             }
 
-            $error = $this->camposDeLaEstancia($entrada, $evento, $cambios, $consecuencias);
-
-            if ($error !== null) {
-                return SkillResult::error($error);
-            }
-        }
-
-        if ($cambios === []) {
-            return SkillResult::error(
-                'No me has dicho qué cambiar. Puedo corregir teléfono, correo, idioma, adultos, '
-                . 'niños y estado de pago.'
-            );
-        }
-
-        $resumen = array_filter([
-            'reserva_id' => $reservaId,
-            'huesped' => $reserva->getNombreApellido(),
-            'localizador' => $reserva->getLocalizador(),
-            'casita' => $evento?->getPmsUnidad()?->getNombre(),
-            'cambios' => $cambios,
-        ], static fn ($v) => $v !== null);
-
-        if (!$e->booleano('confirmado')) {
-            // Se revierte lo tocado en memoria: los setters ya se llamaron para poder describir
-            // el «antes → después», y sin esto un flush ajeno en la misma petición lo guardaría.
-            $this->em->refresh($reserva);
-
-            if ($evento !== null) {
-                $this->em->refresh($evento);
-            }
+            $this->em->flush();
+            $aplicado = true;
 
             return SkillResult::ok($resumen + array_filter([
-                'aplicado' => false,
-                'motivo' => 'falta_confirmacion',
-                'que_va_a_pasar' => $consecuencias !== [] ? $consecuencias : null,
-                'pregunta_aprobacion' => '¿Apruebas el cambio?',
-                'previsualizacion' => sprintf(
-                    'Se corregirá la reserva de %s (%s): %s.%s',
-                    $resumen['huesped'] ?? 'el huésped',
-                    $resumen['localizador'] ?? 'sin localizador',
-                    implode('; ', $cambios),
-                    $consecuencias !== []
-                        ? ' Léele al operador «que_va_a_pasar» ENTERO antes de pedirle el sí.'
-                        : ''
-                ),
+                'aplicado' => true,
+                'que_ha_pasado' => $consecuencias !== [] ? $consecuencias : null,
             ], static fn ($v) => $v !== null));
+        } finally {
+            // Con el EntityManager cerrado (un flush que lanzó) no hay nada que deshacer en él, y
+            // un `refresh()` taparía la excepción de verdad.
+            if (!$aplicado && $this->em->isOpen()) {
+                $this->em->refresh($reserva);
+
+                if ($evento !== null) {
+                    $this->em->refresh($evento);
+                }
+            }
         }
-
-        $this->em->flush();
-
-        return SkillResult::ok($resumen + array_filter([
-            'aplicado' => true,
-            'que_ha_pasado' => $consecuencias !== [] ? $consecuencias : null,
-        ], static fn ($v) => $v !== null));
     }
 
     /** ¿Se pide algo que vive en la estancia y no en la reserva? */
@@ -369,6 +383,22 @@ final readonly class ModificarReservaSkill implements SkillInterface, SkillDomin
 
         // 🔑 Las dos cosas que pasan solas y que nadie ve venir. Ver el docblock de la clase.
         if (in_array($entidad->getId(), PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES, true)) {
+            // 🔒 Ese pago auto-confirma la estancia, y una CONSULTA de OTA (`abierto`) no puede
+            // pasar a confirmada desde aquí: `PmsEventoCalendarioSecurityListener` lanzaría dentro
+            // del flush y cerraría el EntityManager. Se dice antes, no al confirmar (16/10/2026).
+            $estado = $evento->getEstado()?->getId();
+
+            if ($evento->isOta() && $estado !== PmsEventoEstado::CODIGO_CONFIRMADA
+                && !PmsEventoEstado::transicionOtaPermitida($estado, PmsEventoEstado::CODIGO_CONFIRMADA)
+            ) {
+                return sprintf(
+                    'Esta estancia es de una plataforma y está en «%s»: marcar un pago la confirmaría, '
+                    . 'y una consulta de la plataforma no se confirma desde aquí sino cuando el huésped '
+                    . 'reserva allí. Díselo así al operador.',
+                    $estado ?? 'sin estado',
+                );
+            }
+
             if ($evento->getEstado()?->getId() !== PmsEventoEstado::CODIGO_CONFIRMADA) {
                 $consecuencias[] = sprintf(
                     'La estancia pasará de «%s» a CONFIRMADA sola: es la regla de '

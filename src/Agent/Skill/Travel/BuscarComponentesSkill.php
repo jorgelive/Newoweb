@@ -59,16 +59,15 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
                 . 'un tren, una comida— para luego mirar o tocar sus tarifas. Es el primer paso '
                 . 'cuando no sabes el nombre exacto: úsala para «¿qué transportes tenemos a '
                 . 'Puno?», «busca el boleto de Machu Picchu», «¿qué servicios damos en el Valle '
-                . 'Sagrado?», «¿qué tiene contratado el Ministerio de Cultura?». Busca a la vez '
-                . 'por nombre o por lugar, y puedes acotar por tipo. Devuelve el '
+                . 'Sagrado?». Busca a la vez por nombre o por lugar, y puedes acotar por tipo; NO '
+                . 'busca por empresa o prestador. Devuelve el '
                 . 'componente_id y CUÁNTAS tarifas tiene cada uno: con ese id, buscar_tarifas te '
                 . 'da los precios exactos. Si un componente sale con 0 tarifas no es que la '
                 . 'búsqueda falle: es que no tiene precios cargados, y eso hay que decirlo. NO '
                 . 'devuelve precios: para eso llama después a buscar_tarifas.',
             parametros: [
                 SkillParameter::texto('busqueda', 'Lo que dijo el operador: parte del nombre del '
-                    . 'servicio, un lugar («Puno», «Valle Sagrado») o una empresa. Basta un '
-                    . 'trozo.', requerido: false),
+                    . 'servicio o un lugar («Puno», «Valle Sagrado»). Basta un trozo.', requerido: false),
                 SkillParameter::texto('tipo', 'Acota por tipo: transporte, guiado, alojamiento, '
                     . 'ticket_fijo, ticket_variable, alimentacion_fijo, alimentacion_variable, '
                     . 'tren, vuelo, pool, privada, personal_extra, extras.', requerido: false),
@@ -149,8 +148,8 @@ final readonly class BuscarComponentesSkill implements SkillInterface, SkillDomi
                 'busqueda' => $busqueda !== '' ? $busqueda : null,
                 'componentes' => [],
                 'instruccion' => 'No hay ningún componente que encaje. NO te inventes uno: dile '
-                    . 'que no lo encuentras y pregúntale de otra forma —por el lugar, por la '
-                    . 'empresa, o por el tipo—.',
+                    . 'que no lo encuentras y pregúntale de otra forma —por el lugar o por el '
+                    . 'tipo—.',
             ]);
         }
 

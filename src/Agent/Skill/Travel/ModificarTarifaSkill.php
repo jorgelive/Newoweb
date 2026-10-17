@@ -89,6 +89,11 @@ final readonly class ModificarTarifaSkill implements SkillInterface, SkillDomini
         $error = $this->tarifas->aplicar($tarifa, $entrada, exigeNombre: false);
 
         if ($error !== null) {
+            // ⚠️ `aplicar()` va llamando a los setters según valida: con «precio 50, moneda XYZ»
+            // el precio ya estaba puesto cuando falló la moneda. Sin esto, el flush del propio turno
+            // lo guardaba sin que nadie lo aprobara (revisión del 16/10/2026).
+            $this->em->refresh($tarifa);
+
             return SkillResult::error($error);
         }
 

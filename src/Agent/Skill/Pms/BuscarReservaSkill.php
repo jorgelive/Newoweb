@@ -15,6 +15,7 @@ use App\Message\Service\MessageDataResolverRegistry;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Service\Message\PmsMessageDataResolver;
 use App\Security\Roles;
 use DateTimeImmutable;
 use Symfony\Component\String\UnicodeString;
@@ -49,6 +50,13 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
 {
     /** Coincidencias devueltas. Más que esto no ayuda: se le pide al usuario que acote. */
     private const int MAX_RESULTADOS = 8;
+
+    /**
+     * Cuántas candidatas traen las búsquedas, ANTES de quitar las canceladas y recortar a
+     * `MAX_RESULTADOS`. Recortaban a 9 primero: un nombre con 9 canceladas recientes escondía la
+     * reserva activa («no hay ninguna ACTIVA… pero sí 9 CANCELADAS»). Revisión del 16/10/2026.
+     */
+    private const int MAX_CANDIDATAS = 200;
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -197,7 +205,15 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
 
         $salida = [];
         foreach ($reservas as $reserva) {
-            $datos = $resolver?->getMessageVariables((string) $reserva->getId()) ?? [];
+            // 🔒 Sin los códigos de las cajas (16/10/2026). Esta skill sólo pide `RESERVAS_SHOW` y
+            // la usa también la voz; el de la caja del DINERO sólo se da con `cambiar_codigo_caja`
+            // (`RESERVAS_WRITE`), y el de las llaves con su skill. Con ellos en el payload, el modelo
+            // además podía pegarlos en un mensaje al huésped saltándose la ventana horaria. Misma
+            // regla que `ConsultarMiReservaSkill`.
+            $datos = array_diff_key(
+                $resolver?->getMessageVariables((string) $reserva->getId()) ?? [],
+                array_flip(PmsMessageDataResolver::CLAVES_DE_ACCESO),
+            );
 
             $fila = array_filter(
                 $datos,
@@ -278,7 +294,7 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
 
         if (count($tokens) < 2) {
             return [
-                'reservas' => array_slice($candidatas, 0, self::MAX_RESULTADOS + 1),
+                'reservas' => array_slice($candidatas, 0, self::MAX_CANDIDATAS),
                 'parcial' => false,
             ];
         }
@@ -306,7 +322,7 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
         $resultado = $parcial ? $candidatas : $todas;
 
         return [
-            'reservas' => array_slice($resultado, 0, self::MAX_RESULTADOS + 1),
+            'reservas' => array_slice($resultado, 0, self::MAX_CANDIDATAS),
             'parcial' => $parcial,
         ];
     }
@@ -362,7 +378,7 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
                 <=> ($a['reserva']->getFechaLlegada()?->getTimestamp() ?? 0);
         });
 
-        return array_slice(array_column($puntuadas, 'reserva'), 0, self::MAX_RESULTADOS + 1);
+        return array_slice(array_column($puntuadas, 'reserva'), 0, self::MAX_CANDIDATAS);
     }
 
     /** Minúsculas, sin acentos y con los espacios colapsados, para comparar en PHP. */

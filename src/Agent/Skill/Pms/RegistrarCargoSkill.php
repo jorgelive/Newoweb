@@ -59,11 +59,10 @@ use App\Agent\Skill\EntradaDeSkill;
  *
  * ### 🚫 Cuentas anuladas
  *
- * Sobre una cuenta con `activa = false` el recálculo sólo suma los cargos de tipo
- * `penalizacion` (§12.7). Cualquier otro tipo se guarda pero **no mueve el saldo**, así que la
- * skill lo detecta antes de confirmar, simula delta 0 y devuelve `advertencia` para que el
- * modelo se lo lea al operador. Sin eso la previsualización prometía un total que el listener
- * de coherencia descartaba justo después.
+ * Desde el 08/09/2026 `activa = false` no decide dinero: lo que no suma es un cargo colgado de una
+ * estancia CANCELADA, y esta skill nunca imputa a una (`estanciasImputables()`). Así que el cargo
+ * suma siempre y la simulación lo dice; la `advertencia` sólo avisa de que la reserva se canceló
+ * en el canal.
  */
 final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominioInterface
 {
@@ -302,11 +301,13 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
         // nivel reserva —el arreglo nuevo tras pasarse a directa— sí suma, y con el aviso viejo el
         // agente le habría dicho al operador que no valía la pena teclearlo.
         if ($info->isActiva() === false) {
+            // Las estancias imputables ya excluyen las canceladas (`estanciasImputables()`), así
+            // que el cargo SIEMPRE suma: el aviso es para que el operador sepa que la reserva se
+            // canceló en el canal, no que el cargo vaya a perderse.
             $advertencia =
-                'AVISO: esta reserva se canceló en el canal. El cargo SÍ va a sumar al saldo si lo '
-                . 'imputas a la reserva o a una estancia que siga en pie; si lo imputas a una '
-                . 'estancia cancelada quedará sólo como registro histórico y no moverá el saldo. '
-                . 'Dile al operador a cuál lo vas a imputar antes de pedirle la confirmación.';
+                'AVISO: esta reserva se canceló en el canal. El cargo SÍ va a sumar al saldo: se '
+                . 'imputa a la reserva o a una estancia que sigue en pie. Díselo al operador antes '
+                . 'de pedirle la confirmación.';
         }
 
         $resumen = array_filter([
@@ -314,6 +315,8 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             'huesped' => trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente()),
             'concepto' => $concepto,
             'tipo' => $tipo->value,
+            // A qué se imputa: con varias casitas el operador tiene que verlo antes del sí.
+            'se_imputa_a' => $evento?->getPmsUnidad()?->getNombre() ?? 'la reserva (sin casita concreta)',
             'importe' => sprintf('%.2f %s', $importeFinal, $monedaOrigen->getId()),
             // Equivalencia informativa, NO el importe que se guarda. Sirve para que el operador
             // reconozca la cifra si la tenía en la cabeza en la otra moneda; el cargo va en la
@@ -329,10 +332,10 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
             'advertencia' => $advertencia,
         ], static fn ($v) => $v !== null);
 
-        // Lo que el cargo moverá DE VERDAD el total: cero si la cuenta anulada lo va a
-        // descartar. Simular el importe entero sería prometer un saldo que no va a existir,
-        // que es justo lo que una previsualización tiene que impedir.
-        $deltaEfectivo = $advertencia === null ? $importeFinal : 0.0;
+        // 🔥 El importe entero, también en una cuenta anulada (16/10/2026). Simulaba 0 por la regla
+        // vieja —«en una cuenta anulada ningún cargo suma»—, que dejó de ser cierta el 08/09/2026:
+        // la previsualización decía «+0.00» y al confirmar el saldo subía.
+        $deltaEfectivo = $importeFinal;
 
         if (!$confirmado) {
             return SkillResult::ok($resumen + [

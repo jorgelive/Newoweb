@@ -171,6 +171,21 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
             ]);
         }
 
+        // 🔒 Una estancia de OTA sólo cambia de estado como lo permite el canal: una CONSULTA
+        // (`abierto`) no pasa a confirmada desde aquí —la confirma el huésped reservando en la
+        // plataforma—. La previsualización lo prometía y al confirmar
+        // `PmsEventoCalendarioSecurityListener` lanzaba dentro del flush, que además CIERRA el
+        // EntityManager y el turno perdía la respuesta (revisión del 16/10/2026).
+        if ($evento->isOta() && !PmsEventoEstado::transicionOtaPermitida($estadoActual, PmsEventoEstado::CODIGO_CONFIRMADA)) {
+            return SkillResult::error(sprintf(
+                'Esta estancia es de %s y está en «%s»: una consulta de la plataforma no se confirma '
+                . 'desde aquí, se confirma cuando el huésped reserva en la plataforma. Díselo así al '
+                . 'operador.',
+                $reserva->getChannel()?->getNombre() ?? 'una OTA',
+                $estadoActual ?? 'sin estado',
+            ));
+        }
+
         $pagoActual = $evento->getEstadoPago()?->getId();
         $tienePagoConfiable = in_array($pagoActual, PmsEventoEstadoPago::ESTADOS_PAGO_CONFIABLES, true);
 
@@ -211,6 +226,10 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
             ]);
         }
 
+        // Las consecuencias ANTES de cambiar el estado: leen el de partida, y después decían «pasa
+        // de «confirmada» a CONFIRMADA».
+        $consecuencias = $this->consecuencias($evento, $tienePagoConfiable);
+
         $evento->setEstado(
             $this->em->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_CONFIRMADA)
         );
@@ -220,7 +239,7 @@ final readonly class ConfirmarEstanciaSkill implements SkillInterface, SkillDomi
         return SkillResult::ok($resumen + [
             'aplicado' => true,
             'estado_nuevo' => PmsEventoEstado::CODIGO_CONFIRMADA,
-            'que_ha_pasado' => $this->consecuencias($evento, $tienePagoConfiable),
+            'que_ha_pasado' => $consecuencias,
             'mensaje' => sprintf(
                 'Confirmada la estancia de %s en %s. NO se ha tocado el estado de pago ni se ha '
                 . 'registrado ningún importe.',
