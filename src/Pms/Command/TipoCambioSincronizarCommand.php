@@ -127,7 +127,7 @@ final class TipoCambioSincronizarCommand extends Command
             return $this->alarma($io, 'El maestro de tipo de cambio está VACÍO.', $callado);
         }
 
-        $retraso = (int) $ultima->diff($hoy->setTime(0, 0))->days;
+        $retraso = self::diasDeRetraso($ultima, $hoy);
 
         if ($retraso >= self::DIAS_TOLERADOS) {
             $causa = $this->tipoCambio->ultimoFallo();
@@ -148,6 +148,32 @@ final class TipoCambioSincronizarCommand extends Command
         $io->success(sprintf('Tipo de cambio al día (última cotización: %s).', $ultima->format('Y-m-d')));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Cuántos días va la última cotización POR DETRÁS de hoy. Una que va por delante, 0.
+     *
+     * ⚠️ `diff()->days` es un valor absoluto: no dice hacia qué lado. SUNAT publica el viernes la
+     * tasa del sábado, el domingo y el lunes, así que el sábado la última cotización va dos días
+     * por DELANTE, y hasta el 17/10/2026 eso contaba igual que dos días de retraso: el aviso salía
+     * por WhatsApp cada fin de semana —«lleva 2 días sin actualizarse (última: 2026-10-19)»— con
+     * el maestro perfectamente al día. Una alarma que suena sin motivo enseña a no leerla, que es
+     * justo el fallo que este comando vino a cerrar.
+     *
+     * La cotización es un DÍA de calendario, no un instante: se toma su `Y-m-d` tal cual y se
+     * compara con el día de hoy en la zona de `$hoy`. Convertirla de zona la correría —el 19/10 a
+     * medianoche UTC es el 18/10 a las 19:00 en Lima—.
+     */
+    public static function diasDeRetraso(DateTimeImmutable $ultima, DateTimeImmutable $hoy): int
+    {
+        $dia = $hoy->setTime(0, 0);
+        $ultimaDia = new DateTimeImmutable($ultima->format('Y-m-d'), $hoy->getTimezone());
+
+        if ($ultimaDia >= $dia) {
+            return 0;
+        }
+
+        return (int) $ultimaDia->diff($dia)->days;
     }
 
     /**

@@ -6537,6 +6537,15 @@ termina en `FAILURE` y avisa cuando el maestro pasa de **2 días** de retraso: e
 es lo que hace que el cron lo mande por correo, el aviso es lo que hace que alguien se entere el
 mismo día.
 
+⚠️ **El retraso cuenta sólo hacia atrás (17/10/2026).** SUNAT publica el viernes la tasa del sábado,
+el domingo y el lunes, así que el sábado la última cotización va dos días **por delante**. El
+comando medía con `diff()->days`, que es absoluto, y eso contaba igual que dos días de retraso: el
+sábado 17/10 llegó por WhatsApp «lleva 2 días sin actualizarse (última: 2026-10-19)» con el maestro
+al día. `TipoCambioSincronizarCommand::diasDeRetraso()` devuelve 0 para una cotización futura y
+compara la fecha como **día de calendario** (su `Y-m-d`, sin cambiarla de zona: el 19/10 a
+medianoche UTC es el 18/10 a las 19:00 en Lima). Una alarma que suena sin motivo enseña a no
+leerla, que es el fallo que este cron vino a cerrar. Test: `TipoCambioRetrasoTest`.
+
 ⚠️ **El aviso va por WhatsApp a `ROLE_TECH_SUPPORT`, con la causa, y el push queda de respaldo
 (13/10/2026).** Antes era sólo un push a `OPERACIONES_SHOW`, y no bastó: el **09/10/2026** se agotó
 la cuota del plan gratis de decolecta (**100 peticiones al mes**), el proveedor pasó a contestar
