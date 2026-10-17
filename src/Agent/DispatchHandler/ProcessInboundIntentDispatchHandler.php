@@ -9,13 +9,12 @@ use App\Agent\Dispatch\ProcessInboundIntentDispatch;
 use App\Agent\Router\IntentRouter;
 use App\Agent\Triage\PreRouterRafaga;
 use App\Message\Entity\Message;
+use App\Message\Service\Conversacion\RemitenteDelEquipo;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
-use App\Repository\UserRepository;
-use App\Service\Phone\PhoneSanitizer;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Throwable;
 
@@ -30,8 +29,7 @@ final readonly class ProcessInboundIntentDispatchHandler
         private LoggerInterface $logger,
         #[Autowire('%env(int:AGENT_IA_ESPERA_RAFAGA)%')]
         private int $esperaRafaga,
-        private UserRepository $usuarios,
-        private PhoneSanitizer $telefonos,
+        private RemitenteDelEquipo $remitentes,
     ) {}
 
     public function __invoke(ProcessInboundIntentDispatch $dispatch): void
@@ -200,14 +198,9 @@ final readonly class ProcessInboundIntentDispatchHandler
         return substr('intent-' . $this->em->getConnection()->getDatabase() . '-' . $messageId, 0, 64);
     }
 
-    /**
-     * ¿Lo escribe alguien del equipo? Mismo criterio que `AgentActor::esDelEquipo()`.
-     */
+    /** ¿Lo escribe alguien del equipo? El mismo criterio que el actor: `RemitenteDelEquipo`. */
     private function esDelEquipo(Message $msg): bool
     {
-        $telefono = $msg->getConversation()?->getGuestPhone();
-
-        return $telefono !== null
-            && $this->usuarios->findByTelefono($telefono, $this->telefonos) !== null;
+        return $this->remitentes->esDelEquipo($msg);
     }
 }

@@ -454,18 +454,6 @@ parameters:
 
 	
 		-
-			message: '#^Call to function is_array\(\) with array\{language\: string, content\: string\} will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 2
-			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
-
-		-
-			message: '#^Offset ''content'' on array\{language\: string, content\: string\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 2
-			path: src/Pms/Service/Agent/PmsIndiceDeTemas.php
-
-		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1

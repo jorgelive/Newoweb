@@ -406,30 +406,32 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     /**
      * La conversación sobre la que se escala.
      *
-     * 🔒 El contexto manda: si quien habla es el huésped, es SU conversación y punto. El
-     * parámetro sólo sirve al equipo desde el panel, donde no hay contexto de chat.
+     * 🔒 El hilo manda: si quien habla está en un chat, es SU conversación y punto. El parámetro
+     * sólo sirve al equipo desde el panel, donde no hay chat. Y el prospecto, sin contexto, se
+     * localiza igual: un prospecto no conoce ningún UUID.
+     *
+     * 🔥 Primero el hilo EN CURSO (`conversacionId()`), y la cabecera sólo de respaldo
+     * (16/10/2026). Buscaba primero por (contextType, contextId), que desde la fusión por contacto
+     * no es única: se podía escalar con el enlace y el nombre de OTRO hilo —el archivado, o el del
+     * titular cuando escribe un acompañante—.
+     *
+     * @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface.
      */
-    /** @param array<string, mixed> $entrada Lo que rellenó el modelo, ver SkillInterface. */
     private function conversacionDe(array $entrada, ActorInterface $actor): ?MessageConversation
     {
         $e = new EntradaDeSkill($entrada);
         $repo = $this->em->getRepository(MessageConversation::class);
+        $delHilo = $actor->conversacionId();
+
+        if ($delHilo !== null && Uuid::isValid($delHilo)) {
+            return $repo->find($delHilo);
+        }
 
         if ($actor->contextoId() !== null && $actor->contextoTipo() !== null) {
             return $repo->findOneBy([
                 'contextType' => $actor->contextoTipo(),
                 'contextId' => $actor->contextoId(),
             ]);
-        }
-
-        // Sin contexto pero dentro de un hilo: es el prospecto. Se le localiza por la
-        // conversación en curso y no por el parámetro, que sólo sirve al equipo desde el
-        // panel — un prospecto no conoce ningún UUID, y la salida que le ofrecía el error
-        // (`localizar_conversacion`) exige roles de equipo y ni le aparece en la lista.
-        $delHilo = $actor->conversacionId();
-
-        if ($delHilo !== null && Uuid::isValid($delHilo)) {
-            return $repo->find($delHilo);
         }
 
         $id = trim($e->texto('conversacion_id'));

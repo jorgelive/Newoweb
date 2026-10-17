@@ -18,6 +18,7 @@ use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 use App\Agent\Skill\EntradaDeSkill;
 
 /**
@@ -210,9 +211,22 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
         ));
     }
 
-    /** La conversación del propio actor. El contexto manda; no hay parámetro que lo sustituya. */
+    /**
+     * La conversación del propio actor. El contexto manda; no hay parámetro que lo sustituya.
+     *
+     * 🔥 El hilo EN CURSO (`conversacionId()`), y la cabecera sólo de respaldo (16/10/2026). La
+     * pareja (contextType, contextId) no es única desde la fusión por contacto —un hilo archivado,
+     * el del titular para un acompañante—, y buscando por ella la plantilla podía salir hacia OTRO
+     * hilo.
+     */
     private function conversacionDelActor(ActorInterface $actor): ?MessageConversation
     {
+        $enCurso = $actor->conversacionId();
+
+        if ($enCurso !== null && Uuid::isValid($enCurso)) {
+            return $this->em->getRepository(MessageConversation::class)->find($enCurso);
+        }
+
         if ($actor->contextoId() === null || $actor->contextoTipo() === null) {
             return null;
         }

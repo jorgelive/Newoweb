@@ -210,13 +210,19 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
         return '';
     }
 
-    /** El cuerpo publicado sin traducir, sólo para mirar si lleva placeholders. */
+    /**
+     * El cuerpo publicado sin traducir, sólo para mirar si lleva placeholders.
+     *
+     * 🔥 De la columna (`getDescripcion()`), no de `getContenidoParaCliente()`: ése es transitorio y
+     * lo rellena el filtro al podar, así que en un ítem de `findAll()` estaba vacío y la señal `{{`
+     * no saltaba nunca (revisión del 16/10/2026). Es la misma trampa que avisa `construir()`.
+     */
     private function cuerpoCrudo(PmsGuiaItem $item): string
     {
         $textos = [];
 
-        foreach ($item->getContenidoParaCliente() as $traduccion) {
-            if (is_array($traduccion) && isset($traduccion['content'])) {
+        foreach ($item->getDescripcion() ?? [] as $traduccion) {
+            if (isset($traduccion['content'])) {
                 $textos[] = (string) $traduccion['content'];
             }
         }
@@ -224,13 +230,18 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
         return implode(' ', $textos);
     }
 
-    /** Los títulos del tema en todos los idiomas: la gente pregunta en el suyo. */
+    /**
+     * Los títulos del tema en todos los idiomas: la gente pregunta en el suyo.
+     *
+     * De la columna, no del transitorio `getTituloParaCliente()` — ver `cuerpoCrudo()`. Con el
+     * transitorio, los solapes por título no se detectaban: sólo los de `agenteTerminos`.
+     */
     private function titulos(PmsGuiaItem $item): string
     {
         $textos = [];
 
-        foreach ($item->getTituloParaCliente() as $traduccion) {
-            if (is_array($traduccion) && isset($traduccion['content'])) {
+        foreach ($item->getTitulo() as $traduccion) {
+            if (isset($traduccion['content'])) {
                 $textos[] = (string) $traduccion['content'];
             }
         }

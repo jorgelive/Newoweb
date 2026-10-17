@@ -6,8 +6,7 @@ namespace App\Message\EventListener;
 
 use App\Agent\Dispatch\ProcessInboundIntentDispatch;
 use App\Message\Entity\Message;
-use App\Service\Phone\PhoneSanitizer;
-use App\Repository\UserRepository;
+use App\Message\Service\Conversacion\RemitenteDelEquipo;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
 use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
@@ -27,24 +26,20 @@ final readonly class MessageAutoResponderListener
         private MessageBusInterface $bus,
         #[Autowire('%env(int:AGENT_IA_ESPERA_CORTA)%')]
         private int $esperaCorta,
-        private UserRepository $usuarios,
-        private PhoneSanitizer $telefonos,
+        private RemitenteDelEquipo $remitentes,
     ) {}
 
     /**
      * ¿Lo escribe alguien del equipo?
      *
-     * Se resuelve con una lectura por teléfono, el mismo criterio que usa
-     * {@see \App\Agent\Access\AgentActor::esDelEquipo()}. Es una consulta indexada y de sólo
+     * Se resuelve con una lectura por teléfono, el mismo criterio que el actor
+     * ({@see RemitenteDelEquipo}: WhatsApp y el número del remitente). Es una consulta indexada y de sólo
      * lectura: cabe dentro del flush donde corre este listener, a diferencia de una llamada al
      * modelo —que es lo que sí está prohibido aquí—.
      */
     private function esDelEquipo(Message $message): bool
     {
-        $telefono = $message->getConversation()?->getGuestPhone();
-
-        return $telefono !== null
-            && $this->usuarios->findByTelefono($telefono, $this->telefonos) !== null;
+        return $this->remitentes->esDelEquipo($message);
     }
 
     public function postPersist(Message $message, PostPersistEventArgs $event): void

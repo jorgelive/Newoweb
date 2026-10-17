@@ -93,9 +93,10 @@ final class PhpstanBaselineTest extends TestCase
 
     /**
      * Ocurrencias el 26/09/2026, tras auditarlas una por una (de 107 a 51). Sólo puede bajar: si
-     * baja, se baja aquí.
+     * baja, se baja aquí. 47 el 16/10/2026: las cuatro de `PmsIndiceDeTemas` «protegían» la lectura
+     * de los campos transitorios de la guía, que era un fallo (siempre vacíos), no una frontera.
      */
-    private const int TOPE_TOTAL = 51;
+    private const int TOPE_TOTAL = 47;
 
     public function testElBaselineSoloGuardaFronteras(): void
     {

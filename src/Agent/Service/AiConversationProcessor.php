@@ -26,9 +26,8 @@ use App\Agent\Triage\Triaje;
 use App\Message\Dto\AutorDelMensaje;
 use App\Message\Entity\Message;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Message\Service\Conversacion\RemitenteDelEquipo;
 use App\Message\Entity\MessageConversation;
-use App\Repository\UserRepository;
-use App\Service\Phone\PhoneSanitizer;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -139,10 +138,9 @@ final readonly class AiConversationProcessor
         private SelectorDePotencia $potencias,
         private SkillRegistry $skills,
         private Triaje $triaje,
-        private UserRepository $usuarios,
+        private RemitenteDelEquipo $remitentes,
         private AgentActorFactory $actores,
         private InstruccionesDominioRegistry $dominios,
-        private PhoneSanitizer $telefonos,
         private EscaleraDeTemas $escalera,
         private ConocimientoGenerico $conocimiento,
         private VigilanteDelMotor $vigilante,
@@ -272,7 +270,7 @@ final readonly class AiConversationProcessor
     /**
      * Da por leída la conversación cuando el que preguntaba era del equipo.
      *
-     * Se reconoce por el mismo camino que el actor: el número en `user.telefono`. Con un
+     * Se reconoce por el mismo camino que el actor: `RemitenteDelEquipo`. Con un
      * huésped no se hace nunca —su mensaje sigue pendiente de que alguien lo mire, conteste
      * el bot o no—, porque el operador quiere revisar qué se le respondió.
      *
@@ -282,7 +280,7 @@ final readonly class AiConversationProcessor
      */
     private function marcarLeidaSiEsDelEquipo(MessageConversation $conversacion, Message $entrante): void
     {
-        if ($this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos) === null) {
+        if (!$this->remitentes->esDelEquipo($entrante)) {
             return;
         }
 
@@ -566,6 +564,11 @@ final readonly class AiConversationProcessor
         // como el correo, donde el remitente es texto que cualquiera escribe. Para hacerse
         // pasar por este número habría que tener el App Secret.
         //
+        // 🔥 Eso vale SÓLO para WhatsApp y sólo para el número del REMITENTE, y el código no lo
+        // exigía (revisión del 16/10/2026): miraba el teléfono de la CABECERA en cualquier canal.
+        // En un hilo de OTA ese teléfono es el que el huésped tecleó en la reserva, y en un hilo
+        // con varios números es el de otra persona. Ahora lo decide `RemitenteDelEquipo`.
+        //
         // 🔒 De eso depende todo lo de arriba: si `exchange_meta_config.credentials.appSecret`
         // se queda vacío, el controlador DEJA PASAR sin validar y entonces sí, cualquiera
         // podría inventarse un payload con el número de un operador. Está puesto en producción
@@ -584,7 +587,7 @@ final readonly class AiConversationProcessor
         // 🔒 Lo que NO se asume es la revocación: un usuario deshabilitado pierde sus roles de
         // escritura en `AgentActorFactory::delEquipoPorChat()`. Sin eso, deshabilitar a alguien
         // en el panel no le habría quitado nada por aquí.
-        $delEquipo = $this->usuarios->findByTelefono($conversacion->getGuestPhone(), $this->telefonos);
+        $delEquipo = $this->remitentes->de($entrante);
 
         // `tambienHuesped: true` — los privilegios se ACUMULAN. Alguien del equipo con una
         // reserva a su nombre es las dos cosas a la vez: debe poder consultar su propia

@@ -106,6 +106,12 @@ Amazon firma con **SHA-1**. Es heredado y no es elección nuestra.
 
 ## 4. La respuesta: por qué casi todo es 200
 
+🔥 **La clave `version: "1.0"` es obligatoria, y estuvo seis semanas sin ir** (del 02/09 al
+16/10/2026): el renombrado masivo `version` → `propuesta` de cotizaciones (commit `14e6c881`) la
+cambió en `RespuestaAlexa::aArray()`, Alexa rechazaba todas las respuestas y nada lo avisaba. La fija
+desde entonces `RespuestaAlexaTest`. **Un renombrado masivo no respeta fronteras de módulo: esta
+clave es de Amazon, no nuestra.**
+
 Superada la firma, **todo se responde 200 con un texto hablable**, incluidos los errores. Un
 500 hace que el dispositivo diga *«hubo un problema con la skill solicitada»* y el operador se
 queda sin saber si falló la red, el permiso o el dato; un texto nuestro se entiende.
@@ -288,6 +294,15 @@ con un WARNING. Si falla, se pierde una línea de log.
 `accessToken` y `consentToken` por `(omitido)` —dan acceso a las APIs de Amazon en nombre del
 cliente— y tacha las tiradas de 4 dígitos de los valores dictados, igual que
 `AlexaController::sinSecretos()`.
+
+🔥 **Y las de `texto`** (16/10/2026): es la clave del historial que Alexa DEVUELVE en
+`session.attributes.historial`, con nuestra respuesta del turno anterior tal cual se dijo. Sólo se
+tachaba `value`, así que un código de caja dictado en un turno salía en claro en el log del
+siguiente. Lo fija `DiagnosticoAlexaTest`.
+
+🔒 El token de acceso sólo se manda a las tres regiones de la API de Alexa
+(`ENDPOINTS_DE_AMAZON`), aunque el `apiEndpoint` venga en un sobre firmado: defensa en profundidad
+por si la firma se relaja algún día.
 
 ```bash
 ssh <servidor> 'grep "Alexa: petición" /var/www/<proyecto>/var/log/info.log | tail -5'

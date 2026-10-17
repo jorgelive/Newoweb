@@ -15,6 +15,7 @@ use App\Message\Contract\ChannelEnqueuerInterface;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Pms\Service\Agent\PmsFrentes;
 use App\Pms\Entity\PmsReserva;
 use App\Security\Roles;
@@ -48,6 +49,7 @@ final readonly class LocalizarConversacionSkill implements SkillInterface, Skill
         private EntityManagerInterface $em,
         #[AutowireIterator('app.message.enqueuer')]
         private iterable $enqueuers,
+        private EnlacesDeConversacion $enlaces,
     ) {}
 
     public function nombre(): string
@@ -102,8 +104,13 @@ final readonly class LocalizarConversacionSkill implements SkillInterface, Skill
             return SkillResult::error('El reserva_id no es válido.');
         }
 
-        $conversacion = $this->em->getRepository(MessageConversation::class)
-            ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => $reservaId]);
+        // 🔥 El hilo TITULAR del asunto, no el de la cabecera (16/10/2026). Desde la fusión por
+        // contacto la pareja (contextType, contextId) no es única: devolvía el hilo archivado y
+        // vacío, o nada en la segunda reserva de un huésped. La cabecera queda de respaldo para la
+        // primera vez, antes de que el sincronizador cuelgue el enlace.
+        $conversacion = $this->enlaces->hiloTitularDe('pms_reserva', $reservaId)
+            ?? $this->em->getRepository(MessageConversation::class)
+                ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => $reservaId]);
 
         if ($conversacion === null) {
             return SkillResult::error(

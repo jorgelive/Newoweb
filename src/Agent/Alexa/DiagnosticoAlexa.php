@@ -33,6 +33,13 @@ final readonly class DiagnosticoAlexa
     /** Nunca al log: dan acceso a las APIs de Amazon en nombre del cliente. */
     private const array CLAVES_SECRETAS = ['apiAccessToken', 'accessToken', 'consentToken'];
 
+    /** Los únicos hosts a los que se manda el token de acceso: las tres regiones de la API de Alexa. */
+    private const array ENDPOINTS_DE_AMAZON = [
+        'https://api.amazonalexa.com',
+        'https://api.eu.amazonalexa.com',
+        'https://api.fe.amazonalexa.com',
+    ];
+
     public function __construct(
         private HttpClientInterface $http,
         private LoggerInterface $logger,
@@ -81,6 +88,13 @@ final readonly class DiagnosticoAlexa
             return ['http' => null, 'nombre' => null];
         }
 
+        // El token va sólo a Amazon. La firma de la petición ya garantiza que el endpoint lo puso
+        // Amazon, así que esto es defensa en profundidad: el día que la firma se relaje —como pasó
+        // con el `appSecret` vacío de Meta—, el token de acceso no puede salir hacia otro host.
+        if (!in_array(rtrim($endpoint, '/'), self::ENDPOINTS_DE_AMAZON, true)) {
+            return ['http' => 'endpoint no es de Amazon', 'nombre' => null];
+        }
+
         try {
             $respuesta = $this->http->request('GET', rtrim($endpoint, '/') . '/v2/persons/~current/profile/givenName', [
                 'headers' => ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json'],
@@ -114,9 +128,14 @@ final readonly class DiagnosticoAlexa
         foreach ($sobre as $clave => $valor) {
             if (is_string($clave) && in_array($clave, self::CLAVES_SECRETAS, true)) {
                 $limpio[$clave] = '(omitido)';
-            } elseif ($clave === 'value' && is_string($valor)) {
+            } elseif (($clave === 'value' || $clave === 'texto') && is_string($valor)) {
                 // Lo que se dicta en un slot puede ser un código de puerta: misma regla que
                 // AlexaController::sinSecretos().
+                //
+                // 🔥 Y `texto`: es la clave del historial que Alexa nos DEVUELVE en
+                // `session.attributes.historial`, con la respuesta del turno anterior tal cual se
+                // dijo —el código de la caja fuerte incluido—. Sólo se tachaba `value`, así que el
+                // código salía en claro en el log del turno siguiente (revisión del 16/10/2026).
                 $limpio[$clave] = preg_replace('/\d{4,}/u', '····', $valor) ?? $valor;
             } elseif (is_array($valor)) {
                 $limpio[$clave] = self::sanear($valor);

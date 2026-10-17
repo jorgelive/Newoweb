@@ -11320,6 +11320,12 @@ devuelve ahora `TemaQueCubre` con `masEspecifica` y el porqué ya redactado. Qu�
 una ficha es conocimiento de alojamiento —fichas por casita, `{{ placeholders }}`, ventanas de
 acceso—; en Turismo será otra cosa, y el núcleo compone el consejo sin entender ninguno de los dos.
 
+🔥 **Hasta el 16/10/2026 los títulos y los `{{ placeholders }}` no se miraban**: `titulos()` y
+`cuerpoCrudo()` leían `getTituloParaCliente()`/`getContenidoParaCliente()`, que son transitorios
+—los rellena `PmsGuiaArbolFiltro` al podar— y en un ítem de `findAll()` están vacíos. Los solapes
+salían sólo por `agenteTerminos`, y la señal `{{` no saltaba nunca. Leen ahora las columnas
+(`getTitulo()`, `getDescripcion()`); es la misma trampa que ya avisaba `construir()`.
+
 ⚠️ **La señal de «ventana» se calibró.** La primera versión miraba «distinto de público», y como
 32 de los 51 ítems son `cliente` —que sólo quiere decir «se le enseña al cliente»—, el veredicto
 salía «es mejor» en casi todo. Un aviso que siempre dice lo mismo no ayuda a decidir: es el mismo

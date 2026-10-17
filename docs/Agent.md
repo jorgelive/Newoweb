@@ -124,6 +124,23 @@ mensajería. **Una sola implementación: `AgentActor`**, `final`, con constructo
 | `prospecto()` | quien escribe sin ser todavía nadie | **ninguno, a propósito** | `PROSPECTO` |
 | `sistema()` | **nadie: un trabajo disparado por datos** | ninguno | **ninguno** |
 
+🔒 **Quién cuenta como «del equipo» por el chat lo decide `RemitenteDelEquipo` (16/10/2026)**, y
+sólo así: el mensaje entró por **WhatsApp de Meta** y el número es el del **remitente**
+(`Message::getTelefonoOrigen()`), que Meta firma. Antes se miraba el teléfono de la CABECERA en
+cualquier canal. En un hilo de OTA ese teléfono es el que el huésped tecleó en la reserva (con el
+móvil de un operador ahí, el chat de Booking recibía sus roles **con escritura**), y en un hilo con
+varios números era el de otra persona. Lo usan las cuatro copias que había: el actor y el «leído»
+de `AiConversationProcessor`, y las esperas de ráfaga de `MessageAutoResponderListener` y
+`ProcessInboundIntentDispatchHandler`. Sin `telefono_origen` (anteriores al 12/10/2026) se trata
+como huésped: caer a la cabecera reabriría el agujero.
+
+⚠️ **Y el hilo de una skill es el EN CURSO (`$actor->conversacionId()`), no el que se busca por
+`contextType`/`contextId`**: desde la fusión por contacto esa pareja no es única. `escalar_al_equipo`
+y `enviarme_plantilla` podían ir a OTRO hilo (el archivado, o el del titular cuando escribe un
+acompañante), y `localizar_conversacion` y `listar_entradas_salidas` usan ahora el hilo titular de
+la reserva (`EnlacesDeConversacion::hiloTitularDe()`, `pms_conversacion_enlace.es_titular`), con la
+cabecera sólo de respaldo.
+
 ### 2.1 `sistema()`, y por qué no vale `prospecto()`
 
 El actor de sistema nace **sin roles, sin `User`, sin contexto y sin conversación**, y las cinco

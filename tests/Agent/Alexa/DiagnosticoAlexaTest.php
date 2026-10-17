@@ -20,6 +20,21 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 #[CoversClass(DiagnosticoAlexa::class)]
 final class DiagnosticoAlexaTest extends TestCase
 {
+    public function testElHistorialQueDevuelveAlexaLlegaAlLogConLosCodigosTachados(): void
+    {
+        $limpio = DiagnosticoAlexa::sanear([
+            'session' => ['attributes' => ['historial' => [
+                ['rol' => 'usuario', 'texto' => '¿cuál es el código de la caja?'],
+                ['rol' => 'asistente', 'texto' => 'El código es 4821, casita 3.'],
+            ]]],
+        ]);
+
+        self::assertSame(
+            'El código es ····, casita 3.',
+            $limpio['session']['attributes']['historial'][1]['texto'] ?? null,
+        );
+    }
+
     public function testElSobreSaneadoPierdeLosTokensYTachaLosCodigosDictados(): void
     {
         $limpio = DiagnosticoAlexa::sanear([

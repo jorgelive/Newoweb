@@ -71,7 +71,11 @@ final readonly class RespuestaAlexa
         }
 
         return [
-            'propuesta' => '1.0',
+            // 🔥 `version`, la clave que exige el formato de Alexa. El renombrado masivo
+            // `version` → `propuesta` de cotizaciones (02/09/2026, 14e6c881) se la llevó por
+            // delante y el canal de voz estuvo caído hasta el 16/10/2026. Lo fija
+            // `RespuestaAlexaTest`.
+            'version' => '1.0',
             // Un array vacío de PHP se serializa `[]`, y Alexa espera un OBJETO aquí. El cast
             // lo fuerza a `{}`. Es el clásico que sólo se ve cuando la sesión no lleva
             // atributos —justo los turnos de bienvenida y de cierre—, así que pasa las pruebas

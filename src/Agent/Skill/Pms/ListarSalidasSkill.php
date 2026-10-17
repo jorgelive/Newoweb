@@ -267,9 +267,19 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
             FROM pms_evento_calendario e
             LEFT JOIN pms_unidad u  ON u.id = e.pms_unidad_id
             LEFT JOIN pms_reserva r ON r.id = e.reserva_id
+            -- 🔥 El hilo TITULAR de la reserva (pms_conversacion_enlace), no el de la cabecera
+            -- (16/10/2026): desde la fusión por contacto la pareja context_type/context_id no es
+            -- única, y el JOIN por ella podía duplicar la salida, enlazar un hilo archivado o dejar
+            -- sin chat la segunda reserva de un huésped. Sin enlace todavía, la cabecera.
             LEFT JOIN msg_conversation c
-                   ON c.context_type = 'pms_reserva'
-                  AND c.context_id = BIN_TO_UUID(e.reserva_id)
+                   ON c.id = COALESCE(
+                        (SELECT ce.conversacion_id FROM pms_conversacion_enlace ce
+                          WHERE ce.reserva_id = e.reserva_id AND ce.es_titular = 1
+                          ORDER BY ce.created_at DESC LIMIT 1),
+                        (SELECT c2.id FROM msg_conversation c2
+                          WHERE c2.context_type = 'pms_reserva' AND c2.context_id = BIN_TO_UUID(e.reserva_id)
+                          ORDER BY c2.status = 'archived', c2.updated_at DESC LIMIT 1)
+                   )
             WHERE e.estado_id IN (:estados)
               AND DATE(e.$columna) BETWEEN :desde AND :hasta
               $filtroAsignada
