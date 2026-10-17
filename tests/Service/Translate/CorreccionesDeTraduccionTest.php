@@ -42,4 +42,34 @@ final class CorreccionesDeTraduccionTest extends TestCase
         self::assertSame('Il possède une seule serrure', $c->aplicar('it', 'Il possède une seule serrure'));
         self::assertSame('Elle a une seule serrure', $c->aplicar('fr', 'Il possède une seule serrure'));
     }
+
+    /** Google deja «<strong>right</strong> .»: el punto se ve suelto en pantalla. */
+    public function testQuitaElEspacioEntreLaNegritaYLaPuntuacion(): void
+    {
+        self::assertSame(
+            'hot to the <strong>right</strong>. Fully open the <strong>left</strong>, which is the hot one: wait!',
+            CorreccionesDeTraduccion::sinEspacioAntesDePuntuacion('en', 'hot to the <strong>right</strong> . Fully open the <strong>left</strong> , which is the hot one: wait!'),
+        );
+        self::assertSame(
+            'controls the <strong>hot water</strong>: wait',
+            CorreccionesDeTraduccion::sinEspacioAntesDePuntuacion('de', 'controls the <strong>hot water</strong> : wait'),
+        );
+    }
+
+    /** En francés el espacio delante de «:» es su tipografía; delante del punto, no. */
+    public function testEnFrancesRespetaElEspacioDelanteDeLosDosPuntos(): void
+    {
+        self::assertSame(
+            'eau chaude à <strong>droite</strong>. Salle de bain <strong>à l\'étage</strong> : eau chaude',
+            CorreccionesDeTraduccion::sinEspacioAntesDePuntuacion('fr', 'eau chaude à <strong>droite</strong> . Salle de bain <strong>à l\'étage</strong> : eau chaude'),
+        );
+    }
+
+    /** Sólo detrás de una etiqueta de cierre: el texto plano y el resto de espacios, intactos. */
+    public function testNoTocaNadaMas(): void
+    {
+        $texto = 'Hola , qué tal ? <p> 👉 Abre</p> <strong>ya</strong> mismo';
+
+        self::assertSame($texto, CorreccionesDeTraduccion::sinEspacioAntesDePuntuacion('en', $texto));
+    }
 }

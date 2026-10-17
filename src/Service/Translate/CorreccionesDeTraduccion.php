@@ -1093,11 +1093,36 @@ final class CorreccionesDeTraduccion
         // ven, pero parten la palabra al buscar y al copiar. Ninguna traducción los quiere.
         $texto = str_replace("\u{200b}", '', $texto);
 
+        $texto = self::sinEspacioAntesDePuntuacion($idioma, $texto);
+
         foreach (self::CORRECCIONES[$idioma] ?? [] as $buscar => $reemplazo) {
             $texto = str_replace($buscar, $reemplazo, $texto);
         }
 
         return $texto;
+    }
+
+    /**
+     * Quita el espacio que Google deja entre el cierre de una negrita y la puntuación.
+     *
+     * Google devuelve «hot to the <strong>right</strong> .» y «controls the <strong>hot
+     * water</strong> .»: en pantalla, «right .» con el punto suelto. Le pasa en todos los idiomas
+     * y en toda la guía, siempre detrás de una etiqueta de cierre, nunca en texto plano (medido el
+     * 17/10/2026 al revisar las duchas). Va aquí, con la limpieza genérica, y no como una corrección
+     * por frase: no depende de la frase.
+     *
+     * ⚠️ **En francés el espacio delante de «:», «;», «?» y «!» es lo correcto** —es su tipografía—,
+     * así que ahí sólo se quita delante de «.», «,» y «)».
+     */
+    public static function sinEspacioAntesDePuntuacion(string $idioma, string $texto): string
+    {
+        $puntuacion = $idioma === 'fr' ? '[.,)]' : '[.,):;!?]';
+
+        return (string) preg_replace(
+            '#(</(?:strong|b|em|i|u|span|a)>)(?:\s|&nbsp;|\x{00A0})+(?=' . $puntuacion . ')#u',
+            '$1',
+            $texto,
+        );
     }
 
     /**

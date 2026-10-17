@@ -322,6 +322,17 @@ chat en los dos sentidos, lo que el bot escribe para el operador y el contenido 
 En 60 días de chat, 11 mensajes entrantes traían esa forma. No todos pierden la línea —depende del
 texto—, y por eso no se había visto: casi siempre sale bien.
 
+### Google deja un espacio entre la negrita y el punto *(arreglado el 17/10/2026)*
+
+Devuelve «hot to the <strong>right</strong> .», y en pantalla el punto queda suelto: «right .».
+Pasa en todos los idiomas y en toda la guía, siempre detrás de una etiqueta de cierre.
+`CorreccionesDeTraduccion::sinEspacioAntesDePuntuacion()` lo quita dentro de `aplicar()`, junto
+a la limpieza genérica (no es una corrección por frase): vale para toda traducción nueva y, con
+`app:traduccion:corregir`, para lo guardado.
+
+⚠️ **En francés el espacio delante de «:», «;», «?» y «!» es correcto** (su tipografía): ahí sólo
+se quita delante de «.», «,» y «)».
+
 ### Dos mecanismos de sobrescritura conviven
 
 Además del flag de la entidad hay flags `sobreescribirTraduccion` **por contenedor dentro del
