@@ -38,10 +38,27 @@ final class LegadoController extends AbstractController
         return $this->redirectToRoute('front_legal', ['pagina' => self::LEGALES[$pagina], '_locale' => 'es'], Response::HTTP_MOVED_PERMANENTLY);
     }
 
+    /**
+     * Las mismas, en inglés. El legacy las servía bajo `/en/`, y Bing y Semrush las seguían
+     * pidiendo el 17/10/2026 (`/en/Data-Protection-Privacy`, `/en/libro-de-reclamaciones`): daban
+     * 404, que el buscador lee como «ya no existe» en vez de «se mudó».
+     */
+    #[Route(path: '/en/{pagina}', name: 'front_legado_legal_en', requirements: ['pagina' => 'Terms-and-Conditions|Politica-de-Devoluciones|Data-Protection-Privacy|cookies-policy|ESNNA-Program|FAQ'], priority: -10)]
+    public function legalEn(string $pagina): RedirectResponse
+    {
+        return $this->redirectToRoute('front_legal', ['pagina' => self::LEGALES[$pagina], '_locale' => 'en'], Response::HTTP_MOVED_PERMANENTLY);
+    }
+
     #[Route(path: '/libro-de-reclamaciones.php', name: 'front_legado_libro', priority: -10)]
     public function libro(): RedirectResponse
     {
         return $this->redirectToRoute('front_libro', ['_locale' => 'es'], Response::HTTP_MOVED_PERMANENTLY);
+    }
+
+    #[Route(path: '/en/{viejo}', name: 'front_legado_libro_en', requirements: ['viejo' => 'libro-de-reclamaciones(\.php)?'], priority: -10)]
+    public function libroEn(): RedirectResponse
+    {
+        return $this->redirectToRoute('front_libro', ['_locale' => 'en'], Response::HTTP_MOVED_PERMANENTLY);
     }
 
     /**

@@ -377,6 +377,11 @@ excursiones se contratan por cuenta del huésped. Para vender tours hay que rees
 `/login`…). El legacy contestaba `/notfound` con un **200**, que a un buscador no le dice nada.
 Las rutas llevan prioridad negativa para no ganarle nunca a una de verdad.
 
+**Y sus versiones en inglés** (17/10/2026): el legacy servía las legales y el libro también bajo
+`/en/` (`/en/Data-Protection-Privacy`, `/en/libro-de-reclamaciones`), y Bing y Semrush las seguían
+pidiendo — daban 404. Van a `/en/legal/…` y a `/en/complaints-book`. No pisan los catálogos: las
+legales llevan mayúsculas y `libro-de-reclamaciones` ya está excluido en `SLUG_CATALOGO`.
+
 ## 8. Dos fronts: openperu.pe y centrocuscointi.com
 
 Un solo Symfony, **un host por web**, una carpeta por web en `src/Front/` y en
