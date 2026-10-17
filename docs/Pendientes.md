@@ -13,7 +13,7 @@ Cuando algo de aquí se resuelva, **se borra de este archivo** y se documenta do
 según la tabla de `CLAUDE.md`. Un pendiente resuelto que sigue listado es peor que no tenerlo:
 la siguiente persona lo investiga otra vez.
 
-> Verificado el 11/08/2026. Los números salen de producción.
+> Verificado el 11/08/2026 y revisado entero el 17/10/2026. Los números salen de producción.
 
 ---
 
@@ -23,30 +23,58 @@ Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §
 decidió dejar para después:
 
 1. **Enlace de Culqi desde la cotización: HECHO el 16/10/2026**, con los avisos por WhatsApp
-   (`docs/Cotizaciones.md` §6.a). `saldo_pendiente_viaje` se envió a Meta ese día: comprobar que
-   la aprueba (`msg:meta:push saldo_pendiente_viaje --ver`); si la rechaza, el aviso del saldo de un
-   viaje sólo sale dentro de la ventana de 24 h.
+   (`docs/Cotizaciones.md` §6.a). `saldo_pendiente_viaje` está **aprobada por Meta en los
+   7 idiomas** (comprobado el 17/10/2026 con `msg:meta:push saldo_pendiente_viaje --ver`).
    - Los tramos en alojamiento quedaron hechos el 16/10/2026 (`docs/FinanzasEnlacesPago.md` §11 bis).
      Los extras de Airbnb/VRBO reciben su enlace solos desde el día de llegada (decidido el mismo día).
-2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
-   catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
-   existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):
-   falta el camino inverso automático con el número de pasajeros.
+2. **Clonar un tour del catálogo a un expediente con los pasajeros reales: HECHO** (07/10/2026).
+   `ClonarAExpedienteModal` desde el catálogo pide fecha de inicio y número de pasajeros, y
+   `CloneCotizacionProcessor` rechaza llevar un tour a un expediente sin fecha. Comprobado el
+   17/10/2026.
 3. **Las cuentas de la empresa.** Todas las de `fin_medio_cobro` están a nombre de Susan Acuña
    Romero (Western Union, de Jorge), y los tours los vende Openperu Travel Group SAC. Cuando haya
    cuentas de la SAC, se cambian en el panel de Finanzas; nada del código las nombra.
 
 ---
 
-## 1. Nunca se marca la entrega ni la lectura en la cola de WhatsApp
+## Del chat de Clémence Mougin (8YXYNK) — 16/10/2026
 
-`msg_whatsapp_meta_send_queue` tiene `delivered_at` y `read_at`, y están **vacías en las 2368
-filas**. Cero.
+Analizado entero contra el original en francés. Tres fallos se arreglaron el mismo día (líneas
+que Google se comía, la estancia mínima que el agente ignoraba, «c'est bien noté» sonando a
+reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). Quedan dos, con diagnóstico y medida:
 
-El webhook de Meta sí recibe los acuses —el estado `read` aparece en los mensajes— pero los
-escribe en `msg_message.metadata`, no en la cola. Así que esas dos columnas son hoy peso muerto:
-o se llenan, o se quitan. Dejarlas como están invita a que alguien construya un informe encima y
-le salga todo a cero.
+1. **El idioma del hilo salta a inglés con un mensaje corto.** `WhatsappMetaReceivePersister` usa
+   `GuestLanguageDetectorService` (la librería local), que con «Parfait merci !» devuelve `ch`
+   —chamorro—; como no está en `maestro_idioma`, cae a `en` y le cambia el idioma al hilo. El
+   siguiente mensaje del equipo salió en inglés a una francesa. Además los dos filtros de longitud
+   no coinciden: el detector salta con `< 15` y `MessageTranslator` con `> 15`, así que justo 15
+   caracteres no los para ninguno.
+   - Medido sobre 60 días: el detector deja el **23 %** de los entrantes fuera del maestro
+     («Muchas gracias Susan» → gaélico). Google corrige casi todos después; el daño neto,
+     **36 de 941 salientes nuestros en otro idioma que el del huésped, en 16 conversaciones**
+     (con ruido: hay huéspedes bilingües).
+   - **Arreglo:** restringir el detector a los idiomas del maestro, que lo desconocido conserve el
+     idioma actual en vez de caer a `en`, y un solo umbral para los dos sitios.
+
+2. **La hora de salida se apunta en la estancia equivocada cuando la reserva se alargó.** La noche
+   extra se crea como un segundo evento en la misma casita (10→14 y 14→15).
+   `PmsGuiaEstanciaResolver::resolver()` elige la estancia **en curso**, así que
+   `ConfirmarHoraSkill` puso la salida de las 06:30 el 14/10 —el aviso lo repitió: «sale el
+   14/10»— cuando salía el 15. Y entre las 10:00 y las 15:00 del 14 el calendario tiene la casita
+   libre con ella dentro: una rotación falsa en la agenda de limpieza.
+   - **7 extensiones así en los últimos 90 días.**
+   - **Arreglo:** con estancias contiguas de la misma casita en la misma reserva, la salida va en
+     la última y la llegada en la primera. Y revisar si la extensión debería alargar el evento en
+     vez de crear otro.
+
+Y de la misma tanda de trabajo, menores:
+
+- **Fotos de experiencias tras revocar la autorización.** Retirar un álbum ya borra las miniaturas
+  de Liip, pero el original sigue respondiendo en `public/carga/front/experiencias/` (protegido sólo
+  por el token del nombre). Cerrarlo es servirlas por controlador con `X-Accel-Redirect`. Decisión
+  de Jorge, ver `docs/WebPublica.md` §2.1.a. Hoy hay 0 álbumes: es el momento barato.
+- **Cotizador: `cantidad = 0` da `NaN`.** `ventaPPde()`/`costoPPde()` dividen por `entreCuantos()`,
+  que con una tarifa individual de cantidad 0 vale 0 (`cotizacionEditorStore.ts`).
 
 ---
 
@@ -74,10 +102,8 @@ antelación» no se puede implementar hasta que ese dato exista.
 - **El CRUD de medios de cobro va con `MAESTROS_WRITE`.** Son datos financieros —cuentas
   bancarias, números de Yape— y comparten permiso con los maestros corrientes. Merece un rol
   propio.
-- **La reserva XDGCYT tiene 14 huéspedes por unidad.** Es un error de captura, no de código: el
-  push a Beds24 manda bien la cifra por evento. Hace falta el reparto real (las notas dicen
-  2/6/6) y decidir qué pasa con la Casita 1, que quedó con 1 adulto.
-- **Mensaje entrante duplicado a las 23:12:59** en `msg_message`. Detectado y nunca investigado.
+- **Entrantes duplicados**: dos mensajes con el mismo id externo de WhatsApp, el último el
+  30/09/2026 (medido el 17/10/2026 agrupando por `external_ids`). Raro, pero sin investigar.
 
 ---
 
@@ -114,10 +140,14 @@ Churn de sincronizaciones repetidas explicaría dos o tres, no trece con el segu
 Huele a un bucle que cancela y recrea, y si lo es, no es exclusivo de las canceladas: sería un
 mensaje nuevo por cada pasada del motor sobre cualquier conversación que cumpla la condición.
 
-**Sin investigar.** Lo barato para empezar: agrupar `msg_message` por
-`(conversation_id, rule_id, scheduled_at)` con `COUNT(*) > 2` y ver si HRD4ZD es un caso raro o
-la punta de algo. Si el barrido de arriba se hace antes, esta pista se borra con él — así que
-conviene mirarla primero.
+**Medido el 17/10/2026: era la punta de algo, y ya no pasa.** Agrupando `msg_message` por
+`(conversation_id, rule_id, scheduled_at)` salieron 23 grupos repetidos, el peor con **211** copias
+(Vanessa Lordello, tres reglas). Todos se crearon entre el 24/08 y el 17/09, con restos hasta el
+27/09; desde entonces, ninguno. Los mensajes de regla por semana bajaron de ~350 a ~30 en la semana
+del 21/09, que es cuando se movió el veto de canal al momento del envío.
+
+**Lo que queda es la basura**: ~1 500 filas `cancelled` que entran solas en el barrido de arriba.
+Antes de borrarlas, si se quiere saber la causa exacta, el rastro está en esas filas.
 
 ## Mejorar redacción de Agua Caliente en la Guía / Conocimiento
 
@@ -253,8 +283,9 @@ Un **plan de pagos como dato de la reserva**: cuotas con importe, fecha y estado
 
 - **Nombre cruzado en el histórico.** El de esta reserva ya está corregido (`Susanna` /
   `Pasquali`, comprobado el 13/10/2026), pero `RevisarOrdenDelNombreDispatch` sólo actúa cuando el
-  nombre entra o cambia: **no cubre el histórico**. Falta un comando que lo barra, como se hizo con
-  `app:pms:corregir-pais-ota`.
+  nombre entra o cambia: **no cubre el histórico**. La herramienta ya existe —`pms:nombre:revisar
+  --limite N --aplicar` recorre las N últimas reservas con el mismo revisor del worker—; falta
+  correrla sobre el histórico y mirar el resultado.
 
 ---
 
@@ -273,6 +304,10 @@ sección de abajo, que es donde está la causa de raíz.
 ---
 
 ## El enlace de pago hecho fuera del sistema — 19/08/2026
+
+> **Medido el 17/10/2026, últimos 45 días:** de 35 pagos con tarjeta, 29 llevan un enlace nuestro
+> y **6 no** (puede ser TPV o tarjeta virtual de OTA, no necesariamente un enlace externo). Mejor
+> que en agosto, pero sigue dependiendo de que alguien registre esos 6 a mano.
 
 Investigando el adjunto de la reserva 88591163 salió la causa de raíz, y no es la que parecía.
 
@@ -409,7 +444,7 @@ declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar mod
 
 | Plantilla | ¿Es un olvido? |
 |---|---|
-| **Full Day Valle Vip** (la pool) | **Sí.** Le toca `Pool Super Valle`, igual que a la Tradicional `Pool Valle Sagrado`. Es la única de las cuatro del Valle sin marca. Una línea en `TravelPromoverServicioPrincipalCommand::PROMOCIONES`. |
+| ~~**Full Day Valle Vip** (la pool)~~ | **Hecho**: ya no sale en `app:travel:proponer-puntos --dry-run` (comprobado el 17/10/2026). |
 | Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal) | **No.** Tren + bus + ingreso + guía: ningún servicio abarca el día, y cada componente saca sus puntos de su propio segmento. |
 | Skylodge · Starlodge · Two Day Camino inca · Two Day MAPI bimodal · Two Day Vertical Sky | **Pendiente de montar**, no de decidir. Ver abajo. |
 
@@ -433,44 +468,10 @@ cuando la ventana de 24 h está cerrada.
 
 ---
 
-## Las traducciones manuales cuestan más de lo que resuelven — 22/08/2026
-
-Dicho por el operador: *«pensé que iba a usar traducciones manuales, pero ahora me da más problemas
-de los que soluciona»*.
-
-### El problema
-
-`AutoTranslationService` sólo pisa una traducción existente si `sobreescribirTraduccion` está
-activo:
-
-```php
-if (!$overwrite && !$isContentEmpty) continue;
-```
-
-Protege lo escrito a mano, sí — **al precio de que cualquier cambio del original deje los otros
-seis idiomas mintiendo, en silencio y para siempre**. No lo detecta nadie, porque quien revisa lee
-español. Casi ocurre al renombrar «Valle sagrado tradicional privado» → «Valle Vip privada»: el
-español habría dicho *Valle Vip* y los demás habrían seguido diciendo *Sacred Valley*, *Vale
-Sagrado*, *Heilige Tal*, en un producto que cuesta un 40 % más.
-
-Hoy la única defensa es acordarse de activar el flag **antes** de tocar el campo, y verificar
-después que la regeneración de verdad ocurrió — una llamada de red que falla no lanza nada y deja
-el campo sólo en español.
-
-### Las dos salidas, y ninguna es un rato
-
-- **Invertir el defecto:** regenerar siempre, salvo que el campo esté marcado como manual. El
-  riesgo se da la vuelta: se pierde una redacción cuidada en vez de publicar una mentira.
-- **Marcar la manualidad POR IDIOMA** en vez de por entidad. Es probablemente lo que se quería al
-  poner el flag: «el inglés lo escribí yo, el resto que se traduzca». Hoy es todo o nada.
-
-**Antes de elegir, medir:** cuántos campos tienen de verdad traducción manual y cuántos la tienen
-sólo porque nadie regeneró nunca. Sin ese número la decisión es una corazonada, y las dos opciones
-tocan todos los campos con `#[AutoTranslate]`.
-
----
-
 ## El JSON financiero pesa 10× lo que dice, y el store son 4 500 líneas — 23/08/2026
+
+> **Vigente, y creció** (medido el 17/10/2026): 24 filas, **2,4 MB** la clasificación interna y
+> **2,1 MB** la del cliente; la fila más pesada, **269 KB** (era 166 KB).
 
 Medido en producción, no estimado. Es el trabajo previo de mover el cálculo financiero a un
 servicio (`docs/NodeEnElStack.md`), y está aquí para no volver a medirlo.
@@ -563,127 +564,6 @@ sin importar nada de Vue, está bien cortado.**
 —rangos de edad, opcionales, multimoneda—, guardar la salida de hoy y exigir que lo extraído dé
 exactamente lo mismo. Son ~527 líneas que nunca se han revisado con calculadora. Sirve para las
 dos cosas —mover el cálculo y ordenar el store—, así que se paga una vez.
-
----
-
-## Padrón de grupos grandes: documentos por persona, subgrupos y acceso — 23/08/2026
-
-Decidido con el padrón real de **Punta Cana 2026** (Colegio San José La Salle, 133 personas)
-delante. Nada empezado. Se anota para no rehacer el análisis.
-
-### Lo que el padrón real ya denuncia
-
-Medido sobre el archivo, no estimado:
-
-```
-133 personas · 100 menores de 18 a la fecha del viaje · 28 adultos · 5 sin fecha
- 11 DNI YA VENCIDOS hoy (23/08/2026), el más antiguo del 22/06
-  8 DNI vencen DURANTE el viaje (28/08 – 24/09)
- 22 personas sin fecha de vencimiento de DNI cargada — no se puede ni comprobar
-  0 pasaportes vencidos
-```
-
-⚠️ La hoja *Resumen* del padrón comprueba **pasaportes** y dice «vence antes del retorno: 0».
-Nadie comprobó el **DNI**, que es con lo que se embarca el tramo nacional Cusco–Lima. Once
-personas hoy no embarcan, y una es Coordinador.
-
-**Eso es lo que justifica la funcionalidad**: no es un listado más bonito, es que un vencimiento
-sin campo se revisa a mano y a mano se olvida uno de los dos documentos.
-
-### No son dos documentos, son tres
-
-DNI y pasaporte parecen bastar, pero **100 de 133 son menores** y salir del Perú siendo menor
-exige **autorización de viaje notarial**: tercer documento, por cabeza, con su vigencia y su
-escaneo, y es el que para en migraciones y no en el mostrador.
-
-Por eso van como **filas y no como columnas**: cuatro columnas se vuelven ocho, la mitad nulas
-para los adultos, y el día del carné de extranjería o la visa toca migración.
-
-### El modelo acordado
-
-**Documentos** — `CotizacionFiledocumento` ya tiene `vencimiento`, tipo y subida de archivo. Le
-falta el dueño, y con **dos claves nulables** queda todo el alcance resuelto:
-
-```
-pasajero  (nullable) → DNI, pasaporte, autorización notarial, boarding pass
-grupo     (nullable) → namelist de Arajet JA2CWN: lo ve su grupo entero
-ninguno              → global del expediente (lo de hoy, intacto)
-```
-
-`ArchivoTipoEnum` gana `DNI`, `PASAPORTE`, `AUTORIZACION_MENOR` (hoy sólo conoce boleto, factura,
-reserva, otros).
-
-⚠️ `CotizacionFilepasajero` **ya tiene** `tipodocumento` y `numerodocumento`. Con los documentos
-como filas queda el DNI en dos sitios, y aquí *la copia muerta gana porque es la que se lee*. Hay
-que decidir: vaciarlos y exponer `documentoPrincipal()`, o mantenerlos por listener con la regla
-escrita de quién manda. Preferido lo primero.
-
-**Subgrupos** — una sola tabla y la pertenencia en many-to-many. **No es un árbol**: en el padrón
-real salón y grupo se cruzan (5 salones, 10 grupos, 43 combinaciones; 9 de los 10 grupos aparecen
-en más de un salón, el grupo 1 en los cinco).
-
-```
-Grupo
-  file                ⚠️ cuelga del EXPEDIENTE: el «Grupo 5» de Punta Cana no es otro
-  tipo    enum        salon | grupo | habitacion | reserva_aerea
-  clave   'B' · '5' · 'HA13' · 'JA2CWN'
-  nombre  opcional    si está vacío se rotula tipo + clave
-  ÚNICO (file, tipo, clave)
-  pasajero ↔ grupo    many-to-many, y la fila de pertenencia lleva `esJefe`
-```
-
-El **tipo va como enum** —son pocos y el código sí distingue al menos uno: una reserva aérea lleva
-PNR y documentos—; **la clave nunca**: de cuatro ejes, dos tienen valores que los pone alguien de
-fuera (66 habitaciones del hotel, 20 PNR de aerolíneas). La **unicidad** hace el trabajo que se le
-pediría a un enum de valores: al reimportar el Excel corregido —y se va a reimportar varias veces
-antes del viaje— un `firstOrCreate` por `(file, tipo, clave)` no duplica nada.
-
-**Jefe de grupo** es un rol de la **pertenencia**, no de la persona: alguien lidera el grupo 5 y es
-miembro raso del salón B.
-
-### El acceso: buscar por documento, no un enlace por persona
-
-Se reparte **un** enlace, el de la cotización, con `/search`: una ventanita pide tipo de documento
-y número, y muestra lo suyo. Si es jefe de grupo, lo suyo **y lo de su grupo**.
-
-Resuelve mejor que un token por miembro el problema que sí es real: el padrón lleva un reemplazo en
-trámite (Alma Angelina → María del Carmen), y un enlace por posición apuntaría a otra persona el
-día que alguien se dé de baja. Aquí la persona se identifica sola y no hay nada que repartir.
-
-⚠️ **Es un FILTRO, no un control de acceso, y así se decidió a propósito.** Cualquiera con el
-enlace y un DNI del grupo ve los datos de esa persona.
-
-Eso es aceptable **por lo que hay detrás, y sólo mientras siga siendo eso**. La regla que lo
-mantiene barato:
-
-> **Tras el filtro va lo que el pasajero necesita LLEVARSE. Lo que sirve para COMPROBAR se queda
-> del lado del operador**, en `util/`, que ya tiene sesión y roles.
-
-| Se queda en `util/` | Puede salir por el `/search` |
-|---|---|
-| escaneo de DNI y pasaporte | itinerario, grupo, habitación |
-| autorización notarial de menor | códigos de reserva, hora de encuentro |
-| | boarding pass |
-
-El escaneo del pasaporte existe para que **nosotros** verifiquemos la vigencia; el pasajero ya
-tiene su pasaporte y no necesita descargárselo. La autorización notarial es un **insumo** que
-entrega la familia, no un entregable. Con esa separación el enlace público nunca tiene detrás nada
-que justifique un SMS o un token por persona — que para 133 familias de un colegio es coste
-operativo real: números mal cargados, padres que no lo reciben, y soporte.
-
-Si algún día hace falta fricción sin infraestructura: la búsqueda ya pide tipo **y** número; añadir
-la fecha de nacimiento como tercer campo es gratis. No es seguridad —quien tenga el padrón los
-tiene todos— pero corta el probar números a ver qué sale, que es el uso realista.
-
-⚠️ Lo que **no** se puede hacer es meter ahí los escaneos «porque es cómodo» y dejar la nota. Ese
-es el día en que esto sí necesita un segundo factor.
-
-### El orden
-
-1. **Documento con dueño + los tres tipos + la consulta de vencimientos.** Paga solo: los 11 DNI
-   vencidos dejan de descubrirse leyendo un Excel.
-2. Los subgrupos y la importación del padrón.
-3. El `/search` y el jefe de grupo.
 
 ---
 
@@ -828,6 +708,11 @@ el aviso es interno: «fijaste 890 y ahora cuesta 913».
 ---
 
 ## Seis apellidos compuestos mal partidos en el padrón de Punta Cana — 24/08/2026
+
+> **Vigente** (17/10/2026): cuatro siguen mal partidos en la base —«Piero Gael Ladron de» +
+> «Guevara Iwaki.», «Ray Santiago Diaz» + «La Torre», «Elena Paula Acosta Pinto» + «De Wilson»,
+> «Wendy Jennifer Sanchez» + «De Olarte»— y `PadronFormato::partirNombre()` no ha cambiado. El
+> grupo ya terminó: lo que importa es la regla para el próximo padrón.
 
 `PadronFormato::partirNombre()` parte «Nombres y Apellidos» por **las dos últimas palabras**, que
 es la convención peruana y acierta con la inmensa mayoría. Falla con los apellidos compuestos, y
@@ -1052,45 +937,10 @@ su listener sólo corre en `prePersist`.
 
 ---
 
-## Cotizaciones se lleva 10× más tiempo de servidor que el chat entero — 10/09/2026
-
-Salió al medir el chat: con la mensajería ya arreglada, el ranking de tiempo de servidor por
-endpoint (día completo, `symfony_app_tiempos.log`) queda así:
-
-```
- 333.3 s   263 llamadas   1.27 s media  /sales/client/cotizacion/cotizacion_file/5SRAJV/1
- 186.7 s    40 llamadas   4.67 s media  /sales/cotizacion_files/{id}
-  48.5 s   437 llamadas   0.11 s media  /message/conversations/unread-summary
-```
-
-**520 segundos al día entre esos dos**; la mensajería entera no llega a 50. El perfil de ambos:
-
-| | |
-|---|---|
-| Respuesta media | **717 KB** (máximo **4,3 MB**) |
-| `req` media | 3,78 s |
-| `up` media | **1,69 s** (máximo 8,44 s) |
-
-⚠️ **Aquí es distinto a lo del chat**: allí `up` era 0,347 s y todo el tiempo era transferencia.
-Aquí `up` es 1,69 s, o sea que **la mitad del problema sí está en el servidor**. Hay que mirar
-las dos cosas.
-
-Y el primero de los dos es **la vista del cliente**: quien espera esos 1,27 s es el huésped
-mirando su cotización, no el operador.
-
-### Por dónde empezar
-
-La sospecha, por haberlo visto tres veces esta semana en mensajería, es el mismo patrón: **campos
-caros publicados «por si acaso» que nadie consume**. `Message::$metadata` (45 MB de traza),
-`MessageConversation::getMessages()` (1 191 IRIs por página) y en su día `getTotalMensajes()`.
-
-Pero **medir antes de tocar**: en cotizaciones `up` no es despreciable, así que puede ser otra
-cosa —N+1, snapshots JSON, el cálculo financiero— y la respuesta del chat no se puede extrapolar.
-El método que funcionó: leer `req` y `up` por separado en el log de nginx antes de perfilar nada.
-
----
-
 ## Un canal deshabilitado deja mensajes muertos, y desbloquear no los revive — 10/09/2026
+
+> **El hueco sigue en el código, sin casos nuevos**: desde el 10/09 no ha muerto ningún mensaje por
+> el veto manual (medido el 17/10/2026). `setWhatsappDisabled(false)` sigue sin reencolar.
 
 **El caso:** conversación de David Espejo (Giuliana), Casita 3, 09→15 sept, reserva **directa**.
 
@@ -1119,33 +969,6 @@ alta: son avisos con fecha, y cuando se descubren ya no sirven.
 `MessageConversation::setWhatsappDisabled(false)` ya levanta el veto de las identidades — le falta
 el otro lado: **reencolar lo que murió por ese veto**. Y decidir el borde: un aviso de check-out
 de hace tres días no se manda, se descarta. Reintentar a ciegas es peor que no reintentar.
-
----
-
-## 93 mensajes con icono rojo que no son un fallo — 10/09/2026
-
-En una reserva **directa**, Beds24 refusa el envío con:
-
-> `[Beds24] Operación denegada: No se permite enviar mensajes por la API de Beds24 a reservas
-> directas (Canal: directo).`
-
-Eso **no es un fallo: es la regla funcionando**. No hay OTA a la que escribir. Pero se anota en
-`metadata.dispatch_errors` y se pinta en rojo igual que un error de verdad.
-
-**Alcance: 93 mensajes en 25 conversaciones.**
-
-⚠️ **Y el problema no es la estética.** Entrenar a la gente a ignorar iconos rojos es exactamente
-cómo se pierde el rojo que sí importa — el caso de arriba, sin ir más lejos, se lee igual.
-
-### Ya está medio resuelto, y ahí está la pista
-
-`MessageDispatcher::anotarDesenlace()` documenta este mismo caso —«el primero salta siempre que
-Beds24 está vetado, o sea **en las reservas directas**»— y lo arregló **para los mensajes
-entrantes**, donde escribía `failed` sobre la pregunta del huésped. Los salientes se quedaron
-como estaban.
-
-La vía existe: `metadata.dispatch_warnings` está declarado y el front ya lo lee. Un veto de
-negocio previsible es un **aviso**, no un error.
 
 ---
 
