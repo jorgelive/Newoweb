@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Provider\Google;
 
 use App\Agent\Conversation\AgentEngineInterface;
+use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\ControlDeVueltas;
@@ -35,7 +36,7 @@ use Throwable;
  *
  * Ver docs/Mensajeria.md §12.
  */
-final readonly class GoogleAIEngine implements AgentEngineInterface
+final readonly class GoogleAIEngine implements AgentEngineInterface, MotorSondeableInterface
 {
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
@@ -346,6 +347,34 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         }
 
         return $this->desenlace($leida->texto, $usadas);
+    }
+
+    /**
+     * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
+     */
+    public function sondear(): ?string
+    {
+        if (!$this->google->estaConfigurado()) {
+            return 'Google AI no tiene clave configurada.';
+        }
+
+        // Con el razonamiento del cliente: sin `thinkingConfig`, Gemini 3.x razona por defecto y
+        // gasta en pensar lo que aquí sólo es un «¿estás?».
+        $generacion = ['maxOutputTokens' => 16];
+        if (($nivel = $this->google->razonamiento()) !== null) {
+            $generacion['thinkingConfig'] = ['thinkingLevel' => $nivel];
+        }
+
+        try {
+            $this->google->generarContenido($this->google->modelo(), [
+                'contents' => [['role' => 'user', 'parts' => [['text' => 'Responde sólo: OK']]]],
+                'generationConfig' => $generacion,
+            ]);
+
+            return null;
+        } catch (Throwable $e) {
+            return $e->getMessage();
+        }
     }
 
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string

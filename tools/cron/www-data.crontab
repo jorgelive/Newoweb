@@ -132,3 +132,9 @@
 # FALLA y avisa si el maestro se queda atras: entre el 26/08 y el 10/09/2026 el proveedor devolvio
 # 404 quince dias seguidos y el respaldo lo tapo. Ver docs/PmsBeds24ReservasSync.md 12.18.
 40 13 * * * /var/www/openperu.pe/tools/cron/con-candado 1800 /usr/bin/php /var/www/openperu.pe/bin/console app:pms:tipo-cambio:sincronizar --dias 3 --env=prod >> /var/www/openperu.pe/var/log/tipo_cambio.log 2>&1
+
+# ¿Responde el motor de IA? Una generación mínima cada 30 minutos, sin esperar a que un huésped
+# choque con el fallo (el 16/10/2026 se agotaron los créditos de Google y no lo supo nadie). Avisa
+# UNA vez por caída y otra al recuperarse; si sigue caído, un recordatorio al día. Ver
+# `DecisionDelSondeo` y docs/Agent.md §5.5.
+11,41 * * * * /var/www/openperu.pe/tools/cron/con-candado 120 /usr/bin/php /var/www/openperu.pe/bin/console app:agent:vigilar-motor --env=prod >> /var/www/openperu.pe/var/log/agent_vigilar_motor.log 2>&1

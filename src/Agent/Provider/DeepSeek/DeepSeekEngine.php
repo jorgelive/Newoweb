@@ -6,6 +6,7 @@ namespace App\Agent\Provider\DeepSeek;
 
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
+use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\SkillRegistry;
@@ -42,7 +43,7 @@ use Throwable;
  * ⚠️ Y por eso el `user` de la petición lleva {@see DeepSeekClient::firmaDeCache()} y no el
  * identificador de la persona: ver ahí el porqué entero.
  */
-final readonly class DeepSeekEngine implements AgentEngineInterface
+final readonly class DeepSeekEngine implements AgentEngineInterface, MotorSondeableInterface
 {
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
@@ -63,6 +64,28 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
     public function etiqueta(): string
     {
         return 'DeepSeek';
+    }
+
+    /**
+     * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
+     */
+    public function sondear(): ?string
+    {
+        if (!$this->deepseek->estaConfigurado()) {
+            return 'DeepSeek no tiene clave configurada.';
+        }
+
+        try {
+            $this->deepseek->completar([
+                'model' => $this->deepseek->modelo(),
+                'messages' => [['role' => 'user', 'content' => 'Responde sólo: OK']],
+                'max_tokens' => 8,
+            ]);
+
+            return null;
+        } catch (Throwable $e) {
+            return $e->getMessage();
+        }
     }
 
     public function estaDisponible(): bool

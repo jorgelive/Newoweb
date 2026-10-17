@@ -605,6 +605,28 @@ existiera `persona`). Y cada «no existe, aquí tienes las opciones» le invitab
 estuviera forzado harían bucle **todos** los turnos, y los de esa misma tarde contestaron a la
 primera. Vale la pena descartarlo con el log antes que con la intuición.
 
+### 🩺 La vigilancia del motor no espera a un huésped (17/10/2026)
+
+`VigilanteDelMotor::motorCaido()` avisa a soporte cuando un turno falla, o sea **cuando un huésped
+ya chocó** con el fallo. El 16–17/10/2026 se agotaron los créditos de Google y no lo supo nadie:
+no entró ningún mensaje en ese rato, y se descubrió por casualidad al probar en local.
+
+`app:agent:vigilar-motor` (cron, minutos 11 y 41) le pide al motor por defecto una generación
+mínima —`MotorSondeableInterface::sondear()`; listar modelos no descubre unos créditos agotados— y
+`VigilanteDelMotor::resultadoDelSondeo()` decide con `DecisionDelSondeo`:
+
+| Situación | Aviso |
+|---|---|
+| falla por créditos o clave (401/402/403) | **ya**, con qué hacer («recargar en AI Studio», «revisar la clave») |
+| falla por otra cosa | al **segundo** sondeo seguido: un corte de red no es un incidente |
+| sigue caído y ya se avisó | **ninguno**; un recordatorio a las 24 h (caduca la marca) |
+| vuelve a responder tras un aviso (del sondeo o de un turno) | **uno**: «vuelve a responder» |
+
+⚠️ **Sin spam, también en el otro camino:** con la caída ya avisada por el sondeo,
+`motorCaido()` deja de avisar por cada huésped que escriba (queda en el log). La marca vive en la
+caché de la aplicación, así que un despliegue la borra: si el motor sigue caído tras desplegar,
+sale un aviso más. Coste del sondeo: del orden de céntimos al mes.
+
 ### Las tres salvaguardas, y cuál hace qué
 
 | Salvaguarda | Dónde | Qué evita |
@@ -927,6 +949,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
+| Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
 | Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |
 | Qué horas de entrada/salida ve quien aún no reservó | `src/Agent/Skill/Pms/ConsultarGuiaSkill.php` | `horasEstandar()` — de `PmsEstablecimiento`; con reserva mandan las de la estancia |

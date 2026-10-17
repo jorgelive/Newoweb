@@ -5438,6 +5438,10 @@ Y dos diferencias de comportamiento que conviene tener presentes al comparar:
 `MAX_VUELTAS = 8` es el freno que en Anthropic pone el SDK: sin él, un modelo que insista en
 llamar a la misma skill deja el turno girando y quemando dinero hasta el timeout de PHP.
 
+> 🩺 **Desde el 17/10/2026 el motor se vigila también sin huésped** (`app:agent:vigilar-motor`): un
+> aviso por caída, otro al recuperarse, y `motorCaido()` calla si la caída ya está avisada. Ver
+> `docs/Agent.md` §5.5.
+
 ### 🔁 Un tropiezo de Google no es una caída: un reintento (13/10/2026)
 
 El 13/10/2026 a las 18:48 Google devolvió **una** respuesta que no era JSON —la página de un 503,

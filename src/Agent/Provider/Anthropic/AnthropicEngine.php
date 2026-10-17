@@ -8,6 +8,7 @@ use Anthropic\Beta\Messages\BetaTextBlock;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Skill\SkillRegistry;
 use Anthropic\Lib\Tools\BetaToolRunner;
 use App\Agent\Skill\ControlDeVueltas;
@@ -22,7 +23,7 @@ use Throwable;
  *
  * Ver docs/Mensajeria.md §11.
  */
-final readonly class AnthropicEngine implements AgentEngineInterface
+final readonly class AnthropicEngine implements AgentEngineInterface, MotorSondeableInterface
 {
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
@@ -229,6 +230,30 @@ final readonly class AnthropicEngine implements AgentEngineInterface
                 'maxIterations' => null,
             ];
         });
+    }
+
+    /**
+     * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
+     */
+    public function sondear(): ?string
+    {
+        $cliente = $this->anthropic->crear();
+
+        if ($cliente === null) {
+            return 'Anthropic no tiene clave configurada.';
+        }
+
+        try {
+            $cliente->beta->messages->create(
+                maxTokens: 8,
+                messages: [['role' => 'user', 'content' => 'Responde sólo: OK']],
+                model: $this->anthropic->modelo(),
+            );
+
+            return null;
+        } catch (Throwable $e) {
+            return $e->getMessage();
+        }
     }
 
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string

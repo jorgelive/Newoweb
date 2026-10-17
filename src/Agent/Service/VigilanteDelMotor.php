@@ -64,6 +64,17 @@ final readonly class VigilanteDelMotor
     private const string CLAVE = 'agente.motor.caido';
     private const string CLAVE_CUENTA = 'agente.motor.fallos';
 
+    /** Sondeos fallidos seguidos de `app:agent:vigilar-motor`. Ver `DecisionDelSondeo`. */
+    private const string CLAVE_SONDEO_FALLOS = 'agente.motor.sondeo.fallos';
+
+    /**
+     * Ya se avisó de esta caída. Caduca a las 24 h: si el motor sigue caído, sale UN recordatorio
+     * al día, nunca uno por sondeo.
+     */
+    private const string CLAVE_SONDEO_AVISADO = 'agente.motor.sondeo.avisado';
+
+    private const int RECORDATORIO_SEGUNDOS = 86400;
+
     public function __construct(
         private CacheItemPoolInterface $cache,
         private AvisoAlEquipoService $avisos,
@@ -87,6 +98,14 @@ final readonly class VigilanteDelMotor
     {
         try {
             $fallos = $this->sumarFallo();
+
+            // La comprobación periódica ya avisó de esta caída: el equipo lo sabe, y un segundo
+            // aviso por cada huésped que escriba es el spam que se pidió evitar. Queda en el log.
+            if ($this->cache->getItem(self::CLAVE_SONDEO_AVISADO)->isHit()) {
+                $this->logger->error(sprintf('[Agente] El motor sigue sin responder (ya avisado): %s', $this->recortar($motivo)));
+
+                return;
+            }
 
             $marca = $this->cache->getItem(self::CLAVE);
 
@@ -153,6 +172,100 @@ final readonly class VigilanteDelMotor
             }
         } catch (Throwable $e) {
             $this->logger->error('[Agente] No se pudo avisar de que el motor está caído: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * El resultado de la comprobación periódica (`app:agent:vigilar-motor`): avisa al CAMBIAR de
+     * estado —caída, recuperación—, nunca en cada sondeo. La regla es `DecisionDelSondeo`; aquí
+     * sólo se guarda el estado entre sondeos y se avisa.
+     *
+     * @param string|null $fallo El motivo si el motor no respondió; `null` si respondió.
+     */
+    public function resultadoDelSondeo(string $motor, ?string $fallo): string
+    {
+        try {
+            $cuenta = $this->cache->getItem(self::CLAVE_SONDEO_FALLOS);
+            $avisado = $this->cache->getItem(self::CLAVE_SONDEO_AVISADO);
+            $previos = $cuenta->isHit() && is_int($cuenta->get()) ? $cuenta->get() : 0;
+
+            $decision = DecisionDelSondeo::tras(
+                $fallo,
+                $previos,
+                $avisado->isHit(),
+                $this->cache->getItem(self::CLAVE)->isHit(),
+            );
+
+            $cuenta->set($decision['fallos'])->expiresAfter(2 * self::RECORDATORIO_SEGUNDOS);
+            $this->cache->save($cuenta);
+
+            if ($decision['accion'] === DecisionDelSondeo::AVISAR_CAIDA && $fallo !== null) {
+                $avisado->set(true)->expiresAfter(self::RECORDATORIO_SEGUNDOS);
+                $this->cache->save($avisado);
+
+                $resumen = $this->recortar($fallo);
+                $pista = DecisionDelSondeo::pista($motor, $fallo);
+
+                $this->logger->error(sprintf('[Agente] La comprobación periódica da el motor «%s» por CAÍDO: %s', $motor, $resumen));
+
+                $this->avisar(
+                    texto: sprintf(
+                        "🤖 El agente de IA NO responde (comprobación automática).\n\n%s%s\n\nMientras siga "
+                        . "así, a los huéspedes que escriban les saldrá «un compañero te responderá en "
+                        . "breve». Te aviso otra vez cuando vuelva.",
+                        $resumen,
+                        $pista !== '' ? "\n\n👉 " . $pista : '',
+                    ),
+                    conPlantilla: true,
+                    motivoPlantilla: $pista !== '' ? $this->recortar($pista) : $resumen,
+                    titulo: '🤖 El agente de IA no responde',
+                    cuerpo: $pista !== '' ? $pista : $resumen,
+                );
+            }
+
+            if ($decision['accion'] === DecisionDelSondeo::AVISAR_RECUPERACION) {
+                // Limpia también la marca del aviso de turno: una caída nueva tiene que avisar ya.
+                $this->cache->deleteItems([self::CLAVE_SONDEO_AVISADO, self::CLAVE, self::CLAVE_CUENTA]);
+                $this->logger->info(sprintf('[Agente] El motor «%s» vuelve a responder.', $motor));
+
+                $this->avisar(
+                    texto: '✅ El agente de IA vuelve a responder (comprobación automática).',
+                    conPlantilla: false,
+                    motivoPlantilla: '',
+                    titulo: '✅ El agente vuelve a responder',
+                    cuerpo: 'La comprobación automática vuelve a recibir respuesta del motor.',
+                );
+            }
+
+            return $decision['accion'];
+        } catch (Throwable $e) {
+            $this->logger->error('[Agente] No se pudo procesar el sondeo del motor: ' . $e->getMessage());
+
+            return DecisionDelSondeo::NADA;
+        }
+    }
+
+    /**
+     * Al equipo de atención por WhatsApp y, si no llega a nadie, por push. Con `conPlantilla`, fuera
+     * de la ventana de 24 h sale la plantilla aprobada de aviso técnico; la recuperación no la usa
+     * (su texto dice que algo NO responde) y depende de la ventana o del push.
+     */
+    private function avisar(string $texto, bool $conPlantilla, string $motivoPlantilla, string $titulo, string $cuerpo): void
+    {
+        $resultado = $this->avisos->notificar(new AvisoAlEquipo(
+            rol: Roles::CUSTOMER_SUPPORT,
+            texto: $texto,
+            plantillaCodigo: $conPlantilla ? self::PLANTILLA : null,
+            variables: $conPlantilla ? ['sistema' => 'El agente de IA', 'motivo' => $motivoPlantilla] : [],
+            metadata: ['aviso_sondeo_motor' => true],
+        ));
+
+        if ($resultado->alguienFueAvisado()) {
+            return;
+        }
+
+        foreach ($this->destinatarios() as $usuario) {
+            $this->push->sendToUser($usuario, ['title' => $titulo, 'body' => $cuerpo, 'actionUrl' => '/admin']);
         }
     }
 
