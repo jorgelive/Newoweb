@@ -55,8 +55,7 @@ Y de la misma tanda de trabajo, menores:
   de Liip, pero el original sigue respondiendo en `public/carga/front/experiencias/` (protegido sólo
   por el token del nombre). Cerrarlo es servirlas por controlador con `X-Accel-Redirect`. Decisión
   de Jorge, ver `docs/WebPublica.md` §2.1.a. Hoy hay 0 álbumes: es el momento barato.
-- **Cotizador: `cantidad = 0` da `NaN`.** `ventaPPde()`/`costoPPde()` dividen por `entreCuantos()`,
-  que con una tarifa individual de cantidad 0 vale 0 (`cotizacionEditorStore.ts`).
+- ~~**Cotizador: `cantidad = 0` da `NaN`.**~~ Arreglado el 17/10/2026 (`porCabeza()`).
 
 ---
 
@@ -998,11 +997,9 @@ llegó**. Que lo atendiera una persona después fue suerte, no diseño.
 Salieron de la segunda revisión de Fable del cambio «la ventana de WhatsApp es de cada número»
 (`docs/Mensajeria.md` §5). Ninguno bloqueaba el despliegue.
 
-- **Los botones contestan a la salida, no al que pulsó.** Sólo la rama IA contesta al número que
-  escribió (`AiConversationProcessor::telefonoDeRespuesta()`). Los handlers deterministas —botones,
-  `PedirHora…`— no ponen `telefonoSalida`: si pulsa el SEGUNDO número, la respuesta mira la ventana
-  del principal y, sin ella, no sale. El arreglo es el mismo patrón: leer
-  `Message::getTelefonoOrigen()` del entrante y pasarlo a la respuesta.
+- ~~**Los botones contestan a la salida, no al que pulsó.**~~ **Arreglado el 17/10/2026**:
+  `MessageConversation::telefonoParaResponderA()`, que usan el agente, `SendTemplateActionHandler`
+  (todos los botones) y `EnviarmePlantillaSkill`. Ver `docs/Mensajeria.md` §5.
 - **El hilo `staff` de un operador no vincula su móvil nuevo.**
   `AvisoAlEquipoService::conversacionStaff()` sólo llama a `vincular()` al CREAR el hilo. Si el
   operador cambia de móvil, `setGuestPhone()` deja ahora la ventana cerrada —bien: ese número nunca

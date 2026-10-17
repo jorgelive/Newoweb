@@ -741,3 +741,43 @@ describe('un servicio opcional con más de un grupo', () => {
         expect(JSON.stringify(cliente)).not.toContain('CITY INTERNO');
     });
 });
+
+
+/**
+ * Una tarifa con cantidad 0 no puede dar `NaN`.
+ *
+ * El 0 es legítimo —se escribe a conciencia mientras se arma el grupo, y desde agosto sobrevive al
+ * guardado (`unidadesDe`)—, pero el precio por persona se dividía entre esa cantidad: 0 / 0 =
+ * `NaN`, y el `NaN` se propagaba a los deltas que se pintan y se guardan en la clasificación del
+ * cliente. Una tarifa que no se le aplica a nadie cuesta 0 por persona, no «no es un número».
+ */
+describe('una tarifa con cantidad 0', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const opcionCon = (cantidadAlternativa: number) => {
+        const store = useCotizacionEditorStore();
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cotizacionCon(10, [
+            tarifa(100, 10, { calculoSnapshot: 'individual', grupoTarifa: 1 }),
+            tarifa(150, cantidadAlternativa, { calculoSnapshot: 'individual', rolSnapshot: 'alternativa', grupoTarifa: 1 }),
+        ]);
+
+        return (store.resumenFinanciero?.opcionesUpgrade ?? [])[0];
+    };
+
+    it('no da NaN en los deltas de la opción', () => {
+        const opcion = opcionCon(0);
+
+        expect(opcion, 'la opción tiene que existir para que el test pruebe algo').toBeDefined();
+        for (const [campo, valor] of Object.entries(opcion ?? {})) {
+            if (typeof valor === 'number') {
+                expect(Number.isNaN(valor), `${campo} es NaN`).toBe(false);
+            }
+        }
+    });
+
+    it('y con cantidad normal sigue dando la diferencia de siempre', () => {
+        // 150 frente a 100 por persona: 50 de diferencia, con comisión 0 en el fixture.
+        expect(opcionCon(10)?.deltaVentaPorPax).toBe(50);
+    });
+});

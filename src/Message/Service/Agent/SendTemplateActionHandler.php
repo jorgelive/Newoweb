@@ -115,6 +115,15 @@ final readonly class SendTemplateActionHandler implements BotActionHandlerInterf
         $outboundMessage->setSenderType(Message::SENDER_SYSTEM);
         $outboundMessage->setStatus(Message::STATUS_PENDING);
 
+        // 📱 Al número que pulsó, no al principal del hilo. Por aquí contestan TODOS los botones
+        // —también «Salgo a esa hora» y «Pedir hora», que delegan en esta acción—, y la ventana
+        // de 24 h es de cada número: quien pulsa desde su segundo número tiene la ventana abierta
+        // en ése, y mirar la del principal dejaba la respuesta sin salir.
+        // Ver `MessageConversation::telefonoParaResponderA()`.
+        if ($conversation !== null) {
+            $outboundMessage->setTelefonoSalida($conversation->telefonoParaResponderA($inboundMessage));
+        }
+
         // 5. Persistimos (El Router o el Worker hará el flush final)
         $this->em->persist($outboundMessage);
 

@@ -1264,18 +1264,29 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     const entreCuantos = (t: TarifaSnapshot): number =>
                         seProrratea(resolverCalculo(t)) ? numPaxGlobal : unidadesDe(t.cantidad);
 
+                    /**
+                     * Lo que le toca a cada uno. ⚠️ Con cantidad 0 —legítima mientras se arma el
+                     * grupo— era 0 / 0 = `NaN`, y el `NaN` llegaba a los deltas que se pintan y se
+                     * guardan en la clasificación del cliente. A nadie no le toca nada: 0.
+                     */
+                    const porCabeza = (total: number, t: TarifaSnapshot): number => {
+                        const n = entreCuantos(t);
+
+                        return n > 0 ? total / n : 0;
+                    };
+
                     const ventaPPde = (t: TarifaSnapshot): number => {
                         const nativo = totalDe(t) * (1 + (markupDeLinea(t)));
                         const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
 
-                        return usd / entreCuantos(t);
+                        return porCabeza(usd, t);
                     };
 
                     const costoPPde = (t: TarifaSnapshot): number => {
                         const nativo = totalDe(t);
                         const usd = String(t.moneda || 'USD').toUpperCase() === 'PEN' ? nativo / tc : nativo;
 
-                        return usd / entreCuantos(t);
+                        return porCabeza(usd, t);
                     };
 
                     // Base ponderada (cifra única) por si la alternativa no tiene un espejo exacto

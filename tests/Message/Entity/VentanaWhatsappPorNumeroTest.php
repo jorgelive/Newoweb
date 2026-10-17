@@ -154,4 +154,48 @@ final class VentanaWhatsappPorNumeroTest extends TestCase
         self::assertSame(self::WHATSAPP, $entrante->getTelefonoOrigen());
         self::assertNull((new Message())->getTelefonoOrigen());
     }
+
+    /**
+     * Se le contesta al número que escribió (o pulsó el botón), no al principal. Hasta el
+     * 17/10/2026 sólo lo hacía el agente: los botones miraban la ventana del principal y, si quien
+     * pulsaba lo hacía desde su segundo número, la respuesta no salía.
+     */
+    public function testSeLeContestaAlNumeroQueEscribio(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+        $desdeElSegundo = (new Message())->addMetadata('telefono_origen', self::WHATSAPP);
+
+        self::assertSame(self::WHATSAPP, $hilo->telefonoParaResponderA($desdeElSegundo));
+    }
+
+    /** Desde el principal, o sin saber desde dónde: la salida de siempre (`null`). */
+    public function testDesdeElPrincipalONoSabidoVaPorElDeSiempre(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+
+        self::assertNull($hilo->telefonoParaResponderA((new Message())->addMetadata('telefono_origen', self::RESERVA)));
+        self::assertNull($hilo->telefonoParaResponderA(new Message()));
+    }
+
+    /** Un número que no es de la persona, retirado o vetado no se usa nunca para responder. */
+    public function testNuncaAUnNumeroAjenoRetiradoOVetado(): void
+    {
+        $hilo = $this->hiloConDosNumeros();
+        self::assertNull($hilo->telefonoParaResponderA((new Message())->addMetadata('telefono_origen', '51999888777')));
+
+        foreach ($hilo->getIdentidades() as $identidad) {
+            if ($identidad->getValor() === self::WHATSAPP) {
+                $identidad->bloquear('pidió que no le escribamos');
+            }
+        }
+        self::assertNull($hilo->telefonoParaResponderA((new Message())->addMetadata('telefono_origen', self::WHATSAPP)));
+
+        $otro = $this->hiloConDosNumeros();
+        foreach ($otro->getIdentidades() as $identidad) {
+            if ($identidad->getValor() === self::WHATSAPP) {
+                $identidad->retirar(new DateTimeImmutable());
+            }
+        }
+        self::assertNull($otro->telefonoParaResponderA((new Message())->addMetadata('telefono_origen', self::WHATSAPP)));
+    }
 }

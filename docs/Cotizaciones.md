@@ -12729,7 +12729,7 @@ Las otras tres copias ya se habían unificado en `esEstandarVisible()` ese mismo
 | Hallazgo | Estado |
 |---|---|
 | Varios perfiles en un grupo: delta contra el promedio y liberados duplicados por tarjeta | **cerrado** — ver abajo |
-| Una alternativa con `cantidad = 0` da `0/0 = NaN` en todos los deltas → `null` → `pax` pinta «+$ 0,00» | preexistente, menor |
+| ~~Una alternativa con `cantidad = 0` da `0/0 = NaN` en todos los deltas → `null` → `pax` pinta «+$ 0,00»~~ | **cerrado el 17/10/2026**: `porCabeza()` en `resumenFinanciero` — a nadie no le toca nada, 0. Test en `calculoDeTarifa.test.ts` |
 | Una operativa atada al **grupo 1** cuando hay estándar visible se cuelga de la tarjeta etiquetada «Estándar» | rareza de etiqueta, sin efecto en el dinero |
 | `deltaCostoPorPax` divide `basePP` por la comisión **global**, ignorando overrides por línea | no lo lee nadie hoy |
 

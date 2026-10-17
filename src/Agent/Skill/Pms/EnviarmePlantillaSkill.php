@@ -184,6 +184,18 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
         $mensaje->addMetadata('generado_por', 'ia');
         $mensaje->addMetadata('autoenvio', $actor->etiqueta());
 
+        // 📱 Al número que la pidió. La skill no recibe el mensaje que la disparó, pero corre en
+        // respuesta al último que entró: si vino del segundo número de la persona, la ventana
+        // abierta es la de ése (ver `MessageConversation::telefonoParaResponderA()`).
+        $ultimoEntrante = $this->em->getRepository(Message::class)->findOneBy(
+            ['conversation' => $conversacion, 'direction' => Message::DIRECTION_INCOMING],
+            ['createdAt' => 'DESC'],
+        );
+
+        if ($ultimoEntrante instanceof Message) {
+            $mensaje->setTelefonoSalida($conversacion->telefonoParaResponderA($ultimoEntrante));
+        }
+
         $conversacion->addMessage($mensaje);
         $this->em->persist($mensaje);
         $this->em->flush();

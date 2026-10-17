@@ -937,11 +937,17 @@ envío (chat: «A qué número» si hay más de uno)            Message::$telefo
   el móvil nuevo de un operador en `conversacionStaff()`): ventana **cerrada**. Ese número nunca
   escribió; quedarse con la ventana del anterior mandaba texto libre a uno sin ella. Y un número
   ajeno al hilo que escribe no abre la ventana del de salida.
-- 🤖 **El agente contesta al número que ESCRIBIÓ** (`AiConversationProcessor::telefonoDeRespuesta()`).
+- 🤖 **Se contesta al número que ESCRIBIÓ** (`MessageConversation::telefonoParaResponderA()`).
   El entrante guarda `metadata.telefono_origen`; si no es el de salida y es un teléfono vivo y sin
   vetar del hilo, la ventana que se mira es la suya y la respuesta lleva `telefonoSalida`. Sin
   esto, Camille habría seguido sin respuesta, ahora en silencio: el agente miraba la ventana del
   principal, la veía cerrada y se callaba con `fuera_de_ventana_24h`, sin fallo ni aviso.
+  ⚠️ **Y no sólo el agente** (17/10/2026). La regla vivía dentro de `AiConversationProcessor`, y
+  los botones —que contestan todos por `SendTemplateActionHandler`, también «Salgo a esa hora» y
+  «Pedir hora»— miraban la ventana del principal: quien pulsaba desde su segundo número se quedaba
+  sin respuesta. Ahora la regla es de la conversación y la usan el agente, los botones y
+  `EnviarmePlantillaSkill` (que no recibe el entrante y toma el último que entró). 7 hilos tenían
+  dos números vivos ese día, y en 5 se habían pulsado botones.
   ⚠️ **El principal NO se cambia** (decisión del 13/10/2026): lo programado sigue saliendo a quien
   reservó; esto es sólo la respuesta a ese mensaje. La alternativa —que el número que escribe pase
   a principal si el actual no tiene ventana— se descartó por romper esa regla.
@@ -7646,7 +7652,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | Cambiar a quién llegan los avisos | quien construye el `AvisoAlEquipo` | Es el campo `rol`. Reciben los que lo tengan **y** móvil registrado (`destinatarios()`) |
 | Cambiar cuándo se sugiere unir dos hilos o cuándo se avisa | `MessageConversation::sugerirFusion()` / `FusionSugeridaListener` | «El choque de identificadores que nadie veía» |
 | Cambiar cómo se abre o se lee la ventana de 24 h de un número | `MessageConversation` | `abrirVentanaWhatsappDe()`, `recalcularVentanaWhatsapp()`, `ventanaWhatsappAbiertaPara()`; la verdad en `MessageIdentidad::$ventanaWhatsappHasta` (§5, «La ventana de WhatsApp es de cada NÚMERO») |
-| A qué número contesta el agente por WhatsApp | `AiConversationProcessor` | `telefonoDeRespuesta()` — al que escribió (`metadata.telefono_origen`), sin tocar el principal |
+| A qué número se contesta por WhatsApp (agente, botones, plantilla pedida) | `src/Message/Entity/MessageConversation.php` | `telefonoParaResponderA()` — al que escribió (`metadata.telefono_origen`), sin tocar el principal |
 | Mandar un mensaje a OTRO número del hilo | `Message::setTelefonoSalida()` | validado en `WhatsappMetaSendEnqueuer::createQueueEntity()`; el selector es `telefonosDeSalida` en `ChatView.vue` |
 | Cambiar qué teléfono queda de salida al unir dos hilos | `FusionadorDeHilos` | `telefonoPropuesto()` (la regla) y `telefonosCandidatos()`; el selector es `TelefonoPrincipalDeFusion.vue` (§«Fusionar dejó de ser sólo un comando») |
 | Cambiar el texto del aviso de fusión sugerida | `AvisarFusionSugeridaDispatchHandler` (dentro de ventana) / plantilla `aviso_fusion_sugerida_interno` (`msg:crear:aviso-fusion`) | En Meta, texto nuevo = versión nueva |

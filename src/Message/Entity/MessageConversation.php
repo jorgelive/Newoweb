@@ -1184,6 +1184,31 @@ class MessageConversation
     }
 
     /**
+     * A qué número se le contesta a un mensaje: al que escribió, si no es el de salida del hilo y
+     * sigue siendo un teléfono vivo y sin vetar de la persona. `null` = el de salida de siempre.
+     *
+     * 🔥 Es lo natural —se le contesta a quien habló— y es el único número con ventana segura:
+     * acaba de escribir. El principal NO se toca: quien reservó sigue siendo la salida por defecto
+     * de lo programado; esto es sólo la respuesta a ese mensaje (decisión del 13/10/2026).
+     *
+     * ⚠️ Vivía en `AiConversationProcessor` y sólo lo usaba el agente. Los botones —que contestan
+     * por `SendTemplateActionHandler`— miraban la ventana del principal: si alguien pulsaba desde
+     * su SEGUNDO número y el principal no tenía ventana, la respuesta no salía (17/10/2026).
+     */
+    public function telefonoParaResponderA(Message $entrante): ?string
+    {
+        $origen = $entrante->getTelefonoOrigen();
+
+        if ($origen === null || $origen === $this->salidaNormalizada()) {
+            return null;
+        }
+
+        $identidad = $this->identidadDeSalida($origen);
+
+        return $identidad !== null && $identidad->estaViva() && !$identidad->isBloqueado() ? $origen : null;
+    }
+
+    /**
      * ¿Se le puede escribir texto libre por WhatsApp a ESTE número? Sin número, al de salida.
      *
      * Es la pregunta que hace el envío cuando el operador eligió un número distinto del principal:
