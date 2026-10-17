@@ -1261,6 +1261,15 @@ documentos suyos gana el más reciente. Un producto que está en el tarifario nu
 no es dudoso: es posterior. Y al revés, uno que está en la web y no en el tarifario está
 retirado.
 
+⚠️ **Pero en HORAS y RECORRIDO manda el itinerario oficial, no el tarifario (Jorge, 16/10/2026).**
+En el Titicaca se cargaron las horas del tarifario de Qhapaq y sus itinerarios oficiales decían
+otra cosa: recojo a las 07:00 donde el tarifario ponía 08:00 (Folclórico y VIP), 07:45 en el 2D con
+Taquile, vuelta a las 15:30 o 16:00 donde decía 15:00, y la bajada de Taquile por los 538 escalones
+donde el tarifario anunciaba triciclo. El tarifario es un resumen para vender; el itinerario es lo
+que hace el operador ese día, y un recojo más tarde de la cuenta deja al pasajero en tierra. **El
+tarifario manda en precio y en lo que incluye; el itinerario oficial, en el horario y en qué se
+hace.** Lo aplicó `app:travel:titicaca-itinerario-oficial`.
+
 ---
 
 ## 5. Los valores por defecto que hay que poner
