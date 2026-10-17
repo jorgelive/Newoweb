@@ -41,21 +41,13 @@ decidió dejar para después:
 
 Analizado entero contra el original en francés. Tres fallos se arreglaron el mismo día (líneas
 que Google se comía, la estancia mínima que el agente ignoraba, «c'est bien noté» sonando a
-reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). El idioma, el 17/10. Queda uno:
+reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). Los dos que quedaban, el 17/10:
 
 1. ~~**El idioma del hilo salta a inglés con un mensaje corto.**~~ **Arreglado el 17/10/2026**:
    `DetectorDeIdiomaLocal`, ver `docs/Mensajeria.md` «Cómo se decide el idioma del hilo».
 
-2. **La hora de salida se apunta en la estancia equivocada cuando la reserva se alargó.** La noche
-   extra se crea como un segundo evento en la misma casita (10→14 y 14→15).
-   `PmsGuiaEstanciaResolver::resolver()` elige la estancia **en curso**, así que
-   `ConfirmarHoraSkill` puso la salida de las 06:30 el 14/10 —el aviso lo repitió: «sale el
-   14/10»— cuando salía el 15. Y entre las 10:00 y las 15:00 del 14 el calendario tiene la casita
-   libre con ella dentro: una rotación falsa en la agenda de limpieza.
-   - **7 extensiones así en los últimos 90 días.**
-   - **Arreglo:** con estancias contiguas de la misma casita en la misma reserva, la salida va en
-     la última y la llegada en la primera. Y revisar si la extensión debería alargar el evento en
-     vez de crear otro.
+2. ~~**La hora de salida se apunta en la estancia equivocada cuando la reserva se alargó.**~~
+   **Arreglado el 17/10/2026**: `CadenaDeEstancia`, ver `docs/Mensajeria.md` «La regla salió de aquí».
 
 Y de la misma tanda de trabajo, menores:
 

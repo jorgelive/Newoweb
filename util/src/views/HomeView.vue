@@ -116,9 +116,12 @@ const fechaPanelLarga = computed(() => {
     return d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
 });
 
+// 🔗 Sin las noches extra: una segunda estancia en la misma casita no es una llegada, ni la
+// estancia que sigue es una salida (8YXYNK, 14/10/2026: limpieza veía un cambio de huésped que no
+// existía). La regla la aplica el servidor; aquí sólo se filtra por sus marcas.
 const llegadasHoy = computed<FilaHoy[]>(() =>
     eventosPanel.value
-        .filter(e => e.start.slice(0, 10) === diaIso.value)
+        .filter(e => e.start.slice(0, 10) === diaIso.value && !e.extendedProps?.vieneDeLaCasita)
         .map(e => aFila(e, e.start))
         .sort((a, b) => a.hora.localeCompare(b.hora)),
 );
@@ -126,7 +129,7 @@ const llegadasHoy = computed<FilaHoy[]>(() =>
 // Ojo: en las salidas la hora que importa es la de FIN de la estancia.
 const salidasHoy = computed<FilaHoy[]>(() =>
     eventosPanel.value
-        .filter(e => e.end.slice(0, 10) === diaIso.value)
+        .filter(e => e.end.slice(0, 10) === diaIso.value && !e.extendedProps?.sigueEnLaCasita)
         .map(e => aFila(e, e.end))
         .sort((a, b) => a.hora.localeCompare(b.hora)),
 );

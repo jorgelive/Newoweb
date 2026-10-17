@@ -8103,6 +8103,32 @@ sólo el primero, el agente creía que José se iba el 27 y que ese día «entra
 y toda la reserva queda fuera de los vecinos. Se ve con datos reales en
 `tools/pruebas/probar-espacio-estancia.php <localizador>`.
 
+#### 🔗 La regla salió de aquí y ahora la comparten cuatro sitios: `CadenaDeEstancia` (17/10/2026)
+
+La regla vivía como método privado de `PmsEspacioEstancia`, y otros tres sitios leían las dos
+estancias como huéspedes distintos. Lo destapó Clémence Mougin (8YXYNK): Casita 1 del 10 al 14 por
+Booking y del 14 al 15 directa.
+
+| Dónde | Qué hacía | Ahora |
+|---|---|---|
+| `ConfirmarHoraSkill` | Apuntó la salida en la PRIMERA —«sale el 14/10 a las 06:30»—, y salía el 15 | La salida va en la última de la cadena y la llegada en la primera; se juntan ANTES de elegir estancia, y otra vez en `confirmarEn()`, que usa también el botón «Salgo a esa hora» |
+| `ListarSalidasSkill` (la lista de limpieza) | El 14 listaba una salida y una llegada en Casita 1: un cambio de huésped inexistente | Fuera la salida de una estancia que sigue y la llegada de una que viene de otra (`NOT EXISTS` en la consulta) |
+| Portada de util (`HomeView.vue`) | Lo mismo, contando por fecha de inicio y de fin | El calendario manda `sigueEnLaCasita` / `vieneDeLaCasita` calculados en PHP y la portada sólo filtra |
+| `PmsEspacioEstancia` | (ya estaba bien) | Usa la clase compartida en vez de su copia |
+
+**Por qué no se alarga el evento en vez de crear otro:** los 14 casos medidos son una estancia de
+OTA alargada con una noche **directa** (importe 0 en el evento, cobro por cargos). Las fechas de la
+primera son de Booking o Airbnb, y cada una tiene sus enlaces de Beds24. Tienen que ser dos eventos;
+lo que se arregla es cómo se leen.
+
+⚠️ **La regla está dos veces, y a propósito**: en PHP (`CadenaDeEstancia::continua()`) y en SQL
+(`ListarSalidasSkill::consultar()`), porque la lista filtra en la consulta. Los dos se citan: si
+cambia una, se cambian las dos.
+
+Comprobado sobre el 14/10 en producción: la consulta oculta la salida y la llegada de Casita 1
+(8YXYNK) y deja las llegadas reales de Casita 6 y Casita 7. Los mensajes automáticos ya lo hacían
+bien: el recordatorio de check-out sale por la última salida que se conoce cuando se programa.
+
 La ocupación se cuenta con `PmsEventoEstado::IMPIDEN_VENTA`, la misma constante que el
 calendario. Reimplementar el criterio habría hecho que el agente y el calendario contaran
 noches distintas, y la que se equivoca siempre es la que nadie mira.

@@ -252,6 +252,14 @@ export interface PmsEventoExtendedProps {
      * (PmsEventosSpaCalendarProvider::choquesDeNochesExtra())
      */
     choqueHorarioExtra?: string | null;
+    /**
+     * Una noche extra: otra estancia de la misma reserva sigue (o viene) en la misma casita, así
+     * que ese día no sale ni llega nadie. Calculado en PHP con la regla de `CadenaDeEstancia`
+     * (PmsEventosSpaCalendarProvider::buildContext()); el front sólo filtra. Opcionales porque
+     * las franjas de horario extra no los traen.
+     */
+    sigueEnLaCasita?: boolean;
+    vieneDeLaCasita?: boolean;
     eventoId: string;
     reservaId: string | null;
     isOta: boolean;

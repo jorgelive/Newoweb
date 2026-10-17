@@ -11,6 +11,7 @@ use App\Calendar\Dto\CalendarResourceDto;
 use App\Calendar\Service\CalendarResourceCatalog;
 use App\Pms\Service\Message\TelefonoDeContacto;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Service\Reserva\CadenaDeEstancia;
 use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsInformacionFinanciera;
@@ -55,6 +56,10 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         $finanzas = $this->fetchFinanzas($eventos);
         $conversaciones = $this->fetchConversaciones($eventos);
         $choques = $this->choquesDeNochesExtra($eventos);
+        // 🔗 Las noches extra (segunda estancia en la misma casita): la portada de util no debe
+        // contar como salida ni como llegada el día del cambio. Se calcula aquí, con la regla de
+        // CadenaDeEstancia, para que el front sólo filtre y no la escriba otra vez.
+        $cadenas = CadenaDeEstancia::marcas($eventos);
         $out = [];
 
         foreach ($eventos as $evento) {
@@ -84,6 +89,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
                     $finanzas[(string) $reserva?->getId()] ?? null,
                     $conversaciones[(string) $reserva?->getId()] ?? null,
                     $choques['estancia:' . $evento->getId()] ?? null,
+                    $cadenas[spl_object_id($evento)] ?? null,
                 ),
             );
         }
@@ -603,6 +609,8 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
      * inicial «A»/«B», y no tiene que re-parsear la cadena
      * «A x8 | Nombre | Casita» para saber qué es cada trozo.
      *
+     * @param array{sigue: bool, viene: bool}|null $cadena Ver CadenaDeEstancia::marcas().
+     *
      * @return array<string,mixed>
      */
     private function buildContext(
@@ -611,6 +619,7 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
         ?PmsInformacionFinanciera $finanzas,
         ?string $conversacionId = null,
         ?string $choqueHorarioExtra = null,
+        ?array $cadena = null,
     ): array {
         // Se calcula desde las colecciones y no leyendo `pms_finanzas_total_moneda`: el
         // calendario carga las cabeceras en lote con sus hijos, así que aquí ya están en memoria
@@ -675,6 +684,10 @@ final class PmsEventosSpaCalendarProvider implements CalendarProviderInterface
             // Su noche extra choca con otra estancia, o pisa la de otra: lo dejó así un canal
             // (ver choquesDeNochesExtra()). La barra lo marca en rojo con este motivo.
             'choqueHorarioExtra' => $choqueHorarioExtra,
+            // 🔗 Sigue (o viene) en la misma casita con otra estancia de la misma reserva: una
+            // noche extra. Ese día no sale ni llega nadie. Ver CadenaDeEstancia::marcas().
+            'sigueEnLaCasita' => $cadena['sigue'] ?? false,
+            'vieneDeLaCasita' => $cadena['viene'] ?? false,
 
             // Cifras de la RESERVA, no de la estancia: una reserva de dos casitas
             // repite el mismo total en sus dos barras. Es intencionado — el saldo

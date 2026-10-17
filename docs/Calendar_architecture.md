@@ -1231,6 +1231,12 @@ tercer consumidor de esa clave, después del fondo beige de Tarifas.
   `ReservasView` **limpia la query** con un `replace` en cuanto abre: si no, cerrar la ficha y
   volver atrás la reabriría.
 - En las salidas la hora que se pinta es la de **fin** de la estancia, no la de inicio.
+- 🔗 **Una noche extra no es una salida ni una llegada** (17/10/2026). Alargar una reserva de OTA
+  crea una segunda estancia directa en la misma casita, y el día del cambio la portada contaba una
+  salida y una llegada del mismo huésped. El provider manda `sigueEnLaCasita` / `vieneDeLaCasita`
+  (`PmsEventosSpaCalendarProvider::buildContext()`, calculados con `CadenaDeEstancia::marcas()`
+  sobre las estancias ya cargadas) y la vista sólo filtra: la regla no se escribe en TypeScript.
+  Detalle y los otros tres consumidores de la regla en `docs/Mensajeria.md`, «La regla salió de aquí».
 
 #### Ocupación de fondo en el calendario de tarifas
 

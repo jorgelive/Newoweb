@@ -67,7 +67,7 @@ final readonly class PmsEspacioEstancia
 
         $unidad = $propio->getPmsUnidad();
         $inicio = $propio->getInicio();
-        $fin = $this->finDeLaEstancia($reserva, $propio);
+        $fin = $this->finDeLaEstancia($propio);
 
         if ($unidad === null || $inicio === null || $fin === null) {
             return null;
@@ -186,39 +186,11 @@ final readonly class PmsEspacioEstancia
      * 14:00» — que era él mismo. La estancia es la cadena de eventos contiguos de la reserva
      * en la casita de la llegada; si cambia de casita a mitad, se corta ahí.
      */
-    private function finDeLaEstancia(PmsReserva $reserva, PmsEventoCalendario $propio): ?\DateTimeInterface
+    private function finDeLaEstancia(PmsEventoCalendario $propio): ?\DateTimeInterface
     {
-        $fin = $propio->getFin();
-        $unidad = $propio->getPmsUnidad();
-
-        $siguientes = [];
-        foreach ($reserva->getEventosCalendario() as $evento) {
-            $codigo = $evento->getEstado()?->getId();
-
-            if ($evento !== $propio
-                && $evento->getPmsUnidad() === $unidad
-                && $codigo !== null && in_array($codigo, PmsEventoEstado::IMPIDEN_VENTA, true)) {
-                $siguientes[] = $evento;
-            }
-        }
-
-        usort($siguientes, static fn (PmsEventoCalendario $a, PmsEventoCalendario $b) => ($a->getInicio()?->getTimestamp() ?? 0) <=> ($b->getInicio()?->getTimestamp() ?? 0));
-
-        foreach ($siguientes as $evento) {
-            $vInicio = $evento->getInicio();
-            $vFin = $evento->getFin();
-
-            if ($fin === null || $vInicio === null || $vFin === null) {
-                continue;
-            }
-
-            // Contiguo: empieza el mismo día (o antes) de que acabe lo que ya llevamos.
-            if ($vInicio->format('Y-m-d') <= $fin->format('Y-m-d') && $vFin > $fin) {
-                $fin = $vFin;
-            }
-        }
-
-        return $fin;
+        // La regla de qué es «la misma estancia» vive en CadenaDeEstancia, que nació de aquí y
+        // ahora la comparten el agente, la lista de salidas y el calendario.
+        return CadenaDeEstancia::ultima($propio)->getFin();
     }
 
     /**

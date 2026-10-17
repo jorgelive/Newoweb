@@ -226,6 +226,25 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
                             WHERE le.evento_id = e.id AND le.user_id = UUID_TO_BIN(:asignada))'
             : '';
 
+        // 🔗 Una noche extra es una SEGUNDA estancia en la misma casita (CadenaDeEstancia): el día
+        // del cambio no sale nadie ni llega nadie, y listarlo era decirle a limpieza que había un
+        // cambio de huésped que no existe (8YXYNK, 14/10/2026). Fuera la salida de una estancia
+        // que sigue y la llegada de una que viene de otra; quedan la primera llegada y la última
+        // salida de la cadena.
+        //
+        // ⚠️ ESPEJO en SQL de `CadenaDeEstancia::continua()`: misma reserva, misma casita, las dos
+        // vivas, la de después empieza el día en que acaba la de antes (o antes) y acaba después.
+        // Si cambia la regla, se cambian los dos.
+        $filtroCadena = $columna === 'fin'
+            ? 'AND NOT EXISTS (SELECT 1 FROM pms_evento_calendario sig
+                                WHERE sig.reserva_id = e.reserva_id AND sig.pms_unidad_id = e.pms_unidad_id
+                                  AND sig.id <> e.id AND sig.estado_id IN (:vivas)
+                                  AND DATE(sig.inicio) <= DATE(e.fin) AND sig.fin > e.fin)'
+            : 'AND NOT EXISTS (SELECT 1 FROM pms_evento_calendario ant
+                                WHERE ant.reserva_id = e.reserva_id AND ant.pms_unidad_id = e.pms_unidad_id
+                                  AND ant.id <> e.id AND ant.estado_id IN (:vivas)
+                                  AND DATE(e.inicio) <= DATE(ant.fin) AND e.fin > ant.fin)';
+
         // El teléfono sale ya en dígitos (`PmsReservaIntegrityListener` lo normaliza al
         // guardar), así que vale tal cual para wa.me sin limpiarlo aquí.
         //
@@ -283,6 +302,7 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
             WHERE e.estado_id IN (:estados)
               AND DATE(e.$columna) BETWEEN :desde AND :hasta
               $filtroAsignada
+              $filtroCadena
             ORDER BY e.$columna
         SQL;
 
@@ -292,10 +312,11 @@ final readonly class ListarSalidasSkill implements SkillInterface, SkillDominioI
             $sql,
             [
                 'estados' => PmsEventoEstado::OCUPAN_UNIDAD,
+                'vivas' => PmsEventoEstado::IMPIDEN_VENTA,
                 'desde' => $desde,
                 'hasta' => $hasta,
             ] + ($asignadoA !== null ? ['asignada' => $asignadoA] : []),
-            ['estados' => ArrayParameterType::STRING]
+            ['estados' => ArrayParameterType::STRING, 'vivas' => ArrayParameterType::STRING]
         )->fetchAllAssociative();
 
         return array_map(

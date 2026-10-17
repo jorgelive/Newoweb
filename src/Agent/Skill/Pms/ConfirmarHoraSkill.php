@@ -16,6 +16,7 @@ use App\Agent\Skill\SkillResult;
 use App\Message\Service\Aviso\AvisoAlEquipo;
 use App\Message\Service\Aviso\AvisoConRespaldo;
 use App\Pms\Entity\PmsEventoCalendario;
+use App\Pms\Service\Reserva\CadenaDeEstancia;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
 use App\Pms\Service\Agent\PmsFrentes;
@@ -158,7 +159,11 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
         }
 
         $esSalida = $extremo === 'salida';
-        $eleccion = $this->estancias->resolver($reserva->getEventosActivosGuia(), trim($e->texto('casita')));
+        // 🔗 Una noche extra es una segunda estancia en la misma casita, y aquí cuenta como UNA: la
+        // salida va en la última y la llegada en la primera. Se junta ANTES de elegir: entre la
+        // salida de una y la entrada de la otra ninguna está «en curso», y el resolutor acababa
+        // preguntando «¿de cuál casita?»… siendo las dos la misma. Ver CadenaDeEstancia.
+        $eleccion = $this->estancias->resolver(self::porCadena($reserva->getEventosActivosGuia(), $esSalida), trim($e->texto('casita')));
 
         // Varias casitas que entran (o salen) EL MISMO DÍA: la hora vale para todas, y preguntar
         // «¿de cuál?» a una familia que llega junta no tiene sentido. Con días distintos —un
@@ -196,6 +201,10 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
      */
     public function confirmarEn(array $eventos, string $hora, bool $esSalida, bool $madrugada, ActorInterface $actor): SkillResult
     {
+        // Otra vez aquí y no sólo en `ejecutar()`: el botón «Salgo a esa hora» entra por este
+        // método con las estancias que ÉL eligió, y una noche extra le daría la primera.
+        $eventos = self::porCadena($eventos, $esSalida);
+
         $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
 
         foreach ($eventos as $evento) {
@@ -228,6 +237,35 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
         $apuntada = $dentro !== [] ? $this->apuntar($dentro, $actor, $hora, $esSalida, $limite) : null;
 
         return $fuera !== [] ? $this->pedirAlEquipo($fuera, $actor, $hora, $esSalida, $limite) : ($apuntada ?? SkillResult::error('Nada que apuntar.'));
+    }
+
+    /**
+     * Cada estancia, sustituida por el extremo de su cadena que toca —la última para la salida, la
+     * primera para la llegada—, sin repetir.
+     *
+     * 🔥 Caso 8YXYNK (Clémence, 13/10/2026): alargó una noche (10→14 y 14→15 en Casita 1). La hora
+     * de salida se apuntó en la primera —«sale el 14/10 a las 06:30»— cuando salía el 15.
+     *
+     * @template T of array<int, PmsEventoCalendario>
+     * @param T $eventos
+     * @return (T is non-empty-array ? non-empty-list<PmsEventoCalendario> : list<PmsEventoCalendario>)
+     */
+    private static function porCadena(array $eventos, bool $esSalida): array
+    {
+        $vistos = [];
+        $extremos = [];
+
+        foreach ($eventos as $evento) {
+            $extremo = $esSalida ? CadenaDeEstancia::ultima($evento) : CadenaDeEstancia::primera($evento);
+            $clave = spl_object_id($extremo);
+
+            if (!isset($vistos[$clave])) {
+                $vistos[$clave] = true;
+                $extremos[] = $extremo;
+            }
+        }
+
+        return $extremos;
     }
 
     /**
