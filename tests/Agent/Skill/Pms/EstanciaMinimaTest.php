@@ -10,8 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Pedir menos noches que el mínimo NO esconde la casita: se ofrece con su precio, se dice el
- * mínimo y se pregunta si quiere que el equipo vea una excepción. Caso real del 16/10/2026: una
- * noche en Casita 7, mínimo 2.
+ * mínimo y se le invita a decir cuál quiere para pedir la excepción. Caso real del 16/10/2026:
+ * una noche en Casita 7, mínimo 2.
  */
 #[CoversClass(ConsultarDisponibilidadSkill::class)]
 final class EstanciaMinimaTest extends TestCase
@@ -25,7 +25,8 @@ final class EstanciaMinimaTest extends TestCase
         self::assertStringContainsString('estancia mínima de 2 noches', $aviso);
         self::assertStringContainsString('Ofrécela igual', $aviso, 'No es para que no salga');
         self::assertStringContainsString('la limpieza', $aviso, 'El precio se da completo');
-        self::assertStringContainsString('Pregúntale si quiere', $aviso, 'Se pregunta antes de escalar');
+        self::assertStringContainsString('dígame cuál', $aviso, 'Elegir la casita ES la respuesta');
+        self::assertStringNotContainsString('Pregúntale si quiere', $aviso, 'Una pregunta de sí/no quedaba de adorno');
         self::assertStringContainsString('excepción', $aviso);
         self::assertStringContainsString('escalar_al_equipo', $aviso);
         self::assertStringContainsString('por debajo del mínimo de 2', $aviso, 'El motivo que lee el equipo');

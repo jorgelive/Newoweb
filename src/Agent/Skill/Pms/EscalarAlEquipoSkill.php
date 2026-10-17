@@ -148,8 +148,9 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 . '10:00»), porque es lo que el operador lee antes de abrir el chat. Después de '
                 . 'llamarme, dile al huésped que ya avisaste, sin prometerle un plazo.',
             parametros: [
-                SkillParameter::texto('motivo', 'En una frase: qué necesita el huésped, concreto. '
-                    . 'Lo lee un operador en el móvil.'),
+                SkillParameter::texto('motivo', 'En una frase y EN ESPAÑOL, aunque el huésped '
+                    . 'escriba en otro idioma: qué necesita, concreto. Lo lee un operador en el '
+                    . 'móvil.'),
                 SkillParameter::booleano('emergencia', 'SÓLO para lo que no puede esperar: fuego, '
                     . 'fuga de gas o de agua, alguien encerrado o herido, un problema de '
                     . 'seguridad. Con esto el aviso sale aunque ya se haya avisado hace un rato. '

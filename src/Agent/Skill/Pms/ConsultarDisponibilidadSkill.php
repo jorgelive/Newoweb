@@ -132,7 +132,7 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
                 . 'Si la respuesta trae «precio» en vez de importes, síguelo al pie de la letra. '
                 . '🌙 Si una casita trae «bajo_estancia_minima», también: la ofreces igual, con '
                 . 'su precio y la limpieza, le dices que la estancia mínima es otra y le '
-                . 'preguntas si quiere que el equipo vea una excepción.',
+                . 'invitas a decir cuál quiere para pedirle al equipo la excepción.',
             parametros: [
                 SkillParameter::texto('desde', 'Fecha de entrada en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Fecha de salida en formato YYYY-MM-DD. '
@@ -890,9 +890,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
      * consulta con el equipo. Una noche suelta entre dos reservas a veces conviene venderla, y
      * eso lo decide una persona, no la tarifa ni el modelo.
      *
-     * Se le PREGUNTA antes de escalar («¿quieres que el equipo vea si puede hacer una
-     * excepción?») en vez de escalar siempre: quien sólo estaba mirando precios no tiene por qué
-     * generar un aviso al equipo, y quien de verdad la quiere dice que sí.
+     * ⚠️ **La oferta termina pidiendo que ELIJA, no preguntando si quiere que se consulte.** La
+     * primera versión cerraba con «¿quiere que se lo consulte al equipo?» y en la simulación el
+     * huésped contestó lo natural —«ok, la casita 7»—: eligió en vez de decir que sí, y el modelo
+     * escaló igual, porque `escalar_al_equipo` manda escalar siempre lo que se PIDE y elegir la
+     * casita es pedirla. La pregunta quedaba de adorno (Jorge: «¿para qué sería la pregunta y
+     * la respuesta entonces?»). Con «dígame cuál y le pido la excepción», elegir ES la respuesta
+     * y escalar en ese momento es justo lo anunciado. Quien sólo miraba precios no elige nada y
+     * no genera aviso.
      *
      * Va como campo propio y no como una frase más en la descripción por la misma razón que
      * `precio_desde`: un aviso en prosa depende de que alguien lo lea, y un campo con nombre
@@ -907,11 +912,13 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
         return sprintf(
             'Piden %d %s y esta casita tiene una estancia mínima de %d noches. Ofrécela igual, con '
             . 'su precio y la limpieza tal como vienen en «desglose», y a continuación, con un '
-            . '«pero»: la estancia mínima es de %d noches. Pregúntale si quiere que se lo '
-            . 'consultes al equipo para ver si pueden hacer una excepción. Si dice que sí, llama a '
-            . 'escalar_al_equipo con el motivo «pide %d %s en <casita>, por debajo del mínimo de '
-            . '%d: ¿se hace una excepción?» y dile que lo estás consultando, sin darlo por '
-            . 'aceptado. Si quien pregunta es alguien del equipo, basta con decirle el mínimo.',
+            . '«pero»: la estancia mínima es de %d noches, y para quedarse menos el equipo tiene '
+            . 'que aprobar una excepción. Cierra invitándole a ELEGIR: «si alguna le interesa, '
+            . 'dígame cuál y le pido al equipo la excepción». Cuando diga qué casita quiere, ésa '
+            . 'es su respuesta: llama a escalar_al_equipo con el motivo «pide %d %s en <casita>, '
+            . 'por debajo del mínimo de %d: ¿se hace una excepción?» y dile que lo estás '
+            . 'consultando, sin darlo por aceptado. Si quien pregunta es alguien del equipo, basta '
+            . 'con decirle el mínimo.',
             $noches,
             $noches === 1 ? 'noche' : 'noches',
             $minimo,

@@ -6937,12 +6937,16 @@ UNA noche cuando las dos piden 2 esa fecha. **No se esconde la casita** —Jorge
 entre dos reservas a veces conviene venderla, y eso lo decide una persona—. Cuando las noches
 pedidas no llegan al mínimo, la casita lleva además `bajo_estancia_minima`
 (`ConsultarDisponibilidadSkill::avisoEstanciaMinima()`): ofrecerla con su precio y la limpieza,
-y luego, con un «pero», decir que la estancia mínima es otra y **preguntarle si quiere que el equipo
-vea una excepción**. Sólo si dice que sí se escala, con un motivo que ya dice «por debajo del mínimo
-de N: ¿se hace una excepción?», y se le dice que se está consultando, sin darlo por aceptado.
+y luego, con un «pero», decir que la estancia mínima es otra y **cerrar invitándole a elegir**:
+«si alguna le interesa, dígame cuál y le pido al equipo la excepción». Cuando elige, se escala con
+un motivo que ya dice «por debajo del mínimo de N: ¿se hace una excepción?», y se le dice que se
+está consultando, sin darlo por aceptado. Quien sólo miraba precios no elige nada y no genera aviso.
 
-Se pregunta antes de escalar, en vez de escalar siempre, porque quien sólo estaba mirando precios
-no tiene por qué generar un aviso al equipo.
+⚠️ **La primera versión preguntaba «¿quiere que se lo consulte al equipo?», y la pregunta quedaba
+de adorno.** En la simulación el huésped contestó «ok, la casita 7» —eligió en vez de decir que sí—
+y el modelo escaló igual: `escalar_al_equipo` manda escalar siempre lo que se **pide**, y elegir la
+casita es pedirla. Una pregunta de sí/no compite con esa regla; pedirle que elija la usa: elegir
+es la respuesta, y escalar en ese momento es justo lo que se le anunció.
 
 Va como **campo propio** por la misma razón que `precio_desde`: un aviso en prosa depende de que
 alguien lo lea; un campo con nombre propio en la casita que se ofrece, no. Está en
@@ -10836,6 +10840,10 @@ Ahora la instrucción da el hecho en positivo: si lo pedido hay que **concederlo
 reserva, cambiar fechas u horario, un servicio), queda pendiente de que el equipo lo confirme, y se
 le dice como petición en curso —«he pasado tu petición al equipo y te confirmarán por aquí»—.
 Para una avería no cambia nada: ahí no hay nada que conceder.
+
+Y el **motivo** del aviso va en español aunque el huésped escriba en otro idioma: en una simulación
+del mismo caso llegó al equipo «Demande de réservation Casita 7…». El parámetro decía que lo lee un
+operador en el móvil, pero no en qué idioma, y el modelo siguió en el de la conversación.
 
 ### 22.9 Entrar directo al paso siguiente
 
