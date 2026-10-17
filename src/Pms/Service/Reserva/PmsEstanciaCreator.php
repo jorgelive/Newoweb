@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsEventoEstado;
 use App\Pms\Entity\PmsEventoEstadoPago;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Factory\PmsEventoCalendarioFactory;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,6 +39,15 @@ use InvalidArgumentException;
  * esa referencia, en silencio. Cargos no se le generan ninguno: el precio de una directa lo
  * pone quien vende.
  *
+ * ### Los links de Beds24 se construyen AQUÍ
+ *
+ * `hydrateLinksForUi()` no cuelga de ningún listener de Doctrine: cada punto de entrada la llama
+ * antes del flush (`PmsEventoCalendarioProcessor`, `PmsReservaCrearProcessor`, el panel). Hasta el
+ * 17/10/2026 éste no lo hacía, y una estancia creada por el asistente nacía **sin links**: el
+ * listener de la cola no tenía nada que encolar, el rescate de los :28/:58 tampoco la veía —busca
+ * por `innerJoin` sobre los links— y la casita seguía a la venta en las OTAs mientras la skill le
+ * decía al operador que salía de la venta. Ver docs/PmsBeds24ReservasSync.md §6.2.
+ *
  * Ver docs/Mensajeria.md §11.
  */
 final readonly class PmsEstanciaCreator
@@ -48,6 +58,7 @@ final readonly class PmsEstanciaCreator
     public function __construct(
         private EntityManagerInterface $em,
         private PmsDisponibilidadService $disponibilidad,
+        private PmsEventoCalendarioFactory $eventoFactory,
     ) {}
 
     /**
@@ -154,6 +165,10 @@ final readonly class PmsEstanciaCreator
         }
 
         $reserva->addEventosCalendario($evento);
+
+        // Sin links no sale a Beds24 ni la rescata nadie: ver el docblock de la clase.
+        $this->eventoFactory->hydrateLinksForUi($evento);
+
         $this->em->persist($evento);
 
         return $evento;

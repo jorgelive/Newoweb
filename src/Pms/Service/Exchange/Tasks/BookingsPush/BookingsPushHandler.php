@@ -9,6 +9,8 @@ use App\Exchange\Service\Contract\ExchangeHandlerInterface;
 use App\Exchange\Service\Contract\ExchangeQueueItemInterface;
 use App\Pms\Entity\PmsBookingsPushQueue;
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Throwable;
 
 /**
@@ -19,6 +21,10 @@ use Throwable;
  */
 final class BookingsPushHandler implements ExchangeHandlerInterface
 {
+    public function __construct(
+        private readonly Connection $conexion,
+    ) {}
+
     /**
      * @param array<string, mixed> $data Respuesta cruda del canal.
      * @return array<string, mixed>
@@ -87,6 +93,24 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
 
                 // Actualizar Snapshot Externo
                 $item->setBeds24BookIdOriginal($strRemoteId);
+
+                // 👥 La primera estancia propia que nace en Beds24 es la MADRE del grupo.
+                // (17/10/2026) Sin esto, una reserva directa con dos estancias se quedaba sin
+                // `masterId` y Beds24 las tenía como dos reservas sueltas:
+                // `applyMasterIdLogic()` sólo manda el `masterId` si la reserva lo tiene. Las
+                // hermanas que salieron en el mismo lote se agrupan en el siguiente envío —el
+                // rescate de los :28/:58, o el próximo cambio—, porque su huella ya cambió.
+                //
+                // Sólo en las propias: en una OTA el grupo lo dice el canal y lo trae el pull.
+                $evento = $link->getEvento();
+                $reserva = $evento?->getReserva();
+                if ($evento !== null && $reserva !== null && !$evento->isOta()
+                    && $link->isEsPrincipal() && $link->esDeEstancia()
+                    && $reserva->getBeds24MasterId() === null
+                ) {
+                    $reserva->setBeds24MasterId($strRemoteId);
+                    $reserva->setBeds24BookIdPrincipal($strRemoteId);
+                }
             }
 
             // Consumir la intención de push del estado: el `status` ya viajó a Beds24, así que se
@@ -116,9 +140,44 @@ final class BookingsPushHandler implements ExchangeHandlerInterface
         $item->setExecutionResult($resultData);
 
         // 6. Transición de Estado (Firma Estricta)
+        //
+        // 🔒 Si mientras se enviaba alguien cambió el link, la cola sólo le apuntó la huella nueva
+        // (no le quitó el candado: ver `Beds24BookingsPushQueueCreator::enqueueForLink()`). Lo que
+        // acaba de salir es la foto de ANTES, así que vuelve a la cola. Darla por enviada era
+        // perder ese cambio hasta el siguiente rescate.
+        if ($this->cambioMientrasSeEnviaba($item)) {
+            $item->volverAPendiente(new DateTimeImmutable());
+            $resultData['reencolada'] = 'cambió mientras se enviaba';
+            $item->setExecutionResult($resultData);
+
+            return $resultData;
+        }
+
         $item->markSuccess(new DateTimeImmutable());
 
         return $resultData;
+    }
+
+    /**
+     * ¿La huella de la base ya no es la que tenía la fila al reclamarla?
+     *
+     * Se lee en SQL porque la entidad en memoria es la del worker: su `payloadHash` es el del
+     * momento en que la reclamó, y lo que importa es si otro proceso lo cambió después.
+     */
+    private function cambioMientrasSeEnviaba(PmsBookingsPushQueue $item): bool
+    {
+        $id = $item->getId();
+        if ($id === null) {
+            return false;
+        }
+
+        $enBase = $this->conexion->fetchOne(
+            'SELECT payload_hash FROM pms_bookings_push_queue WHERE id = :id',
+            ['id' => $id],
+            ['id' => UuidType::NAME]
+        );
+
+        return is_string($enBase) && $enBase !== $item->getPayloadHash();
     }
 
     public function handleFailure(Throwable $e, ExchangeQueueItemInterface $item): void

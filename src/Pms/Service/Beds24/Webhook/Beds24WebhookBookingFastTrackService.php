@@ -60,6 +60,21 @@ final class Beds24WebhookBookingFastTrackService
 
         } catch (Throwable $e) {
             $conn->rollBack();
+
+            // 🧹 **El rollback deshace la base, no la memoria.** (17/10/2026) Si `upsert()` lanzó
+            // después de un `persist()` —un mapeo que falta, un link roto—, la reserva y el evento
+            // a medio construir siguen agendados en el UnitOfWork. Quien llama atrapa el error y
+            // SIGUE (mensajes, facturas, auditoría) hasta un `flush()` final, que los habría
+            // insertado: una reserva sin estancia, que es justo lo que se encontró del 05/08/2026.
+            //
+            // Se vacía entero porque no hay forma fiable de separar lo de esta reserva de lo
+            // demás. Lo que el llamante necesite después lo vuelve a leer: ver
+            // `ProcessBeds24WebhookDispatchHandler`, que guarda la auditoría ANTES por esto.
+            if ($this->em->isOpen()) {
+                $this->em->clear();
+            }
+            $this->persister->reset();
+
             // Relanzamos la excepción para que el Controller la registre en el array de errores
             throw $e;
         } finally {

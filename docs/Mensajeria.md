@@ -3992,6 +3992,11 @@ servicio único. El canal es el que más silenciosamente rompe: sin él,
 el coste teórico del tarifario en el panel, sin que nada lo diga. `crear_reserva` lo hacía por dentro; ahora las dos pasan por el mismo sitio, que es lo que
 pedía el propio docblock del servicio.
 
+⚠️ **Y los links de Beds24 (17/10/2026).** Hasta esa fecha el creador no llamaba a
+`hydrateLinksForUi()`, y la estancia nacía **sin links**: la promesa nº 3 de abajo —«la casita sale
+de la venta»— era falsa. Ni el listener encolaba nada ni el rescate periódico la veía. No llegó a
+pasar porque nadie usó estas skills desde el 16/09. Ver `PmsBeds24ReservasSync.md` §6.2.
+
 ##### Lo que la previsualización enseña y no es evidente
 
 - **Las estancias que la reserva YA tiene.** Evita el error de añadir una casita a quien ya la
@@ -4802,7 +4807,7 @@ Es la skill de mayor alcance del catálogo. Escribe dos filas y provoca, **sin o
 el saldo ya restado) en vez de `total_cargos`/`saldo_pendiente` escalares, más un bloque `cuadre`
 cuando hay dos monedas. El desglose es lo exacto; el cuadre es la cifra para cerrar, y su `nota`
 le dice al modelo que la presente como aproximada.
-| 3 | **La casita sale de la venta** en Beds24 y en todos los portales | `Beds24BookingsPushQueueListener` |
+| 3 | **La casita sale de la venta** en Beds24 y en todos los portales | `Beds24BookingsPushQueueListener`, con los links que monta `PmsEstanciaCreator::crear()` |
 | 4 | **Se programan dos mensajes reales** al huésped | Motor de reglas, hitos `start` y `end` |
 
 Comprobado tras crear una de prueba: `recordatorio_llegada` quedó en cola para el 2027-01-11 y

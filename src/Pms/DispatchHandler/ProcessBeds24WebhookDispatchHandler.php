@@ -98,9 +98,20 @@ final readonly class ProcessBeds24WebhookDispatchHandler
 
             // 1. PROCESAR BOOKINGS
             if ($sobre->traeReserva) {
+                // La auditoría se guarda ANTES: si una reserva falla, el servicio vacía el
+                // UnitOfWork para no insertar lo que quedó a medias (ver
+                // `Beds24WebhookBookingFastTrackService::process()`), y con él se iría lo que se le
+                // acaba de escribir aquí. Después se vuelve a leer.
+                $this->em->flush();
+
                 $bookingResult = $this->handleBookings($sobre->reservas, $dispatch->token);
                 $responseDetails['bookings'] = $bookingResult['processed'];
                 $globalErrors = array_merge($globalErrors, $bookingResult['errors']);
+
+                if (!$this->em->contains($audit)) {
+                    $audit = $this->em->getRepository(PmsBeds24WebhookAudit::class)->find($dispatch->auditId)
+                        ?? throw new RuntimeException("La auditoría {$dispatch->auditId} desapareció mientras se procesaba el webhook.");
+                }
             }
 
             // 2. PROCESAR MENSAJES (Con el Persister optimizado)

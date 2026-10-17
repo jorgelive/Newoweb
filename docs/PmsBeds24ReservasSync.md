@@ -270,6 +270,15 @@ ProcessBeds24WebhookDispatchHandler::__invoke()
   └─ Actualiza audit: status = PROCESSED | PARTIAL_ERROR | ERROR
 ```
 
+**Si una reserva falla, lo que dejó a medias se descarta (17/10/2026).** El fast-track abre su
+transacción por reserva y, si `upsert()` lanza, hace `rollBack()`. Pero el rollback deshace la
+base, no la memoria: la reserva y el evento ya `persist()`-eados seguían agendados en el
+UnitOfWork, y el handler atrapa el error y **sigue** —mensajes, facturas— hasta un `flush()`
+final que los habría insertado: una reserva sin estancia (había seis así, todas del 05/08/2026).
+Ahora el catch de `Beds24WebhookBookingFastTrackService::process()` hace `clear()` y
+`persister->reset()`, y por eso `ProcessBeds24WebhookDispatchHandler` **guarda la auditoría antes**
+de procesar las reservas y la vuelve a leer después. Test: `RollbackDelWebhookTest`.
+
 ### 3.3 Estructura del payload de Beds24
 
 > ### 🚫 `country2`, nunca `country`
@@ -776,9 +785,23 @@ internalHydrate(evento, externalBookId, externalRoomId)
      Link.unidadBeds24Map = mapa espejo
 
 4. Reciclaje inteligente (Smart Move):
-   Reutiliza links existentes por código virtual.
-   Links sobrantes se vacían y desvinculan.
+   Reutiliza links existentes por código virtual (§6.3.b).
+   El principal sólo viaja dentro de su virtual; si no puede, lo releva el espejo de allí.
+   Links sobrantes se sueltan y el listener los RETIRA en Beds24 (cancelados, §12.12.7).
 ```
+
+**Quién la llama.** No cuelga de ningún listener de Doctrine: cada punto de entrada llama a
+`hydrateLinksForUi()` antes del flush — `PmsEventoCalendarioProcessor`, `PmsReservaCrearProcessor`,
+los `*CrudController` del panel y, desde el 17/10/2026, **`PmsEstanciaCreator::crear()`**, que es
+el que usan las skills `crear_reserva` y `crear_estancia`. Hasta entonces una estancia creada
+por el asistente nacía **sin links**: el listener de la cola no tenía nada que encolar, el
+rescate de los :28/:58 tampoco la veía —busca por `innerJoin` sobre los links— y la casita
+seguía a la venta en las OTAs mientras la skill decía que salía de la venta. No llegó a pasar:
+nadie las usó desde el 16/09. Test: `EstanciaNaceConLinksTest`.
+
+> El importe de esas estancias sigue en `0.00`, y no es un olvido: en una directa nadie escribe
+> `evento.monto` (§12.5.2, «`monto` y `comision` ya NO se editan»), el dinero vive en los cargos.
+> Por eso el `price` que viaja a Beds24 de una directa es 0, venga del panel o del asistente.
 
 ### 6.3 Por qué el espejo nace sin beds24BookId
 
@@ -811,10 +834,40 @@ Beds24**, y eso ocurre cuando sólo cambia el `roomId` dentro del mismo establec
 
 | Caso | Link | `beds24BookId` | Qué ve Beds24 |
 |---|---|---|---|
-| Principal (rescate) | se reutiliza | **se conserva** | UPDATE: la reserva cambia de habitación |
+| Principal, mismo virtual (rescate) | se reutiliza | **se conserva** | UPDATE: la reserva cambia de habitación |
+| Principal, **otro** virtual (UI) | se suelta | — | **retirada** (cancelada, §12.12.7); lo releva el espejo de ese virtual o uno nuevo |
 | Espejo, mismo virtual (`INTI`→`INTI`) | se reutiliza | **se conserva** | UPDATE: la reserva espejo cambia de habitación |
-| Espejo, sin pareja en la unidad nueva | va a sobrantes → se borra | — | DELETE (§12.12) y un POST nuevo para el mapa entrante |
+| Espejo que **releva** al principal | se reutiliza y pasa a principal | **se conserva** | UPDATE con los datos de la estancia, sin «(M)» |
+| Espejo, sin pareja en la unidad nueva | va a sobrantes → se suelta | — | **retirada** (cancelada) y un POST nuevo para el mapa entrante |
 | Mapa nuevo sin superviviente | se crea | `null` | POST: reserva nueva, el ID lo sella el Push (§6.3) |
+| Casita **sin mapeos** (UI) | se sueltan todos los de la estancia | — | **retirada** de cada uno |
+
+**Cruzar de establecimiento virtual (17/10/2026).** Una reserva de Beds24 es de una propiedad: la
+de SAPHY no se mueve a una habitación de INTI. Los espejos ya lo respetaban; el **principal no**:
+el rescate le estampaba su `bookId` al mapa principal de la casita nueva fuera del virtual que
+fuera —el comentario decía «así no se pierde el ID»—, el push fallaba y la reserva de SAPHY se
+quedaba viva bloqueando la casita vieja, mientras el espejo que sí estaba en INTI se tiraba.
+Ahora `hidratarLinksDeEstancia()` sólo deja viajar al principal si `mismoVirtual()`, si aún no
+tiene id, o si el cambio viene de un **webhook** (ahí el id y la habitación los acaba de decir
+Beds24). Si no viaja, se suelta, la reserva se vacía de `beds24MasterId`/`beds24BookIdPrincipal`
+que apuntaran a él —para no agruparse con una cancelada— y su papel lo toma el espejo de ese
+virtual con su reserva. Hoy no puede pasar —las siete casitas tienen INTI y SAPHY— y deja de
+ser imposible con un tercer canal o con la migración a otra plataforma. Tests:
+`HidratadorEntreVirtualesTest`.
+
+**Una casita sin mapeos** (`getBeds24MapsActivos() === []`) hacía `return` sin más: «inconsistente
+pero mejor que borrar IDs». Los links seguían en la casita vieja y la bloqueaban para siempre.
+Desde la UI —la única vez que una estancia con links se rehidrata es al cambiar de casita— se
+sueltan y se retiran; desde un webhook no se toca nada (el mapa por el que llegó es de esa
+unidad: sólo puede ser un mapeo desactivado).
+
+**El pull de un ESPEJO no mueve la estancia (17/10/2026).** La guarda de `upsertEvento()` que
+decide si un pull mueve el evento de casita miraba `esDeEstancia()`, que es cierto también para
+los espejos (mismo rol). Si el operador movía la estancia y el pull del espejo llegaba antes que
+el push que lo lleva a la casita nueva, la devolvía a la vieja y, al reconstruir con el `bookId`
+del espejo, **el espejo pasaba a principal y la reserva de la OTA a espejo**: desde ahí sus pulls
+dejaban de escribir fechas y huésped (§6.4). Ahora exige además `$isLinkPrincipal`. Test:
+`PullDeUnEspejoTest`.
 
 **El bug que esto arregla.** La rama de espejos hacía `setBeds24BookId(null)` *siempre*, también
 al reciclar un link que ya tenía ID. Resultado: mover una casita dejaba la reserva espejo viva
@@ -825,7 +878,7 @@ todos los links sin dejar rastro.
 
 Por el mismo motivo el **fallback FIFO** sólo recicla links *sin* ID: emparejar por orden un
 link que ya tiene reserva con un mapa de otro virtual perdería esa reserva igual. Los que traen
-ID se dejan en los sobrantes, donde el borrado sí dispara su DELETE.
+ID se dejan en los sobrantes, que se retiran en Beds24 (§12.12.7).
 
 > **Sobre el supuesto de que Beds24 acepta el cambio de room conservando el `id`.** El diseño
 > lo da por hecho: `BookingsPushMappingStrategy::buildUpsertPayload()` manda siempre `roomId`
@@ -1040,6 +1093,33 @@ Dos matices del arreglo:
   espejo se dejan en `NULL`, mismo criterio con el que la migración `Version20260731042857` sólo
   pobló los principales.
 
+Tres sitios que esta regla no cubría y se cerraron el 17/10/2026 (`PullDeUnEspejoTest`):
+
+- **Mover de casita** — ver §6.3.b, «El pull de un ESPEJO no mueve la estancia».
+- **La nota de la reserva.** `upsertReservaFull()` hacía `setNota($booking->notes)` fuera de la
+  guarda del principal: el pull de un espejo la machacaba con la vieja que le mandamos, o la
+  dejaba en blanco. Ahora la escribe sólo el principal, y **un `notes` vacío no borra la nuestra**:
+  en Beds24 nadie escribe notas a mano y el push no manda un campo vacío (`setIf()`), así que el
+  vacío allí sólo significa «aún no ha llegado».
+- **El `bookId` de un link adoptado por `custom1`.** Se anotaba sólo si era el principal. Un
+  espejo o una `black` adoptados —el hueco entre el POST y la respuesta— se quedaban sin id, y su
+  siguiente push, sin `id` en el cuerpo, creaba OTRA reserva en Beds24. `upsert()` sólo adopta por
+  marcador un link LIBRE (§9.7), así que anotárselo a cualquiera no le pisa el id a nadie.
+
+**Los ids del grupo** (`beds24MasterId`, `beds24BookIdPrincipal`) tampoco se escriben ya en cada
+pasada: una reserva con dos estancias tiene dos links principales y se quedaba con los de la
+última que pasaba, alternando. Se escriben si Beds24 declara el grupo —medido en producción: una
+reserva suelta trae `masterId` y `bookingGroup` a `null` (2505 de 2512 webhooks); en un grupo, la
+madre se declara en `bookingGroup.master`— o si la reserva no tenía. En el otro sentido, la
+primera estancia propia que nace en Beds24 se vuelve la madre del grupo
+(`BookingsPushHandler::handleSuccess()`), para que las hermanas salgan con su `masterId`: antes
+quedaban como reservas sueltas allí. Las del mismo lote se agrupan en el siguiente envío.
+
+**La hija que llega antes que la madre** se titulaba con el stub «Pendiente Sync (Grupo)» y, si la
+madre entraba en el mismo lote, la reserva todavía era una inserción: `PmsCambioDeNombreListener`
+sólo mira actualizaciones y el título se quedaba así. `upsertReservaFull()` retitula ahora las
+estancias que lleven el título del stub cuando la madre le pone nombre a la reserva.
+
 **Por qué el descuadre no se veía antes:** `montoTotal` (suma de eventos) era la única fuente, así
 que no había contra qué contrastarlo. Con la cabecera financiera (§12) hay un testigo
 independiente —`totalCargos`, que sale de los `invoiceItems` y el espejo no toca—, y cualquier
@@ -1062,14 +1142,82 @@ Guard: if syncContext.isPush() → return  (evita bucle)
 Rastreo: PmsEventoCalendario, PmsReserva, PmsEventoBeds24Link
 
 resolveTasks():
-  Link borrado    → DELETE
+  Link que se va en este flush  → RETIRADA (POST cancelled, sin link — §12.12.7)
+  Link en pending_delete (panel) → DELETE
   Link huérfano   → CANCEL
-  Link activo     → PUSH
+  Link activo     → PUSH, si su HUELLA cambió (abajo)
   (torneo pickBestLink si hay duplicados por evento+mapa)
 
-  Protección OTA: shouldIgnoreReservaUpdate()
-    Si datosLocked=true y solo cambiaron campos cosméticos → no genera Push
+  Protección OTA: cambioSoloDeDatosDelCanal()
+    Reserva de OTA + datosLocked=true + sólo cambiaron datos del huésped → no genera Push
 ```
+
+#### 7.1.a La huella: qué cuenta como «hay algo nuevo que mandar» (17/10/2026)
+
+Una fila de `pms_bookings_push_queue` por link y endpoint (`dedupe_key`), que se recicla. Lo que
+decide si se recicla es `payload_hash`, la **huella** que calcula
+`Beds24BookingsPushQueueCreator::huella()`:
+
+```
+huella = sha1({ linkId, configId, contenido })
+contenido = BookingsPushMappingStrategy::contenidoQueViaja(link)
+          = el cuerpo que se mandaría HOY, sin el `id` de Beds24
+```
+
+| La fila está en… | Huella igual | Huella distinta |
+|---|---|---|
+| `pending` | nada (ya va a salir) | se recicla a `pending` |
+| `success` | **nada: Beds24 ya lo tiene** | se recicla a `pending` |
+| `processing` | nada | **sólo se le apunta la huella**; el handler la devuelve a `pending` al acabar |
+| `failed` / `cancelled` | se recicla | se recicla |
+
+Tres fallos que cierra, los tres ciertos en el código y ninguno con daño medido:
+
+1. **Lo ya enviado se reenviaba.** Sólo se ahorraba con la fila `pending`; una `success` se
+   reciclaba aunque nada hubiera cambiado. Y el pull ensucia el evento en cada pasada —las
+   fechas llegan como objetos nuevos y Doctrine 2 compara por identidad—, así que cada webhook
+   de una reserva reenviaba sus espejos y sus noches extra (el escudo del pull sólo frena al
+   principal). No era un bucle: el push de un espejo no genera webhook.
+2. **La huella era una lista propia** —fechas, estado, habitación— que no veía el huésped, el
+   importe, la nota ni `estadoPushSolicitado`. No rompía nada porque (1) reenviaba igual; en
+   cuanto (1) se arregla, una lista corta es un cambio que no sale nunca. Por eso la huella sale
+   del **mismo constructor que el envío**: no se puede quedar corta. Sin el `id`, porque el push
+   lo sella al crear la reserva y con él dentro el primer pull de cada alta la reenviaría.
+3. **Reciclar una fila en `processing` le quitaba el candado** (`locked_at = NULL`): otro worker
+   podía reclamarla mientras el primero seguía en la petición —dos POST del mismo link; sin
+   `bookId` todavía, dos reservas en Beds24— y el primero, al acabar, la cerraba en `success`
+   perdiendo el cambio de en medio. Ahora sólo se le apunta la huella, y
+   `BookingsPushHandler::handleSuccess()` compara la de la base (`cambioMientrasSeEnviaba()`,
+   SQL directo: la entidad en memoria es la del worker) con la que reclamó; si cambió,
+   `PmsBookingsPushQueue::volverAPendiente()` en vez de `markSuccess()`.
+
+⚠️ **Al desplegarlo, cada link se reenvía una vez** la próxima vez que se toque: todas las filas
+tienen la huella vieja. Es inofensivo —el rescate de los :28/:58 ya fuerza un reenvío de todo
+cada media hora con `FORCE_SYNC_…`— y no hace falta hacer nada.
+
+⚠️ **El rescate (`Beds24BookingsPushJob`) no pasa por la huella**: la fuerza a propósito. Es la
+red de seguridad, y lo que se ahorra aquí es el reenvío por cada webhook, no el periódico.
+
+**La caché de deduplicación del creador sólo vale si la entidad sigue gestionada.** Tras un
+`clear()` —el rescate lo hace por lotes— la entrada es una entidad suelta y recalcular su
+changeset revienta con «is not managed». Lo destapó la sonda de integración.
+
+Tests: `ColaDePushHuellaTest`, `BookingsPushHandlerTest`.
+
+#### 7.1.a.2 El candado sólo calla en las OTA (17/10/2026)
+
+`datosLocked` lo cierra el pull en cuanto llega un apellido o un teléfono (§9.3), y eso pasa
+también con el **eco de una reserva directa**. La lista de campos que el candado silenciaba
+(`IGNORED_FIELDS_ON_LOCKED_OTA`) estaba pensada para OTAs —el nombre y el contacto son del
+canal—, pero se aplicaba a todas: corregir el nombre o el teléfono de una directa —a mano, con
+`modificar_reserva` o con el revisor del orden del nombre— no encolaba nada, y Beds24 y los
+títulos `(M) …` de los espejos se quedaban con el viejo. Ahora
+`Beds24BookingsPushQueueListener::cambioSoloDeDatosDelCanal()` exige además que alguna estancia de
+la reserva sea OTA.
+
+Y **`nota` sale de la lista**: en Beds24 es una nota interna que no le llega a la OTA, y el push
+ya la manda. Ignorarla dejaba sin salir la que se escribía en el PMS, y el siguiente pull del
+principal la pisaba con la de allí. Test: `CandadoSoloEnOtaTest`.
 
 ### 7.1.b Horario extra — la noche invisible que bloquea la unidad
 
@@ -2188,6 +2336,9 @@ Protege contra: Airbnb que manda solo firstName en estado Request
 (inquiry sin confirmar). No se sella hasta que llega la confirmación
 con datos completos.
 ```
+
+⚠️ El candado se cierra **también en las directas** (con el eco de su push). En el push sólo
+silencia cambios del huésped si la reserva es de una OTA: ver §7.1.a.2.
 
 ### 9.4 Protección de datos OTA en Push
 
@@ -5709,7 +5860,8 @@ el motivo legible o `null`:
 
 1. **¿Es OTA?** → se cancela en el canal, no se borra aquí.
 2. **¿Existe en Beds24 y no está cancelada?** → hay que cancelarla primero. Beds24 **sólo
-   permite borrar reservas canceladas**, de ahí la asimetría.
+   permite borrar reservas canceladas**, de ahí la asimetría. (Los bloqueos sí se borran con id:
+   su reserva se retira cancelándola, §12.12.7.)
 3. **¿Hay cola en curso** (`processing` o con `locked_at`)? → se espera.
 
 `PmsReserva::getMotivoNoBorrable()` delega en sus estancias: basta que UNA bloquee para vetar
@@ -5740,8 +5892,8 @@ em->remove(PmsReserva)
      ├─ resolveTasks()        action = 'DELETE' (prioridad absoluta)
      ├─ ensureBookIdForDelete()   recupera el bookId de colas viejas si hace falta
      ├─ cancelPendingPostForLink()  mata el POST pendiente del link
-     ├─ enqueueForLink(DELETE_BOOKINGS)
-     │     └─ setLink(null) + snapshot beds24BookIdOriginal / linkIdOriginal
+     ├─ enqueueRetirada(POST_BOOKINGS)        ← desde el 17/10/2026, no DELETE (§12.12.7)
+     │     └─ fila SIN link + beds24BookIdOriginal → {id, status: cancelled, custom2: RETIRADA}
      └─ detachQueuesFromLink()   corta las colas HISTÓRICAS (§12.11.b)
 
    onFlush (prio -1000) ── PmsReservaRecalculoListener
@@ -5750,9 +5902,9 @@ em->remove(PmsReserva)
    postFlush ──► dispatch RunExchangeTaskDispatch('bookings_push')
 ```
 
-La cola de DELETE se desengancha del link **a propósito**: el link desaparece en este mismo
-flush, y guardar el `beds24BookId` y el `linkId` como snapshot es lo que permite al worker
-completar la llamada cuando ya no queda nada a lo que apuntar.
+La cola de la retirada nace sin link **a propósito**: el link desaparece en este mismo flush, y
+guardar el `beds24BookId` y el `linkId` como snapshot es lo que permite al worker completar la
+llamada cuando ya no queda nada a lo que apuntar.
 
 ### 12.12.3 Por qué `PmsInformacionFinanciera` es `OneToOne`
 
@@ -5832,6 +5984,11 @@ mientras tanto muestra «Esperar y eliminar» con un sondeo. La regla espejo viv
 Comprobado en datos reales: hay estancias con `safeToDelete=true` y `syncStatus=pending` a la
 vez; ése es exactamente el estado peligroso.
 
+> Desde el 17/10/2026 el paso 4 ya no pierde: el borrado encola una **retirada** (§12.12.7), que
+> es una cancelación y Beds24 la acepta esté como esté la reserva. La espera del frontend se
+> queda —no cuesta nada y evita mandar dos veces lo mismo—, pero ya no es lo único que separa un
+> borrado de una noche bloqueada para siempre.
+
 ### 12.12.6 ⚠️ Un DELETE sin `beds24BookId` se descarta
 
 Si al encolar el borrado el link no tiene `beds24BookId` y `ensureBookIdForDelete()` tampoco lo
@@ -5841,6 +5998,36 @@ su copia y la reserva sigue viva en el canal bloqueando esas noches.
 Es un fallo silencioso con consecuencia externa, así que el listener lo registra como `error`
 con el `link_id` y el `evento_id`. **Si ese mensaje aparece en el log, hay que retirar la
 reserva a mano en Beds24**; no hay reintento posible, porque el identificador se perdió.
+
+### 12.12.7 Un link que se va con su reserva viva se RETIRA, no se borra (17/10/2026)
+
+Beds24 **rechaza el `DELETE` de una reserva activa** —«cannot delete active bookings»—: sólo borra
+las canceladas. Por eso la puerta 2 de §12.12.1. Pero había dos caminos que soltaban links con la
+reserva todavía viva allí, y su `DELETE` fallaba dejándola bloqueando la casita:
+
+- el **espejo que sobra** al mover una estancia a una casita con menos canales, y el principal
+  que no puede cruzar de establecimiento virtual (§6.3.b): la estancia sigue viva;
+- un **bloqueo borrado desde el panel**: `ESTADOS_BORRABLES_CON_ID` lo deja borrar con id, y en
+  Beds24 es una `black` activa.
+
+Hoy todo link que desaparece en el flush (cascada u `orphanRemoval`) sale por
+`Beds24BookingsPushQueueCreator::enqueueRetirada()`: una fila **sin link**, por el endpoint de
+POST, con `dedupe_key = retirada:<bookId>:provider:…:endpoint:POST_BOOKINGS`. La estrategia ya
+sabía qué hacer con ella —es el camino de los duplicados de §9.7—: `{id, status: cancelled}`.
+Sobre una ya cancelada no hace nada, así que vale para cualquier link que se vaya. El `DELETE` se
+queda sólo para el borrado manual (`pending_delete`, §12.12.5), en el que el link sobrevive.
+
+⚠️ **Y lleva su marca: `custom2 = RETIRADA`.** Con el `DELETE` la reserva desaparecía de Beds24;
+cancelada se queda, y **el pull trae las canceladas a propósito** (§4.1.c). Sin marca, una
+cancelada que ningún link reclama se adoptaba como reserva nueva en el siguiente webhook: el
+borrado resucitaba como estancia cancelada con su propia reserva. `BookingPullPersister::upsert()`
+la trata como nuestra —igual que `MIRROR` y `EXTRA`— y no estrena nada; si llega activa, lo dice
+en un `warning` (alguien la reactivó allí, o la retirada no salió). Tests: `RetiradaEnBeds24Test`,
+`BookingPullPersisterMarcadorTest::una_reserva_retirada_no_resucita`.
+
+Comprobado contra la base local en una transacción con rollback: mover una estancia a una casita
+con un canal menos deja una retirada del espejo y **ningún DELETE**; borrar un bloqueo con id,
+dos retiradas.
 
 ## 12.13 Push de estado a una OTA: sólo por intención explícita
 
@@ -6575,7 +6762,14 @@ contra la base local: mismos veredictos que antes.
 | Cambiar si el canal puede confirmar una estancia solo | `BookingPullPersister` | `resolveEstado()` — **lee §5.4 antes**: los que ya cobraron (Airbnb, VRBO) sí confirman; Booking no. El `(int)$status === 0` del final parece un bug y no lo es |
 | Añadir un parámetro multivaluado a cualquier GET de Beds24 | `BookingsPullMappingStrategy`, `Beds24InvoiceReceiveMappingStrategy` | montarlo en `fullUrl`; un array en el `payload` sale como `x[0]=` y Beds24 lo ignora |
 | Tocar cascadas del grafo evento/link/cola de push | `Beds24BookingsPushQueueCreator` | `enqueueForLink()` — **lee §12.11 antes** |
-| Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `$marcaNuestra` (`MIRROR` o `EXTRA`) — §6.3.d |
+| Qué hace el pull con un espejo que ningún link reclama | `BookingPullPersister` | `upsert()`, la guarda de `$marcaNuestra` (`MIRROR`, `EXTRA` o `RETIRADA`) — §6.3.d, §12.12.7 |
+| Cuándo la cola reenvía un link (qué cuenta como «cambió») | `BookingsPushMappingStrategy` + `Beds24BookingsPushQueueCreator` | `contenidoQueViaja()` / `huella()` — la huella sale del MISMO constructor que el envío (§7.1.a) |
+| Qué pasa si el link cambia mientras un worker lo envía | `Beds24BookingsPushQueueCreator` + `BookingsPushHandler` | rama `STATUS_PROCESSING` de `enqueueForLink()` / `cambioMientrasSeEnviaba()` (§7.1.a) |
+| Qué cambios del huésped NO se empujan | `Beds24BookingsPushQueueListener` | `cambioSoloDeDatosDelCanal()` + `IGNORED_FIELDS_ON_LOCKED_OTA` — sólo OTAs con candado (§7.1.a.2) |
+| Cómo se quita de Beds24 la reserva de un link que se va | `Beds24BookingsPushQueueCreator` | `enqueueRetirada()` — cancelada y con `custom2 = RETIRADA`, nunca DELETE (§12.12.7) |
+| Que una estancia creada por el asistente salga a Beds24 | `PmsEstanciaCreator` | `crear()` → `hydrateLinksForUi()` (§6.2) |
+| Los ids del grupo de una reserva con varias estancias | `BookingPullPersister` / `BookingsPushHandler` | `upsertReservaFull()` (sólo si Beds24 declara el grupo o no había) / `handleSuccess()` siembra la madre (§6.4) |
+| Qué deja el webhook en memoria cuando una reserva falla | `Beds24WebhookBookingFastTrackService` | `process()`, el `catch` — `clear()` + `reset()`; el handler guarda la auditoría antes (§3.2) |
 | Qué sabe cada pieza del rol de un link (estancia / extra) | `PmsEventoBeds24Link` | `ROL_*`, `esDeEstancia()` — tabla de §2.1 |
 | Cambiar cuándo dos links compiten por la misma reserva en el push | `Beds24BookingsPushQueueListener` | `torneo()` — clave `(evento, mapa, rol)` |
 | Declarar un índice o un único en una entidad | la entidad | atributo de CLASE `#[ORM\UniqueConstraint]` — dentro de `#[ORM\Table]` se ignora (§2.2) |
@@ -6596,7 +6790,8 @@ contra la base local: mismos veredictos que antes.
 | Cambiar cuándo se puede borrar un PAGO | `PmsPagoFinanciero` | `getMotivoNoBorrable()` — dos motivos: depósito del canal y cobro por enlace (`enlacePagoId`) |
 | Que el borrado de la reserva arrastre una tabla nueva (§12.12.3) | `PmsReserva` | declarar el lado inverso con `cascade: ['remove']`; una FK sin mapear = 1451 |
 | Tocar el desenganche de colas al borrar un link (§12.11.b) | `Beds24BookingsPushQueueCreator` | `detachQueuesFromLink()` |
-| Cambiar qué link conserva su `beds24BookId` al mover de casita (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — rama de espejos y `$mueveDentroDelMismoVirtual` |
+| Cambiar qué link conserva su `beds24BookId` al mover de casita (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — rama de espejos y `$mueveDentroDelMismoVirtual`; el principal, `$principalViaja` / `mismoVirtual()` |
+| Qué hace el pull de un espejo con la casita de la estancia (§6.3.b) | `BookingPullPersister` | `upsertEvento()` — sólo el principal mueve (`$isLinkPrincipal`) |
 | Cómo se identifica el link principal sin ID remoto (§6.3.b) | `PmsEventoCalendarioFactory` | `internalHydrate()` — bloque B, `$esElPrincipal` |
 | Cambiar qué se recalcula tras un borrado (§12.12.4) | `PmsReservaRecalculoListener` | `onFlush()` — bloque 5, descarte de reservas borradas |
 | Cerrar el ciclo de un DELETE manual (§12.12.5) | `BookingsPushHandler` | `handleSuccess()` → `markSyncedDeleted()` |

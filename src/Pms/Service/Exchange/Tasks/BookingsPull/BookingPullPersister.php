@@ -39,6 +39,13 @@ use Psr\Log\LoggerInterface;
  */
 final class BookingPullPersister implements ResetInterface
 {
+    /**
+     * El nombre provisional de la reserva de un grupo cuya hija llega antes que la madre
+     * ({@see self::resolveOrCreateStubReserva()}). La madre lo reconoce para retitular a la hija.
+     */
+    private const string STUB_NOMBRE = 'Pendiente Sync';
+    private const string STUB_APELLIDO = '(Grupo)';
+
     /** @var array<string, PmsReserva|false> Cache local por ciclo de ejecución */
     private array $reservaByMasterId = [];
 
@@ -177,7 +184,11 @@ final class BookingPullPersister implements ResetInterface
         // Si existe link en BD → respetamos su valor.
         // Si es nuevo → custom2 es autoritativo (escrito por nosotros en el Push previo).
         // Fallback: true (si no hay custom2 es una reserva que nunca hemos procesado).
-        $marcaNuestra = in_array($booking->custom2, [BookingsPushMappingStrategy::MARCA_ESPEJO, BookingsPushMappingStrategy::MARCA_EXTRA], true);
+        $marcaNuestra = in_array($booking->custom2, [
+            BookingsPushMappingStrategy::MARCA_ESPEJO,
+            BookingsPushMappingStrategy::MARCA_EXTRA,
+            BookingsPushMappingStrategy::MARCA_RETIRADA,
+        ], true);
         $isLinkPrincipal = $existingLink
             ? $existingLink->isEsPrincipal()
             : !$marcaNuestra;
@@ -223,7 +234,11 @@ final class BookingPullPersister implements ResetInterface
             // Y uno ya CANCELADO no bloquea nada: sólo queda como rastro. Este pull trae las
             // canceladas a propósito (ver `BookingsPullMappingStrategy`), así que sin esta
             // distinción el aviso se repetiría en cada pasada hasta que pasaran las fechas.
-            $queEs = $booking->custom2 === BookingsPushMappingStrategy::MARCA_EXTRA ? 'Noche extra huérfana' : 'Espejo huérfano';
+            $queEs = match ($booking->custom2) {
+                BookingsPushMappingStrategy::MARCA_EXTRA    => 'Noche extra huérfana',
+                BookingsPushMappingStrategy::MARCA_RETIRADA => 'Reserva retirada',
+                default                                     => 'Espejo huérfano',
+            };
             $contexto = [
                 'marca'          => $booking->custom2,
                 'beds24_book_id' => $bookingIdStr,
@@ -234,13 +249,18 @@ final class BookingPullPersister implements ResetInterface
                 'estado'         => $booking->status,
             ];
 
-            $queHacer = $booking->custom2 === BookingsPushMappingStrategy::MARCA_ESPEJO
-                ? 'Mira si la estancia real de esa casita y fechas ya tiene su espejo enlazado. '
+            $queHacer = match ($booking->custom2) {
+                BookingsPushMappingStrategy::MARCA_ESPEJO => 'Mira si la estancia real de esa casita y fechas ya tiene su espejo enlazado. '
                     . 'Si lo tiene, éste es un DUPLICADO en Beds24 y hay que cancelarlo allí. '
-                    . 'Si no lo tiene, se perdió su link es_principal=0 y hay que reponerlo.'
-                : 'Mira la estancia de esa casita que entra al día siguiente (o sale ese día). '
+                    . 'Si no lo tiene, se perdió su link es_principal=0 y hay que reponerlo.',
+                // La cancelamos nosotros al irse su link. Si vuelve activa, alguien la reactivó en
+                // Beds24 —allí no se edita nada—, o la retirada no salió: mírala en su cola.
+                BookingsPushMappingStrategy::MARCA_RETIRADA => 'La cancelamos al borrar o mover su estancia en el PMS y sigue activa en Beds24. '
+                    . 'Mira la cola de push con dedupe «retirada:' . $bookingIdStr . '»; si salió bien, alguien la reactivó allí: cancélala.',
+                default => 'Mira la estancia de esa casita que entra al día siguiente (o sale ese día). '
                     . 'Si tiene la casilla de horario extra y su link extra con otro bookId, éste es un DUPLICADO y hay que cancelarlo en Beds24. '
-                    . 'Si la casilla está apagada, sobra: cancélalo allí.';
+                    . 'Si la casilla está apagada, sobra: cancélalo allí.',
+            };
 
             if ($booking->status === 'cancelled') {
                 $this->logger->info($queEs . ': en Beds24 ya está cancelled, no bloquea nada. No se crea nada.', $contexto);
@@ -493,9 +513,23 @@ final class BookingPullPersister implements ResetInterface
             $reserva->setBeds24MasterId($effectiveMasterId);
             $reserva->setBeds24BookIdPrincipal($bookIdStr);
             $this->em->persist($reserva);
-        } else {
-            if ($isPrincipal) {
+        } elseif ($isPrincipal) {
+            // 👥 **Una reserva con VARIAS estancias tiene un principal por estancia.** (17/10/2026)
+            // Cada una llega con su link `esPrincipal`, así que escribir aquí sin más hacía que la
+            // reserva se quedara con los ids de la ÚLTIMA que pasó por el pull, y que alternaran
+            // de una pasada a otra.
+            //
+            // El `masterId` se escribe sólo si Beds24 dice de qué grupo es (entonces es la verdad)
+            // o si no había ninguno. El `bookIdPrincipal`, si es la madre del grupo o si no había.
+            //
+            // Medido en los webhooks de producción el 17/10/2026: una reserva SIN grupo trae
+            // `masterId` y `bookingGroup` a `null` (2505 de 2512); en un grupo, la madre se
+            // declara a sí misma en `bookingGroup.master`. Por eso «es la madre» exige que haya
+            // grupo: sin él, cada estancia suelta es su propia «madre» y volverían a alternar.
+            if ($masterReal !== null || $reserva->getBeds24MasterId() === null) {
                 $reserva->setBeds24MasterId($effectiveMasterId);
+            }
+            if ($bookIdStr === $masterReal || $reserva->getBeds24BookIdPrincipal() === null) {
                 $reserva->setBeds24BookIdPrincipal($bookIdStr);
             }
         }
@@ -508,7 +542,16 @@ final class BookingPullPersister implements ResetInterface
 
         // --- DATA SYNC ---
 
-        $reserva->setNota($booking->notes);
+        // 📝 La nota sólo la escribe el PRINCIPAL. (17/10/2026)
+        //
+        // Un espejo comparte la reserva y lleva en Beds24 la nota que le mandamos la última vez
+        // —o ninguna—, así que su pull la machacaba con la vieja o la dejaba en blanco. Y un
+        // `notes` vacío tampoco borra la nuestra: en Beds24 nadie escribe notas a mano, y el push
+        // no manda un campo vacío (`setIf()`), así que el vacío allí sólo significa «aún no ha
+        // llegado», no «la han quitado».
+        if ($isPrincipal && trim((string) $booking->notes) !== '') {
+            $reserva->setNota($booking->notes);
+        }
 
         if ($booking->commission) {
             $reserva->setComisionTotal($this->normalizeDecimal($booking->commission));
@@ -549,8 +592,24 @@ final class BookingPullPersister implements ResetInterface
             //
             // Normalizar en la fuente hace las dos preguntas irrelevantes. Ver
             // docs/PmsBeds24ReservasSync.md y NombreSanitizer, que sólo toca lo GRITADO.
+            $eraStub = $reserva->getNombreCliente() === self::STUB_NOMBRE
+                && $reserva->getApellidoCliente() === self::STUB_APELLIDO;
+
             $reserva->setNombreCliente($firstName !== '' ? $this->nombreSanitizer->formatear($firstName) : null);
             $reserva->setApellidoCliente($lastName !== '' ? $this->nombreSanitizer->formatear($lastName) : null);
+
+            // 👥 **La hija llegó antes que la madre.** (17/10/2026) Su estancia se tituló con el
+            // stub —«Pendiente Sync (Grupo)»— y, si la madre entra en el MISMO lote, la reserva
+            // todavía es una inserción: `PmsCambioDeNombreListener` sólo mira actualizaciones y el
+            // título se quedaba así hasta que alguien volviera a tocar a la hija. Se le pone aquí.
+            if ($eraStub) {
+                $titulo = trim((string) $reserva->getNombreCliente() . ' ' . (string) $reserva->getApellidoCliente());
+                foreach ($reserva->getEventosCalendario() as $hermana) {
+                    if ($hermana->getTituloCache() === self::STUB_NOMBRE . ' ' . self::STUB_APELLIDO) {
+                        $hermana->setTituloCache($titulo !== '' ? mb_substr($titulo, 0, 180) : null);
+                    }
+                }
+            }
             $reserva->setEmailCliente($email !== '' ? $email : null);
 
             $pais = $this->resolvePais($booking);
@@ -599,8 +658,8 @@ final class BookingPullPersister implements ResetInterface
         if (!$reserva) {
             $reserva = new PmsReserva();
             $reserva->setBeds24MasterId($masterIdStr);
-            $reserva->setNombreCliente('Pendiente Sync');
-            $reserva->setApellidoCliente('(Grupo)');
+            $reserva->setNombreCliente(self::STUB_NOMBRE);
+            $reserva->setApellidoCliente(self::STUB_APELLIDO);
             $reserva->setEstablecimiento($establecimiento);
             $reserva->setIdioma($this->resolveIdioma($booking));
 
@@ -658,7 +717,14 @@ final class BookingPullPersister implements ResetInterface
             // la `black` a la casita nueva — pero si entre medias llega el pull de la `black`
             // todavía en la vieja, sin esta guarda devolvería la estancia a la casita de antes y
             // reconstruiría sus links tomando el bookId de la `black` como el de la reserva.
-            if ($existingLink->esDeEstancia() && $unidadActual->getId() !== $unidadNueva->getId()) {
+            //
+            // 🔥 **Y un ESPEJO tampoco.** (17/10/2026) Tiene rol `estancia` igual que el principal,
+            // así que `esDeEstancia()` no lo distinguía. Si el operador mueve la estancia y el pull
+            // del espejo llega antes que el push que lo lleva a la casita nueva, la devolvía a la
+            // vieja y, al reconstruir con SU bookId, el espejo pasaba a principal y la reserva de
+            // la OTA a espejo: desde ahí los pulls de la OTA dejaban de escribir fechas y huésped.
+            // Dónde está la estancia lo dice la reserva de verdad; el espejo va detrás.
+            if ($isLinkPrincipal && $existingLink->esDeEstancia() && $unidadActual->getId() !== $unidadNueva->getId()) {
                 $evento->setPmsUnidad($unidadNueva);
                 $this->eventoFactory->rebuildLinks(
                     evento: $evento,
@@ -678,8 +744,12 @@ final class BookingPullPersister implements ResetInterface
             );
         }
 
-        if ($reserva) {
-            $evento->setReserva($reserva);
+        // Por el lado de la reserva, para que la colección lo vea en este mismo lote: la madre de
+        // un grupo que llega después que su hija la recorre para quitarle el título de stub (ver
+        // `upsertReservaFull()`). Con `setReserva()` a secas la hija no estaba. Sólo si cambia: en
+        // el pull de siempre ya es suya, y `contains()` cargaría la colección entera para nada.
+        if ($reserva && $evento->getReserva() !== $reserva) {
+            $reserva->addEventosCalendario($evento);
         }
 
         // =====================================================================
@@ -770,8 +840,14 @@ final class BookingPullPersister implements ResetInterface
             if (!$matchById && !$matchByIdentity) {
                 continue;
             }
-            // En migración el beds24BookId puede haber cambiado: lo actualizamos
-            if ($matchByIdentity && !$matchById && $l->isEsPrincipal()) {
+            // El link se adoptó por su `custom1` (aún no tenía id: el hueco entre el POST y la
+            // respuesta, o una migración). Se le anota, sea principal, espejo o noche extra.
+            //
+            // ⚠️ Hasta el 17/10/2026 sólo se anotaba al principal. Un espejo o una `black`
+            // adoptados se quedaban sin id, y su siguiente push —sin `id` en el cuerpo— creaba
+            // OTRA reserva en Beds24. `upsert()` sólo adopta por marcador un link LIBRE, así que
+            // aquí no se le pisa el id a nadie.
+            if ($matchByIdentity && !$matchById) {
                 $l->setBeds24BookId($bookIdStr);
             }
             $l->setLastSeenAt(new DateTimeImmutable());

@@ -8,6 +8,7 @@ use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Entity\PmsUnidadBeds24Map;
 use App\Pms\Service\Reserva\NochesExtraDeEstancia;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -22,7 +23,8 @@ use Doctrine\ORM\EntityManagerInterface;
  * ✅ ESTRATEGIA "SMART MOVE" (Establecimiento Virtual):
  * - Al cambiar de unidad física, busca coincidencias por código de Establecimiento Virtual (ej: "SAPHY").
  * - Si encuentra coincidencia, MUEVE el link (UPDATE).
- * - Si NO encuentra coincidencia, RESCATA el principal y ELIMINA los secundarios.
+ * - Si NO la encuentra, el principal se rescata SÓLO dentro de su mismo virtual; si no puede, lo
+ *   releva el espejo de ese virtual. Lo que sobra se suelta y se RETIRA en Beds24 (cancelada).
  */
 class PmsEventoCalendarioFactory
 {
@@ -142,14 +144,29 @@ class PmsEventoCalendarioFactory
         // 0) Maps activos de la NUEVA unidad
         $newMaps = $unidad->getBeds24MapsActivos();
 
-        // ⚠️ CASO CRÍTICO: Si la nueva unidad no tiene mapas, no hacemos nada.
-        // Los links se quedan apuntando a la unidad vieja (inconsistente pero mejor que borrar IDs).
-        if ($newMaps === []) {
-            return;
-        }
-
         // 1) Detectar contexto
         $cameFromWebhook = ($externalBookId !== null && $externalRoomId !== null);
+
+        // ⚠️ La nueva unidad no está en Beds24.
+        //
+        // Desde un webhook no se toca nada: el mapa por el que llegó ES de esta unidad, así que
+        // sólo puede pasar con un mapeo desactivado, y eso no es motivo para soltar reservas.
+        //
+        // Desde la UI es un MOVIMIENTO a una casita que no se vende fuera (es la única vez que se
+        // rehidrata una estancia con links: al cambiar de casita). Hasta el 17/10/2026 aquí se
+        // volvía sin más, «inconsistente pero mejor que borrar IDs», y los links seguían en la
+        // casita vieja: sus reservas la bloqueaban en Beds24 para siempre. Se sueltan, y al irse
+        // el listener de la cola las RETIRA allí —las cancela, no las borra: ver
+        // `Beds24BookingsPushQueueCreator::enqueueRetirada()`—. Los extra los lleva su servicio.
+        if ($newMaps === []) {
+            if (!$cameFromWebhook) {
+                foreach ($evento->getLinksDeEstancia() as $huerfano) {
+                    $evento->removeBeds24Link($huerfano);
+                }
+            }
+
+            return;
+        }
 
         // ---------------------------------------------------------------------
         // 2) CATALOGAR SUPERVIVIENTES (Links actuales)
@@ -264,14 +281,42 @@ class PmsEventoCalendarioFactory
             $linkToUse = null;
 
             if ($isPrincipalMap) {
-                // ✅ RESCATE DEL PRINCIPAL:
-                // Si teníamos un link principal ("SAPHY"), pero la nueva unidad no tiene "SAPHY",
-                // y el nuevo mapa principal es "INTI", aquí forzamos que el link "SAPHY"
-                // se convierta en el link del mapa "INTI".
-                // ASÍ NO SE PIERDE EL ID DE LA RESERVA.
-                if ($principalSurvivor) {
+                // ✅ RESCATE DEL PRINCIPAL: el link principal viaja al mapa principal de la casita
+                // nueva y se lleva su reserva de Beds24 —un UPDATE que la cambia de habitación—.
+                //
+                // 🚫 **Salvo que eso la haga cruzar de establecimiento virtual.** (17/10/2026) En
+                // Beds24 una reserva es de una propiedad: la de SAPHY no se puede mover a una
+                // habitación de INTI. Antes se rescataba igual —el comentario decía «así no se
+                // pierde el ID»—, el push fallaba y la reserva de SAPHY se quedaba viva bloqueando
+                // la casita vieja, mientras el espejo que sí estaba en INTI se tiraba. Los espejos
+                // ya respetaban esta regla; el principal no.
+                //
+                // Ahora, si no puede viajar, el principal se suelta (y se retira en Beds24) y su
+                // papel lo toma el ESPEJO que ya había en ese virtual, con su reserva: el push lo
+                // rellena con los datos de la estancia. Si no hay espejo allí, nace uno nuevo.
+                //
+                // Desde un webhook no se aplica: el id y la habitación los acaba de decir Beds24.
+                // Y una estancia sin id todavía puede ir donde sea: no hay nada que cruzar.
+                $principalViaja = $principalSurvivor !== null && (
+                    $cameFromWebhook
+                    || $principalSurvivor->getBeds24BookId() === null
+                    || self::mismoVirtual($principalSurvivor, $map)
+                );
+
+                $relevo = null;
+                if ($principalViaja) {
                     $linkToUse = $principalSurvivor;
                 } else {
+                    $codigo = $map->getVirtualEstablecimiento()?->getCodigo();
+                    if ($principalSurvivor !== null && $codigo !== null && isset($groupedSurvivors[$codigo])) {
+                        $relevo = $groupedSurvivors[$codigo];
+                        unset($groupedSurvivors[$codigo]);
+                    }
+
+                    $linkToUse = $relevo;
+                }
+
+                if ($linkToUse === null) {
                     $linkToUse = new PmsEventoBeds24Link();
                     $linkToUse->setEvento($evento);
                     $evento->addBeds24Link($linkToUse);
@@ -279,7 +324,11 @@ class PmsEventoCalendarioFactory
 
                 $linkToUse->hacerPrincipal();
 
-                if ($targetBookId !== null) {
+                if ($principalSurvivor !== null && !$principalViaja) {
+                    // Conserva la reserva del relevo, o ninguna si es nuevo: el id del principal
+                    // viejo es de otra propiedad.
+                    $linkToUse->setBeds24BookId($relevo?->getBeds24BookId());
+                } elseif ($targetBookId !== null) {
                     $linkToUse->setBeds24BookId($targetBookId);
                     if ($cameFromWebhook) {
                         $linkToUse->setLastSeenAt(new DateTimeImmutable());
@@ -356,19 +405,42 @@ class PmsEventoCalendarioFactory
         // Aquí caen los links espejos que no encontraron su "pareja" en la nueva unidad.
         $leftovers = array_merge(array_values($groupedSurvivors), $genericSurvivors);
 
-        // Doble chequeo de seguridad para el principal
+        // El principal que no pudo viajar a otro establecimiento virtual (ver el rescate).
         if ($principalSurvivor && !in_array($principalSurvivor, $usedLinks, true)) {
-            // Esto teóricamente no debería pasar gracias a la lógica de arriba,
-            // pero si pasara, lo forzamos a borrarse para evitar inconsistencias graves.
-            // (En realidad, el código de arriba garantiza que el principal siempre se usa).
             $leftovers[] = $principalSurvivor;
+
+            // La reserva no puede seguir agrupándose con una que se va a cancelar: el push de la
+            // nueva le mandaría ese `masterId`. Se vacían y el primer push los vuelve a sembrar
+            // (`BookingsPushHandler::handleSuccess()`).
+            $reserva = $evento->getReserva();
+            $idViejo = $principalSurvivor->getBeds24BookId();
+            if ($reserva !== null && $idViejo !== null) {
+                if ($reserva->getBeds24MasterId() === $idViejo) {
+                    $reserva->setBeds24MasterId(null);
+                }
+                if ($reserva->getBeds24BookIdPrincipal() === $idViejo) {
+                    $reserva->setBeds24BookIdPrincipal(null);
+                }
+            }
         }
 
         foreach ($leftovers as $unused) {
-            // No limpiar beds24BookId aquí: el PushQueueListener lo lee durante onFlush
-            // para construir el DELETE hacia Beds24. Con orphanRemoval=true, Doctrine
-            // programa el DELETE de la fila completa — el ID ya no hace falta después.
+            // No limpiar beds24BookId aquí: el PushQueueListener lo lee durante onFlush para
+            // RETIRAR la reserva en Beds24 (cancelarla: un DELETE sobre una activa lo rechaza).
+            // Con orphanRemoval=true, Doctrine borra la fila del link — el ID ya no hace falta.
             $evento->removeBeds24Link($unused);
         }
+    }
+
+    /**
+     * ¿El link está en el mismo establecimiento virtual que el mapa? Si a alguno le falta el
+     * código no se puede saber, y se le deja viajar como antes.
+     */
+    private static function mismoVirtual(PmsEventoBeds24Link $link, PmsUnidadBeds24Map $map): bool
+    {
+        $actual = $link->getUnidadBeds24Map()?->getVirtualEstablecimiento()?->getCodigo();
+        $destino = $map->getVirtualEstablecimiento()?->getCodigo();
+
+        return $actual === null || $destino === null || $actual === $destino;
     }
 }

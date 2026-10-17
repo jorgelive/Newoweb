@@ -99,6 +99,20 @@ final class BookingPullPersisterMarcadorTest extends TestCase
         self::assertStringContainsString('Espejo huérfano', $resultado['message']);
     }
 
+    /**
+     * Una reserva que retiramos nosotros (la cancelamos porque su link se fue) no vuelve a entrar
+     * como estancia nueva. Antes se borraba con `DELETE`; cancelada, el pull la vería sin link.
+     */
+    #[Test]
+    public function una_reserva_retirada_no_resucita(): void
+    {
+        $resultado = $this->persister(null, porBookId: null)
+            ->upsert($this->config(), $this->booking(93900003, 'RETIRADA', 'cancelled'));
+
+        self::assertSame('skipped', $resultado['status']);
+        self::assertStringContainsString('Reserva retirada', $resultado['message']);
+    }
+
     // ── Andamiaje ─────────────────────────────────────────────────────────────────────────
 
     private function link(string $bookId): PmsEventoBeds24Link

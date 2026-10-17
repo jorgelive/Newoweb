@@ -80,7 +80,8 @@ final class BookingsPushMappingStrategyTest extends TestCase
             [$cola],
         ));
 
-        self::assertSame([['id' => 93628252, 'status' => 'cancelled']], $mapeo->payload);
+        // Con su marca: una cancelada que ningún link reclama, el pull la estrenaría.
+        self::assertSame([['id' => 93628252, 'status' => 'cancelled', 'custom2' => 'RETIRADA']], $mapeo->payload);
     }
 
     /**

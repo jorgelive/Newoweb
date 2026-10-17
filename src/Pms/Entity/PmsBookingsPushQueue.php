@@ -157,6 +157,24 @@ class PmsBookingsPushQueue implements ExchangeQueueItemInterface, MemoryCleanabl
     }
 
     /**
+     * El envío salió bien, pero **lo enviado ya es viejo**: alguien cambió el link mientras el
+     * worker estaba en la petición. Vuelve a la cola en vez de darse por enviada.
+     *
+     * Lo decide `BookingsPushHandler::handleSuccess()` comparando la huella de la base con la
+     * que reclamó. El reenvío se arma con los datos de ese momento, así que sale lo nuevo.
+     */
+    public function volverAPendiente(DateTimeImmutable $now): void
+    {
+        $this->status = self::STATUS_PENDING;
+        $this->runAt = $now;
+        $this->retryCount = 0;
+        $this->failedReason = null;
+
+        $this->lockedAt = null;
+        $this->lockedBy = null;
+    }
+
+    /**
      * @param string $reason
      * @param int|null $httpCode
      * @param DateTimeImmutable $nextRetry

@@ -28,7 +28,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * entidades (titular + estancia inicial) en un único flush atómico.
  *
  * Reglas de negocio replicadas de PmsReservaCrudController::createEntity() (EasyAdmin):
- * establecimiento único del sistema, idioma por defecto si no se especifica. El canal
+ * establecimiento de la casita, idioma por defecto si no se especifica. El canal
  * se fuerza SIEMPRE a "directo": este endpoint no puede crear reservas de canales OTA.
  */
 /** @implements ProcessorInterface<PmsReservaCrearInput, PmsReserva> */
@@ -49,15 +49,19 @@ final class PmsReservaCrearProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException('La unidad es obligatoria.');
         }
 
-        $inicio = $this->parseFecha($data->inicio, 'inicio');
-        $fin = $this->parseFecha($data->fin, 'fin');
+        // El de la CASITA. Aquí se tomaba «el primero» (`findOneBy([])`), que es lo mismo
+        // mientras haya un solo establecimiento y una reserva en el ajeno en cuanto haya dos.
+        $establecimiento = $data->pmsUnidad->getEstablecimiento()
+            ?? throw new UnprocessableEntityHttpException('La casita no tiene establecimiento.');
+
+        $inicio = $this->parseFecha($data->inicio, 'inicio', $establecimiento, true);
+        $fin = $this->parseFecha($data->fin, 'fin', $establecimiento, false);
 
         if ($fin <= $inicio) {
             throw new UnprocessableEntityHttpException('La fecha de salida debe ser posterior a la fecha de llegada.');
         }
 
         $canalDirecto = $this->entityManager->getReference(PmsChannel::class, PmsChannel::CODIGO_DIRECTO);
-        $establecimiento = $this->entityManager->getRepository(PmsEstablecimiento::class)->findOneBy([]);
         $idioma = $data->idioma ?? $this->entityManager->getReference(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
 
         $reserva = new PmsReserva();
@@ -93,10 +97,20 @@ final class PmsReservaCrearProcessor implements ProcessorInterface
         return $reserva;
     }
 
-    private function parseFecha(?string $value, string $campo): DateTimeImmutable
+    /**
+     * Una fecha sola (`Y-m-d`) lleva la hora de entrada o salida del establecimiento, igual que
+     * toda estancia (`PmsEventoCalendarioFactory::resolveFechaConHora()`). Sin esto nacía a las
+     * 00:00, y la hora es de pared: «la medianoche» sale en la guía y en los mensajes.
+     */
+    private function parseFecha(?string $value, string $campo, PmsEstablecimiento $establecimiento, bool $esEntrada): DateTimeImmutable
     {
         if (!$value) {
             throw new UnprocessableEntityHttpException(sprintf('La fecha de %s es obligatoria.', $campo));
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            return $this->eventoFactory->resolveFechaConHora($value, $establecimiento, $esEntrada)
+                ?? throw new UnprocessableEntityHttpException(sprintf('La fecha de %s no es válida.', $campo));
         }
 
         try {

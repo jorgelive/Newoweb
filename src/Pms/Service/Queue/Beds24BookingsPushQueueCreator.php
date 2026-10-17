@@ -11,6 +11,7 @@ use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Factory\PmsBookingsPushQueueFactory;
+use App\Pms\Service\Exchange\Tasks\BookingsPush\BookingsPushMappingStrategy;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\PersistentCollection;
@@ -39,6 +40,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
         private readonly EntityManagerInterface $em,
         private readonly SyncContext $syncContext,
         private readonly PmsBookingsPushQueueFactory $factory,
+        private readonly BookingsPushMappingStrategy $mapeo,
     ) {}
 
     /**
@@ -104,42 +106,45 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
         // las tres `NOT NULL` en la base: un eslabón vacío es un dato roto y lo dice el `OrFail`.
         $config = $map->getPmsUnidadOrFail()->getEstablecimientoOrFail()->getBeds24ConfigOrFail();
 
-        // 4. Snapshot de datos (Payload JSON)
-        $payload = [
-            'linkId'       => $linkId,
-            'isMirror'     => $link->isMirror(),
-            'eventoId'     => $evento?->getId() ? (string) $evento->getId() : null,
-            'inicio'       => $evento?->getInicio()?->format('c'),
-            'fin'          => $evento?->getFin()?->format('c'),
-            'estado'       => $evento?->getEstado()?->getId(),
-            'beds24RoomId' => $map->getBeds24RoomId(),
-            'configId'     => $config->getId() !== null ? (string) $config->getId() : null,
-        ];
-
-        // Un link extra cambia sin que cambie nada de lo de arriba: marcar o desmarcar la casilla
-        // no toca ni las fechas ni el estado de la estancia. Su noche entra en el snapshot, o la
-        // cola creería que no hay nada nuevo que mandar. Sólo en los extra: añadirlo a todos
-        // cambiaría el hash de cada link de estancia y los reenviaría todos.
-        if (!$link->esDeEstancia()) {
-            $noche = $link->nocheQueBloquea();
-            $payload['rol'] = $link->getRol();
-            $payload['noche'] = $noche !== null
-                ? [$noche->desde->format('Y-m-d'), $noche->hasta->format('Y-m-d')]
-                : null;
-        }
-
-        $json = json_encode(value: $payload, flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $payloadHash = sha1((string) $json);
+        // 4. Huella de lo que viajaría (ver `huella()`)
+        $payloadHash = $this->huella($link, $config->getId() !== null ? (string) $config->getId() : null);
 
         // 5. Idempotencia (Reusar existente si es posible)
         if (!$isDelete) {
             $existingQueue = $this->findExistingQueue(link: $link, dedupeKey: $dedupeKey, uow: $uow);
 
             if ($existingQueue instanceof PmsBookingsPushQueue) {
-                // Si es idéntico y está pendiente, no hacemos nada (Ahorro)
-                if ($existingQueue->getPayloadHash() === $payloadHash
-                    && $existingQueue->getStatus() === PmsBookingsPushQueue::STATUS_PENDING
-                ) {
+                $mismaHuella = $existingQueue->getPayloadHash() === $payloadHash;
+
+                // 🔁 **Lo ya enviado no se reenvía.** (17/10/2026) Antes sólo se ahorraba si la
+                // fila seguía PENDIENTE; una en `success` se reciclaba aunque no hubiera nada
+                // nuevo. Como el pull ensucia el evento en cada pasada —las fechas llegan como
+                // objetos nuevos y Doctrine compara por identidad—, cada webhook de una reserva
+                // reenviaba sus espejos y sus noches extra. Ahora se puede cortar porque la huella
+                // sale del mismo constructor que el envío: si no cambió, Beds24 ya lo tiene.
+                if ($mismaHuella && in_array($existingQueue->getStatus(), [
+                    PmsBookingsPushQueue::STATUS_PENDING,
+                    PmsBookingsPushQueue::STATUS_SUCCESS,
+                ], true)) {
+                    return;
+                }
+
+                // 🔒 **Una fila que un worker está enviando NO se toca más que en su huella.**
+                // Reciclarla a `pending` le quitaba el candado (`locked_at = NULL`) y otro worker
+                // podía reclamarla mientras el primero seguía en la petición: dos POST del mismo
+                // link, y si aún no tenía `bookId`, dos reservas en Beds24. Además el primero, al
+                // acabar, la marcaba `success` y el cambio de en medio no salía nunca.
+                //
+                // Se apunta sólo la huella nueva. `BookingsPushHandler::handleSuccess()` compara la
+                // de la base con la que reclamó y, si cambió por el camino, la devuelve a
+                // `pending` en vez de darla por enviada. Ver docs/PmsBeds24ReservasSync.md §7.1.a.
+                if ($existingQueue->getStatus() === PmsBookingsPushQueue::STATUS_PROCESSING) {
+                    if (!$mismaHuella) {
+                        $existingQueue->setPayloadHash($payloadHash);
+                        $this->recomputar($existingQueue, $uow);
+                    }
+
+                    $this->runtimeDedupe[$dedupeKey] = $existingQueue;
                     return;
                 }
 
@@ -156,12 +161,7 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
                     ->setLockedBy(null)
                     ->setFailedReason(null);
 
-                if ($uow !== null) {
-                    $uow->recomputeSingleEntityChangeSet(
-                        class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
-                        entity: $existingQueue
-                    );
-                }
+                $this->recomputar($existingQueue, $uow);
 
                 $this->runtimeDedupe[$dedupeKey] = $existingQueue;
                 return;
@@ -242,13 +242,134 @@ final class Beds24BookingsPushQueueCreator implements ResetInterface
     }
 
     /**
+     * Retira de Beds24 la reserva de un link que se va: la CANCELA, no la borra.
+     *
+     * 🧹 **Beds24 no borra reservas activas** —«cannot delete active bookings»—: un `DELETE`
+     * sobre una `confirmed`, `new` o `black` falla siempre. Por eso `isSafeToDelete()` pide pasar
+     * una estancia a «cancelada» y esperar antes de borrarla. Pero dos caminos borraban links
+     * con la reserva todavía viva allí (17/10/2026):
+     *
+     *  - el ESPEJO que sobra al mover una estancia a una casita con menos canales, y el principal
+     *    que no puede viajar a otro establecimiento virtual
+     *    ({@see \App\Pms\Factory\PmsEventoCalendarioFactory}): la estancia sigue viva;
+     *  - un BLOQUEO borrado desde el panel: se puede con id, y en Beds24 es una `black` activa.
+     *
+     * Su `DELETE` fallaba y la reserva se quedaba bloqueando la casita vieja para siempre. La
+     * retirada es la fila SIN link que ya usa el arreglo de duplicados: la estrategia le manda
+     * `{id, status: cancelled, custom2: RETIRADA}` ({@see BookingsPushMappingStrategy}) —la marca
+     * es para que el pull no la vuelva a estrenar—. Sobre una ya cancelada no hace nada, así que
+     * vale para cualquier link que se vaya.
+     *
+     * Va por el endpoint de POST. Una por `bookId`: dos links que se fueran con el mismo id
+     * —no debería pasar— se retiran una vez.
+     *
+     * @return bool `false` si no hay nada a lo que apuntar (sin id o sin mapa): quien llama lo dice.
+     */
+    public function enqueueRetirada(PmsEventoBeds24Link $link, ExchangeEndpoint $postEndpoint, ?UnitOfWork $uow = null): bool
+    {
+        $bookId = $link->getBeds24BookId();
+        $map = $link->getUnidadBeds24Map();
+
+        if ($bookId === null || $map === null) {
+            return false;
+        }
+
+        $providerVal = $postEndpoint->getProvider()->value ?? ConnectivityProvider::BEDS24->value;
+        $dedupeKey = sprintf('retirada:%s:provider:%s:endpoint:%s', $bookId, $providerVal, $postEndpoint->getAccion());
+
+        if (isset($this->runtimeDedupe[$dedupeKey]) && $this->em->contains($this->runtimeDedupe[$dedupeKey])) {
+            return true;
+        }
+
+        $config = $map->getPmsUnidadOrFail()->getEstablecimientoOrFail()->getBeds24ConfigOrFail();
+
+        $queue = $this->em->getRepository(PmsBookingsPushQueue::class)->findOneBy(['dedupeKey' => $dedupeKey]);
+
+        if ($queue instanceof PmsBookingsPushQueue) {
+            // Ya se retiró una vez y vuelve a irse (se reutilizó el id): se repite. Si está
+            // pendiente o enviándose, ya va a salir.
+            if (!in_array($queue->getStatus(), [PmsBookingsPushQueue::STATUS_PENDING, PmsBookingsPushQueue::STATUS_PROCESSING], true)) {
+                $queue->volverAPendiente(new DateTimeImmutable());
+                $this->recomputar($queue, $uow);
+            }
+            $this->runtimeDedupe[$dedupeKey] = $queue;
+
+            return true;
+        }
+
+        $queue = $this->factory->create(config: $config, endpoint: $postEndpoint);
+        $queue
+            ->setLink(null)
+            ->setLinkIdOriginal((string) $link->getId())
+            ->setBeds24BookIdOriginal($bookId)
+            ->setDedupeKey($dedupeKey)
+            ->setPayloadHash(sha1('retirada:' . $bookId));
+
+        $this->em->persist($queue);
+
+        if ($uow !== null) {
+            $uow->computeChangeSet(
+                class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                entity: $queue
+            );
+        }
+
+        $this->runtimeDedupe[$dedupeKey] = $queue;
+
+        return true;
+    }
+
+    /**
+     * La huella de lo que se le mandaría hoy a Beds24 por este link.
+     *
+     * Sale de {@see BookingsPushMappingStrategy::contenidoQueViaja()}, el mismo constructor que
+     * el envío. Hasta el 17/10/2026 era una lista propia —fechas, estado, habitación— que no veía
+     * ni el huésped, ni el importe, ni las notas: no rompía nada porque la cola reenviaba igual lo
+     * ya enviado, pero en cuanto deja de hacerlo, una lista corta es un cambio que no sale nunca.
+     *
+     * El link y la configuración van aparte porque no forman parte del cuerpo y sí de a quién va.
+     * Si el link no se podría construir (falta evento o mapa), la huella es la del propio link:
+     * el envío fallará igual y lo dirá con su motivo.
+     */
+    private function huella(PmsEventoBeds24Link $link, ?string $configId): string
+    {
+        $json = json_encode(
+            value: [
+                'linkId'    => (string) $link->getId(),
+                'configId'  => $configId,
+                'contenido' => $this->mapeo->contenidoQueViaja($link),
+            ],
+            flags: JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        return sha1((string) $json);
+    }
+
+    private function recomputar(PmsBookingsPushQueue $queue, ?UnitOfWork $uow): void
+    {
+        if ($uow !== null) {
+            $uow->recomputeSingleEntityChangeSet(
+                class: $this->em->getClassMetadata(PmsBookingsPushQueue::class),
+                entity: $queue
+            );
+        }
+    }
+
+    /**
      * Busca si ya existe una tarea en memoria o en base de datos para no duplicar.
      */
     private function findExistingQueue(PmsEventoBeds24Link $link, string $dedupeKey, ?UnitOfWork $uow): ?PmsBookingsPushQueue
     {
         // 1. Check Cache Runtime (mismo request)
+        //
+        // Sólo si sigue gestionada: tras un `clear()` —el rescate lo hace por lotes, y cualquier
+        // proceso largo puede hacerlo— la entrada es una entidad suelta, y recalcular su
+        // changeset revienta con «is not managed».
         if (isset($this->runtimeDedupe[$dedupeKey])) {
-            return $this->runtimeDedupe[$dedupeKey];
+            if ($this->em->contains($this->runtimeDedupe[$dedupeKey])) {
+                return $this->runtimeDedupe[$dedupeKey];
+            }
+            unset($this->runtimeDedupe[$dedupeKey]);
         }
 
         // 2. Check Colección en Memoria (Doctrine Identity Map)

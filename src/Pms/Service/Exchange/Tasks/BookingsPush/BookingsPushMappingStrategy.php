@@ -48,6 +48,14 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
     public const string MARCA_ESPEJO = 'MIRROR';
     public const string MARCA_EXTRA = 'EXTRA';
 
+    /**
+     * `custom2` de una reserva que RETIRAMOS (cancelada por nosotros porque su link se fue). El
+     * pull la trata como nuestra y no la estrena: sin esta marca, una cancelada que ningún link
+     * reclama se adoptaba como reserva nueva en el siguiente webhook. Ver
+     * `Beds24BookingsPushQueueCreator::enqueueRetirada()`.
+     */
+    public const string MARCA_RETIRADA = 'RETIRADA';
+
 
     /**
      * Transforma el lote de la cola al formato de transporte HTTP.
@@ -200,6 +208,11 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // Existe porque **Beds24 no borra reservas activas** —«cannot delete active bookings»—,
         // así que un `DELETE` sobre una que llegó en estado `new` falla siempre. Hay que
         // cancelarla primero, y cancelar es exactamente esto.
+        //
+        // Desde el 17/10/2026 es también como se va la reserva de un link que desaparece —el
+        // espejo que sobra al mover de casita, un bloqueo borrado—, y por eso lleva su marca en
+        // `custom2`: una cancelada que ningún link reclama, el pull la estrenaría como reserva
+        // nueva. Con `RETIRADA` la reconoce como nuestra y la deja estar.
         if ($link === null && $queue->getBeds24BookIdOriginal() !== null) {
             $id = $this->toIntOrNull($queue->getBeds24BookIdOriginal());
 
@@ -207,21 +220,69 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
                 throw new RuntimeException('Retirada sin id de Beds24 al que apuntar.');
             }
 
-            return ['id' => $id, 'status' => self::BEDS24_CANCELLED];
+            return ['id' => $id, 'status' => self::BEDS24_CANCELLED, 'custom2' => self::MARCA_RETIRADA];
         }
 
+        if ($link === null) {
+            throw new RuntimeException('Estructura de Link incompleta/corrupta.');
+        }
+
+        return $this->payloadDeLink(
+            link: $link,
+            bookIdRespaldo: $queue->getBeds24BookIdOriginal(),
+            esBorrado: $queue->getEndpoint()->getMetodo() === 'DELETE',
+        );
+    }
+
+    /**
+     * Lo que se le contaría HOY a Beds24 de este link, sin el `id` de la reserva allí.
+     *
+     * Es la huella con la que la cola decide si hay algo nuevo que mandar
+     * ({@see \App\Pms\Service\Queue\Beds24BookingsPushQueueCreator::enqueueForLink()}). Sale del
+     * MISMO constructor que el envío, y por eso no puede quedarse corta: antes la cola llevaba su
+     * propia lista de campos —fechas, estado, habitación— y no veía un cambio de nombre, de
+     * teléfono, de importe ni de nota. Mientras la cola reenviaba todo lo ya enviado eso no se
+     * notaba; en cuanto dejó de hacerlo (17/10/2026), una lista corta habría sido un cambio que no
+     * sale nunca. Ver docs/PmsBeds24ReservasSync.md §7.1.a.
+     *
+     * Sin `id` porque el push lo sella al crearla: con él dentro, el primer pull después de cada
+     * alta vería una huella distinta y la reenviaría sin motivo.
+     *
+     * `null` si el link no se podría enviar (le falta evento o mapa): quien llama decide.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function contenidoQueViaja(PmsEventoBeds24Link $link): ?array
+    {
+        try {
+            $payload = $this->payloadDeLink(link: $link, bookIdRespaldo: null, esBorrado: false);
+        } catch (RuntimeException) {
+            return null;
+        }
+
+        unset($payload['id']);
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payloadDeLink(PmsEventoBeds24Link $link, ?string $bookIdRespaldo, bool $esBorrado): array
+    {
         // Validación estricta de integridad (Cláusula de Guarda)
-        if (!$link || !$link->getEvento() || !$link->getUnidadBeds24Map()) {
+        $evento = $link->getEvento();
+        $map = $link->getUnidadBeds24Map();
+
+        if ($evento === null || $map === null) {
             throw new RuntimeException('Estructura de Link incompleta/corrupta.');
         }
 
         // Un link de horario extra no es la estancia: lleva sus propias fechas y nada del huésped.
         if (!$link->esDeEstancia()) {
-            return $this->buildExtraPayload($queue, $link);
+            return $this->buildExtraPayload($link, $bookIdRespaldo, $esBorrado);
         }
 
-        $evento = $link->getEvento();
-        $map = $link->getUnidadBeds24Map();
         $isMirror = $link->isMirror();
         $isOta = $evento->isOta();
         $reserva = $evento->getReserva();
@@ -233,7 +294,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
 
         // 2. ANCLA DE IDENTIDAD (Para modificaciones, evita duplicados)
         $bookId = $this->toIntOrNull($link->getBeds24BookId())
-            ?? $this->toIntOrNull($queue->getBeds24BookIdOriginal());
+            ?? $this->toIntOrNull($bookIdRespaldo);
 
         if ($bookId !== null) {
             $payload['id'] = $bookId;
@@ -265,11 +326,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         // no del pull. La legalidad del cambio ya la garantizó el `SecurityListener` (preUpdate,
         // `transicionOtaPermitida`) al permitir la mutación; aquí sólo miramos si hubo intención.
         // Ver el docblock de `PmsEventoCalendario::$estadoPushSolicitado`.
-        $estadoBeds24 = $this->resolveBeds24Status($queue);
-
         // Un DELETE manda `cancelled` por definición y no es una transición de estado que
         // discutir: es la baja del registro. Se deja pasar aparte para no atarlo a la regla.
-        $esBorrado = $queue->getEndpoint()->getMetodo() === 'DELETE';
+        $estadoBeds24 = $esBorrado ? self::BEDS24_CANCELLED : ($evento->getEstado()?->getCodigoBeds24() ?: 'confirmed');
 
         if (!$isOta || $isMirror || $esBorrado || $evento->isEstadoPushSolicitado()) {
             $payload['status'] = $estadoBeds24;
@@ -302,7 +361,7 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
             $payload['firstName'] = '(M) ' . $nombre;
         }
 
-        $payload['comment'] = $isMirror ? 'Reserva espejo' : $this->buildAuditComment($queue);
+        $payload['comment'] = $isMirror ? 'Reserva espejo' : $this->buildAuditComment($link);
 
         // Identificadores PMS para deduplicación determinista en migraciones
         $payload['custom1'] = 'PMS:' . (string) $link->getId();
@@ -341,15 +400,15 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
      *
      * @return array<string, mixed>
      */
-    private function buildExtraPayload(PmsBookingsPushQueue $queue, PmsEventoBeds24Link $link): array
+    private function buildExtraPayload(PmsEventoBeds24Link $link, ?string $bookIdRespaldo, bool $esBorrado): array
     {
         $estancia = $link->getEvento() ?? throw new RuntimeException('Link extra sin estancia.');
         $map = $link->getUnidadBeds24Map() ?? throw new RuntimeException('Link extra sin mapa.');
 
         $bookId = $this->toIntOrNull($link->getBeds24BookId())
-            ?? $this->toIntOrNull($queue->getBeds24BookIdOriginal());
+            ?? $this->toIntOrNull($bookIdRespaldo);
 
-        $noche = $queue->getEndpoint()->getMetodo() === 'DELETE' ? null : $link->nocheQueBloquea();
+        $noche = $esBorrado ? null : $link->nocheQueBloquea();
 
         if ($noche === null) {
             // La cola no encola un link apagado que nunca salió (`enqueueForLink()`), así que
@@ -450,26 +509,9 @@ final readonly class BookingsPushMappingStrategy implements MappingStrategyInter
         $payload['firstName'] = 'Evento (' . $estado . ')';
     }
 
-    private function resolveBeds24Status(PmsBookingsPushQueue $queue): string
+    private function buildAuditComment(PmsEventoBeds24Link $link): string
     {
-        // Si el endpoint es explícitamente DELETE, forzamos status cancelled
-        if ($queue->getEndpoint()->getMetodo() === 'DELETE') {
-            return self::BEDS24_CANCELLED;
-        }
-
-        // Las validaciones de integridad superiores garantizan que link y evento existen. Si un
-        // día no, que lo diga con la cola delante: antes era un «Call to a member function on
-        // null» sin id.
-        $evento = $queue->getLink()?->getEvento()
-            ?? throw new RuntimeException("Cola de push #{$queue->getId()} sin link o sin evento: no se puede decidir el estado.");
-        $codigo = $evento->getEstado()?->getCodigoBeds24();
-
-        return $codigo ?: 'confirmed';
-    }
-
-    private function buildAuditComment(PmsBookingsPushQueue $queue): string
-    {
-        $resId = $queue->getLink()?->getEvento()?->getReserva()?->getId();
+        $resId = $link->getEvento()?->getReserva()?->getId();
         return $resId ? 'PMS#' . $resId : 'PMS Update';
     }
 

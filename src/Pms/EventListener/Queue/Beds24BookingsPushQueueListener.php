@@ -35,10 +35,15 @@ final class Beds24BookingsPushQueueListener
     private const ENDPOINT_POST_BOOKINGS   = PmsBookingsPushQueue::ACCION_POST_BOOKINGS;
     private const ENDPOINT_DELETE_BOOKINGS = PmsBookingsPushQueue::ACCION_DELETE_BOOKINGS;
 
-    // Campos que no disparan sincronización si la reserva está bloqueada (OTA)
+    // Campos que no disparan sincronización si la reserva es de una OTA y tiene el candado puesto.
+    // Ver `cambioSoloDeDatosDelCanal()`.
+    //
+    // Sin `nota` desde el 17/10/2026: en Beds24 es una nota INTERNA, no le llega a la OTA, y el
+    // push ya la manda. Ignorarla dejaba la escrita en el PMS sin salir, y el siguiente pull del
+    // principal la pisaba con la que hubiera allí.
     private const IGNORED_FIELDS_ON_LOCKED_OTA = [
         'nombreCliente', 'apellidoCliente', 'emailCliente', 'telefono',
-        'nota', 'comentariosHuesped', 'horaLlegadaCanal', 'pais', 'idioma',
+        'comentariosHuesped', 'horaLlegadaCanal', 'pais', 'idioma',
     ];
 
     /** @var SplObjectStorage<PmsEventoCalendario, null> */
@@ -183,12 +188,32 @@ final class Beds24BookingsPushQueueListener
                 }
             }
 
-            $this->queueCreator->enqueueForLink($link, $endpoint, $uow);
+            $seVaEnEsteFlush = $action === 'DELETE' && $uow->isScheduledForDelete(entity: $link);
+
+            // 🧹 Un link que desaparece con su reserva VIVA en Beds24 no se borra allí: se cancela.
+            // Beds24 rechaza el `DELETE` de una reserva activa, y aquí llegan dos que lo son —el
+            // espejo que sobra al mover de casita y el bloqueo borrado desde el panel—. Ver
+            // `Beds24BookingsPushQueueCreator::enqueueRetirada()`. El `DELETE` sólo se queda para
+            // el borrado manual (`pending_delete`), en el que el link sobrevive y el operador ya
+            // canceló antes.
+            if ($seVaEnEsteFlush && $this->cachedPostEndpoint !== null) {
+                if (!$this->queueCreator->enqueueRetirada($link, $this->cachedPostEndpoint, $uow)) {
+                    // Mismo aviso que el DELETE sin id de arriba: el PMS suelta su copia y la
+                    // reserva sigue viva en el canal sin cola que lo delate.
+                    $this->logger->error(
+                        'Beds24: link borrado sin retirada remota — no tiene mapa al que apuntar. ' .
+                        'La reserva queda viva en el canal: retírala a mano en Beds24.',
+                        ['link_id' => (string) $link->getId(), 'beds24_book_id' => $link->getBeds24BookId()]
+                    );
+                }
+            } else {
+                $this->queueCreator->enqueueForLink($link, $endpoint, $uow);
+            }
 
             // El link desaparece en este mismo flush: hay que cortar las referencias que las
             // colas históricas mantienen hacia él, o el próximo flush intentará resucitarlo.
-            // Se hace DESPUÉS de encolar para que `enqueueForLink` aún pueda leer su bookId.
-            if ($action === 'DELETE' && $uow->isScheduledForDelete(entity: $link)) {
+            // Se hace DESPUÉS de encolar para que el encolado aún pueda leer su bookId.
+            if ($seVaEnEsteFlush) {
                 $this->queueCreator->detachQueuesFromLink($link, $uow);
             }
         }
@@ -422,14 +447,46 @@ final class Beds24BookingsPushQueueListener
 
     private function shouldIgnoreReservaUpdate(PmsReserva $reserva, UnitOfWork $uow): bool
     {
+        return self::cambioSoloDeDatosDelCanal($reserva, array_keys($uow->getEntityChangeSet($reserva)));
+    }
+
+    /**
+     * ¿Lo que cambió en la reserva son sólo datos del huésped que manda el canal?
+     *
+     * Entonces no hay nada que empujar: en una OTA el nombre, el contacto y la nota son del canal, y
+     * el push ni siquiera manda el contacto (`BookingsPushMappingStrategy::mapGuestData()`).
+     *
+     * ⚠️ **Sólo si la reserva es de una OTA.** (17/10/2026) Antes bastaba con el candado
+     * (`datosLocked`), pero el pull lo cierra en cuanto llega un apellido o un teléfono, y eso
+     * pasa también con el eco de una reserva DIRECTA. Desde ahí, corregir el nombre o el teléfono
+     * de una directa —a mano, con `modificar_reserva` o con el revisor del orden del nombre— no
+     * encolaba nada, y Beds24 y los títulos `(M) …` de los espejos se quedaban con el viejo. En
+     * una directa esos datos son nuestros: se mandan.
+     *
+     * Una reserva es «de OTA» si alguna de sus estancias lo es: una estancia directa añadida a
+     * una reserva de Booking no le quita al canal la autoría del huésped.
+     *
+     * @param list<string> $camposCambiados
+     */
+    public static function cambioSoloDeDatosDelCanal(PmsReserva $reserva, array $camposCambiados): bool
+    {
         if (!$reserva->isDatosLocked()) {
             return false;
         }
 
-        $changeSet = $uow->getEntityChangeSet($reserva);
-        $relevantChanges = array_diff(array_keys($changeSet), self::IGNORED_FIELDS_ON_LOCKED_OTA);
+        $esDeOta = false;
+        foreach ($reserva->getEventosCalendario() as $evento) {
+            if ($evento->isOta()) {
+                $esDeOta = true;
+                break;
+            }
+        }
 
-        return count($relevantChanges) === 0;
+        if (!$esDeOta) {
+            return false;
+        }
+
+        return array_diff($camposCambiados, self::IGNORED_FIELDS_ON_LOCKED_OTA) === [];
     }
 
     private function loadEndpoints(EntityManagerInterface $em): void
