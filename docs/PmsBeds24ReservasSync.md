@@ -3626,7 +3626,14 @@ un depósito cada una, todos USD—, lo que lo hace seguro de desplegar.
 
 `FinOrigenCobroResolverInterface::resolver()` gana un `?string $moneda = null` **opcional**: no
 rompe a los llamantes existentes ni al gemelo que implementará el módulo de tours. Con `null`
-devuelve la moneda de mayor saldo — lo que ya hacía cuando sólo había una.
+devuelve la moneda que se cobra primero: `PmsTotalesPorMoneda::monedaACobrar()`, la de mayor deuda
+**en valor** (con el tipo de cambio de la ficha).
+
+⚠️ **Y la tarjeta del huésped pregunta lo mismo** (16/10/2026): `PmsSituacionDeCobroResolver::
+importesPendientes()` pone esa moneda primera, y de `$importes[0]` salen los medios y la línea de la
+tarjeta. Antes el resolver comparaba los saldos crudos —S/ 100 «ganaba» a US$ 80— y la tarjeta
+tomaba la primera por orden alfabético (`porMoneda` va con `ksort`): con US$ 80 y S/ 50 el texto
+decía dólares y «Pagar ahora» abría la pasarela en soles. Ver `docs/FinanzasEnlacesPago.md` §11 bis.
 
 La pasarela es multidivisa y `FinEnlacePago` ya guardaba su propia moneda, así que la fontanería
 estaba: el único que forzaba una sola era el resolver.
@@ -6697,6 +6704,7 @@ contra la base local: mismos veredictos que antes.
 | Mover una ayuda de la pantalla a un tooltip | Vista | `<InfoTooltip>` — criterio en `UI_Componentes_Compartidos.md` §3.e |
 | Cambiar cómo se suman los totales por moneda (§12.2b) | `PmsInformacionFinancieraRecalculoService` | `recalcularPorMoneda()` — **y su espejo** `PmsTotalesPorMoneda::de()` |
 | Cambiar el umbral del cuadre (§12.2b) | `PmsTotalesPorMoneda` | `UMBRAL_CUADRE` — hoy 1.00, sacado de los tres cruces reales |
+| Cambiar qué moneda se cobra primero con deuda en dos | `PmsTotalesPorMoneda` | `monedaACobrar()` — la leen el resolver de cobro y la tarjeta del huésped |
 | Leer saldos de muchas fichas a la vez | `PmsFinanzasTotalMonedaRepository` | `totalesDe()` — nunca el value object en bucle |
 | Cambiar cuándo una estancia pasa a `pago-total` (§12.9b) | `PmsEstadoPagoEventosService` | `subconsultaDeCuadre()` + los dos `UPDATE` |
 | Repoblar los totales por moneda tras un despliegue | — | `php bin/console pms:finanzas:recalcular-totales` |
