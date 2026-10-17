@@ -9,6 +9,7 @@ use App\Cotizacion\Entity\Cotizacion;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionPago;
 use App\Cotizacion\Enum\CotizacionMedioPagoEnum;
+use App\Cotizacion\Service\Message\CotizacionAvisosDeCobro;
 use App\Finanzas\Contract\FinOrigenCobroResolverInterface;
 use App\Finanzas\Dto\FinOrigenCobroDto;
 use App\Finanzas\Entity\FinEnlacePago;
@@ -40,6 +41,7 @@ final readonly class CotizacionOrigenCobroResolver implements FinOrigenCobroReso
     public function __construct(
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
+        private CotizacionAvisosDeCobro $avisos,
     ) {
     }
 
@@ -140,15 +142,22 @@ final readonly class CotizacionOrigenCobroResolver implements FinOrigenCobroReso
     }
 
     /**
-     * El aviso al cliente por WhatsApp llega en la segunda entrega (plantilla `pago_recibido` sobre
-     * el hilo del expediente). Hasta entonces se deja constancia: pax ya le dice «Adelanto recibido».
+     * «Hemos recibido tu pago» por WhatsApp, al hilo del expediente (plantilla `pago_recibido`, la de
+     * alojamiento). Se llama después del flush y una vez por enlace; si falla, quien llama lo deja
+     * en el log —el cliente ya pagó—.
      */
     public function confirmarAlCliente(FinEnlacePago $enlace): void
     {
-        $this->logger->info('[cotizacion] pago con tarjeta confirmado (sin aviso por WhatsApp todavía)', [
-            'enlace' => (string) $enlace->getId(),
-            'cotizacion' => (string) $enlace->getOrigenId(),
-        ]);
+        $origenId = $enlace->getOrigenId();
+        $file = $origenId !== null ? $this->em->find(Cotizacion::class, $origenId)?->getFile() : null;
+
+        if ($file === null) {
+            $this->logger->warning('[cotizacion] pago confirmado sin expediente al que avisar', ['enlace' => (string) $enlace->getId()]);
+
+            return;
+        }
+
+        $this->avisos->pagoRecibido($file, $enlace);
     }
 
     /** Soles por dólar de la cotización; 1 si no hay, para no dividir por cero ni inventar uno. */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Pms\Service\Message;
 
 use App\Finanzas\Entity\FinEnlacePago;
+use App\Finanzas\Service\Aviso\DetalleDeCobro;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageTemplate;
 use App\Message\Service\Conversacion\EnlacesDeConversacion;
@@ -30,16 +31,6 @@ final readonly class PagoRecibido
 {
     public const string PLANTILLA = 'pago_recibido';
 
-    /** «%1$s + %2$s de comisión…»: neto y comisión, cada uno con su moneda. */
-    private const array COMISION = [
-        'es' => '%s + %s de comisión de la pasarela de pago',
-        'en' => '%s + a %s payment gateway fee',
-        'pt' => '%s + %s de taxa da plataforma de pagamento',
-        'fr' => '%s + %s de frais de plateforme de paiement',
-        'it' => '%s + %s di commissione del gateway di pagamento',
-        'de' => '%s + %s Gebühr des Zahlungsanbieters',
-        'nl' => '%s + %s transactiekosten van de betaalprovider',
-    ];
 
     public function __construct(
         private EntityManagerInterface $em,
@@ -81,37 +72,13 @@ final readonly class PagoRecibido
     }
 
     /**
-     * «USD 51.32 + USD 2.82 de comisión de la pasarela de pago»: el neto es lo que verá abonado en
-     * su estado de cuenta, y la suma lo que verá en su banco. Así cuadra con los dos (Jorge,
-     * 03/10/2026). Sin recargo, sólo el neto: «+ USD 0.00 de comisión» era cierto pero raro.
+     * «USD 51.32 + USD 2.82 de comisión de la pasarela de pago», en el idioma del huésped.
      *
-     * Una sola variable y en el idioma del huésped, porque Meta no traduce variables: la frase va
-     * escrita aquí en los siete, como los botones de los comandos de plantillas.
+     * Vive en Finanzas desde el 16/10/2026 ({@see DetalleDeCobro}): lo usan también los cobros de
+     * turismo, y describir un cobro con su comisión no es conocimiento del PMS.
      */
     public static function detalle(FinEnlacePago $enlace, string $idioma): string
     {
-        $total = $enlace->getMontoTotal();
-        $neto = $enlace->getMontoNeto();
-
-        // Las columnas son `decimal` y siempre traen dígitos, pero el tipo sólo dice `string` y
-        // `bcsub()` lanza con otra cosa. Se lanza con los dos valores: `confirmarPago()` lo deja en
-        // el log, y una comisión inventada sería una cifra plausible y falsa delante del huésped.
-        if (!is_numeric($total) || !is_numeric($neto)) {
-            throw new \LogicException(sprintf('Enlace %s con importes que no son números (total «%s», neto «%s»).', $enlace->getId(), $total, $neto));
-        }
-
-        $comision = bcsub($total, $neto, 2);
-        $abonado = self::conMoneda($enlace, $neto);
-
-        if (bccomp($comision, '0', 2) <= 0) {
-            return $abonado;
-        }
-
-        return sprintf(self::COMISION[$idioma] ?? self::COMISION['en'], $abonado, self::conMoneda($enlace, $comision));
-    }
-
-    private static function conMoneda(FinEnlacePago $enlace, string $monto): string
-    {
-        return trim(sprintf('%s %s', $enlace->getMonedaCodigo() ?? '', $monto));
+        return DetalleDeCobro::de($enlace, $idioma);
     }
 }

@@ -89,8 +89,10 @@ final class MessageCrearPagoRecibidoCommand extends Command
 
         $plantilla = (new MessageTemplate())
             ->setCode($codigo)
-            ->setName('Pago con tarjeta recibido (al huésped)')
-            ->setContextType('pms_reserva')
+            ->setName('Pago con tarjeta recibido (al cliente)')
+            // Sin acotar a un módulo: la usan alojamiento y turismo (`CotizacionAvisosDeCobro`).
+            // Ver `Version20261016220000`.
+            ->setContextType(null)
             ->setAllowedSources([])
             ->setAutoenvioHabilitada(false)
             // La manda sólo el sistema: no se ofrece en los menús de plantillas.

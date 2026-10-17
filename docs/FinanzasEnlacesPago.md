@@ -2279,11 +2279,19 @@ y reserva, y esto es un **hecho** que se repite —el adelanto y el saldo son do
   cuadraba. Sin recargo, sólo el neto.
 - **Una sola variable, `detalle_pago`, ya en su idioma**: «USD 51.32 + USD 2.82 de comisión de
   la pasarela de pago». Meta no traduce variables, así que la frase vive escrita en los siete en
-  `PagoRecibido::COMISION`, y el idioma se elige con `MaestroIdioma::idiomaDePlantilla()`, la
-  misma regla que usan las estrategias de envío (estaba copiada en siete sitios; ahora es una).
+  `DetalleDeCobro::COMISION` (Finanzas; hasta el 16/10/2026 en `PagoRecibido`, que ahora delega),
+  y el idioma se elige con `MaestroIdioma::idiomaDePlantilla()`, la misma regla que usan las
+  estrategias de envío (estaba copiada en siete sitios; ahora es una).
 - **El mensaje lleva la reserva estampada** (`setAsunto()`): en un hilo con varias reservas, el
   enlace a la cuenta saldría si no con la del contexto de la conversación.
 - Por Beds24 la estrategia no leía `variables_plantilla` (WhatsApp y correo sí): ahora las tres.
+
+**Turismo, desde el 16/10/2026, por el mismo contrato**: `CotizacionOrigenCobroResolver::confirmarAlCliente()`
+→ `CotizacionAvisosDeCobro::pagoRecibido()`, con la MISMA plantilla `pago_recibido` (su texto no
+habla de reservas; `Version20261016220000` le quitó el `context_type` `pms_reserva`) al hilo del
+expediente, cuyas variables pone `CotizacionMessageDataResolver` (`account_path` = `file/{loc}`, que
+cabe en el botón `https://pax.openperu.pe/{{1}}`). Y el saldo del viaje, con su plantilla propia
+`saldo_pendiente_viaje`: ver `docs/Cotizaciones.md` §6.a.
 
 **Media hora después, si fue el adelanto, `saldo_pendiente`** (10/10/2026): «Tu adelanto ya está
 registrado… El saldo de tu reserva es de USD X. Puedes pagarlo cuando prefieras, a más tardar el día

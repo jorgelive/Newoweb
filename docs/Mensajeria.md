@@ -7882,35 +7882,34 @@ medio con `anthropic:claude-sonnet-5`. La prueba dice que **los datos y las regl
 sitio**; para afirmar lo mismo del modelo que responde de verdad, hay que repetirla con la clave
 de Anthropic puesta.
 
-### 16.8 Reutilizarlo desde las cotizaciones
+### 16.8 Reutilizarlo desde las cotizaciones (hecho el 16/10/2026)
 
 El catálogo es agnóstico a propósito: no sabe qué es una reserva ni qué es una cotización.
 Quien quiera ofrecer medios de pago pide **la misma lista** y decide cómo pintarla.
 
 ```
-                        FinMedioCobroRepository::ofrecibles(?bool $desdePeru)
+                        FinMedioCobroRepository::ofrecibles(?bool $desdePeru, ?int $dias)
                                           │
                  ┌────────────────────────┴────────────────────────┐
                  ▼                                                 ▼
-   ConsultarMediosPagoSkill                          Condiciones de pago de
-   (chat del huésped)                                una cotización  🚧
-     · ¿de Perú? ← país de la reserva                   · ¿de Perú? ← país del
-       o prefijo del teléfono                             cliente de la cotización
-     · aplana a texto para el modelo                    · renderiza a HTML para el PDF
+   ConsultarMediosPagoSkill / guía del huésped      «Cómo reservar» de la cotización (pax)
+     · ¿de Perú? ← PmsProcedenciaHuesped              · ¿de Perú? ← país / teléfono del expediente
+     · aplana a texto para el modelo                  · ComoReservarResolver, sin efectivo
+                 └──────────── FinAudienciaCobro::desdePeru() ──────┘
+                               FinMedioCobro::fichaParaCliente()
 ```
 
-Lo único que cada consumidor pone de su parte es **de dónde saca el `desdePeru`**, porque el
-dato de origen no está en el mismo sitio: en el PMS es `PmsReserva::$pais` con el teléfono de
-suplente (§16.3); en una cotización será el país del cliente. Ese cálculo NO se sube al
-repositorio a propósito — subirlo obligaría a que Finanzas supiera qué es una reserva, que es
-justo lo que este reparto evita.
+Lo que cada consumidor pone de su parte es **qué país y qué teléfono son los suyos**; la regla de
+procedencia (el país manda; un prefijo 51 sin país no demuestra nada) es UNA,
+`FinAudienciaCobro::desdePeru()`, y la ficha que se pinta también, `FinMedioCobro::fichaParaCliente()`.
+Lo que guarda la cotización es la **decisión** (el porcentaje de adelanto, `Cotizacion::$adelanto`);
+los números de cuenta se resuelven al servir, contra el catálogo — nunca copiados a mano. Ver
+`docs/Cotizaciones.md` §6.a.
 
-🚧 **Todavía no existe el campo «condiciones de pago» en `Cotizacion`.** Cuando se cree, la
-regla es: no duplicar números en un texto libre de la cotización. Si el comercial escribe la
-cuenta a mano en cada presupuesto, vuelve el problema de V4JE5Q por la puerta de atrás —ocho
-cuentas copiadas a mano envejecen igual de mal que una inventada—. Lo que se guarda en la
-cotización es la **decisión** (qué medios se le ofrecen a este cliente, qué plazos); los números
-se resuelven al renderizar, contra el catálogo.
+Y desde ese día el hilo de un EXPEDIENTE también recibe plantillas: `CotizacionMessageDataResolver`
+pone sus variables, y `pago_recibido` dejó de estar acotada a `pms_reserva` para avisar los cobros
+de turismo (`CotizacionAvisosDeCobro`). La hermana de `saldo_pendiente` para viajes es
+`saldo_pendiente_viaje`.
 
 ### 16.9 Dónde tocar para cambiar X
 
@@ -7919,11 +7918,11 @@ se resuelven al renderizar, contra el catálogo.
 | Cambiar un número de Yape o de cuenta | panel → Configuración → Cobros → Medios de cobro | Una fila por cuenta. **No** se toca código ni se escribe en la guía |
 | Añadir una clase de medio (PayPal, cripto…) | `FinMedioCobroTipo` | El `case` + `label()`. El CRUD y la skill lo recogen solos |
 | Cambiar a quién se le ofrece un medio | panel, campo «¿A quién se le ofrece?» | Respaldo: `FinAudienciaCobro::aplicaA()` |
-| Cambiar cómo se deduce si el huésped paga desde Perú | `PmsProcedenciaHuesped` | `pagaDesdePeru()` — **fuente única** del chat y de la guía; lee el aviso del prefijo 51 antes de tocarlo |
+| Cambiar cómo se deduce si alguien paga desde Perú | `FinAudienciaCobro` | `desdePeru()` — **fuente única** del chat, la guía y la cotización; `PmsProcedenciaHuesped` sólo elige el país y el teléfono de la reserva. Lee el aviso del prefijo 51 antes de tocarlo |
 | Cambiar de qué punta sale el tipo de cambio (venta/compra) | `TipoCambioDelDia` | `venta()` — **es la misma que se snapshotea en cargos y pagos**; cambiarla aquí descuadra el agente con la contabilidad |
 | Que el agente empiece a ofrecer el enlace de pago | `.env` | `FINANZAS_ENLACES_PREPAGO=1` — `pago_con_tarjeta.disponible` pasa a `true` solo |
 | Que un medio deje de ofrecerse sin perder sus datos | panel | Casilla «Activo» de esa fila |
-| Añadir un campo al medio (ej. alias interbancario) | `FinMedioCobro` + su CRUD + `ConsultarMediosPagoSkill::medios()` **y** `PmsGuiaHuespedProvider::mediosPago()` | Los cuatro: lo que no se enumera no llega ni al modelo ni a la pantalla, §11 |
+| Añadir un campo al medio (ej. alias interbancario) | `FinMedioCobro` + su CRUD + `ConsultarMediosPagoSkill::medios()` **y** `FinMedioCobro::fichaParaCliente()` (↔ `GuiaMedioPago` de pax) | Lo que no se enumera no llega ni al modelo ni a la pantalla, §11. La ficha la comparten la guía y «Cómo reservar» |
 
 
 ---

@@ -22,17 +22,14 @@ la siguiente persona lo investiga otra vez.
 Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §6.a) y que Jorge
 decidió dejar para después:
 
-1. **Enlace de Culqi desde la cotización: HECHO el 16/10/2026** salvo el WhatsApp
-   (`docs/Cotizaciones.md` §6.a, «Los enlaces de pago con tarjeta»). Queda la segunda entrega:
-   - **El aviso al cobrar.** `CotizacionOrigenCobroResolver::confirmarAlCliente()` hoy sólo deja
-     constancia en el log. La plantilla `pago_recibido` sirve tal cual —su texto no habla de
-     alojamiento—, pero el hilo del expediente no sabe rellenar `guest_name` ni `account_url`:
-     falta un `MessageDataResolverInterface` para `cotizacion_file`, y comprobar que la URL del
-     botón de Meta admite la ruta de pax del expediente (`file/{localizador}/p/{n}`).
-   - **El enlace del saldo media hora después del adelanto**, como `app:pms:prepago:saldo-tras-adelanto`:
-     `CotizacionEnlaceService::emitirSaldo()` ya existe; falta el barrido (con `tools/cron/con-candado`
-     en el crontab) y una plantilla hermana de `saldo_pendiente` —esa dice «tu llegada» y «tu
-     guía»—, que hay que **mandar a Meta para aprobar** (no se envía sin preguntar a Jorge).
+1. **Enlace de Culqi desde la cotización: HECHO el 16/10/2026**, con los avisos por WhatsApp
+   (`docs/Cotizaciones.md` §6.a). Queda **mandar a Meta `saldo_pendiente_viaje`**
+   (`msg:meta:push saldo_pendiente_viaje --todos`): hasta que la apruebe, el aviso del saldo de un
+   viaje sólo sale dentro de la ventana de 24 h. Es enviar algo a un tercero: lo decide Jorge.
+   - **Y en alojamiento, si algún día una reserva pasa del tope de Culqi** (3000 USD): el enlace
+     emitido a mano ya sale en tramos (`crearEnTramos()`), pero el prepago automático
+     (`PmsPrepagoEnlaceService`) sigue con `crear()` y no emitiría, y la guía del huésped enseñaría
+     las partes sin el rótulo «parte 1 de 2» ni el aviso de pagarlas todas que tiene la cotización.
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):

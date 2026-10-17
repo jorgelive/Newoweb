@@ -4190,10 +4190,26 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
 - En la Caja, el localizador de un ENLACE de turismo pregunta primero de qué expediente es la
   cotización (`FinanzasView::abrirExpedienteDeCotizacion()`); el de un PAGO ya trae el expediente.
 
-**Lo que falta (segunda entrega):** el aviso por WhatsApp al cobrar (`pago_recibido` sobre el hilo
-del expediente, que pide un `MessageDataResolver` de `cotizacion_file`) y el enlace del saldo media
-hora después de pagar el adelanto, con su plantilla de turismo —la de alojamiento habla de «tu
-llegada» y «tu guía»—, que hay que mandar a Meta. Ver `docs/Pendientes.md`.
+**Los avisos por WhatsApp (segunda entrega, 16/10/2026)**, gemelos de los de alojamiento
+(`CotizacionAvisosDeCobro`), al hilo titular del expediente con el expediente como asunto:
+
+- **«Hemos recibido tu pago»** al cobrarse un enlace: la MISMA plantilla `pago_recibido` de
+  alojamiento —su texto no habla de reservas; `Version20261016220000` le quitó el acotamiento a
+  `pms_reserva`—. Lo llama `CotizacionOrigenCobroResolver::confirmarAlCliente()`. El detalle «USD X +
+  USD Y de comisión» sale de `DetalleDeCobro` (Finanzas), el mismo de alojamiento.
+- **El enlace del saldo media hora después del adelanto**, y su aviso, como en alojamiento (Jorge):
+  `app:cotizacion:saldo-tras-adelanto` cada 5 minutos (`tools/cron/www-data.crontab`, con
+  `con-candado`). ⚠️ **Con algún enlace vivo no actúa**: si el adelanto salió en tramos y queda una
+  parte, emitir el saldo la anularía y le juntaría el resto del viaje. El aviso, sólo en la pasada
+  en que se emite, si el pago fue en las últimas 6 horas, y una vez por expediente.
+- **Plantilla propia `saldo_pendiente_viaje`** (`msg:plantillas:saldo-pendiente-viaje`): «Tu adelanto
+  ya está registrado… El saldo de tu viaje es de {{importe_saldo}}… a más tardar el día del primer
+  servicio… medios de pago de tu cotización». La de alojamiento dice «tu llegada» y «tu guía».
+  **Hasta que Meta la apruebe, fuera de la ventana de 24 h no sale** (queda el error en el
+  mensaje): subirla es `msg:meta:push saldo_pendiente_viaje --todos`, decisión de Jorge.
+- **Las variables del expediente** (`guest_name`, `account_url`, `account_path` → `file/{loc}`, la
+  portada de pax con cada propuesta y lo pagado) las pone `CotizacionMessageDataResolver`, que no
+  existía: hasta hoy el hilo de un expediente no sabía rellenar ninguna plantilla.
 
 ### Dónde tocar
 
@@ -4223,6 +4239,10 @@ llegada» y «tu guía»—, que hay que mandar a Meta. Ver `docs/Pendientes.md`
 | El importe del adelanto en el servidor | `src/Cotizacion/Dominio/CalcularAdelanto.php` ↔ `dominio/cotizacion/adelanto.cli.ts` | `montoDeAdelanto()` |
 | El botón «Pagar con tarjeta» de pax | `PaxCotizacionGuiaView.vue`, `ComoReservarResolver::enlaceVigente()` | `enlacePago` |
 | El panel de enlaces en util | `FilePagosPanel.vue` (monta `ReservaEnlacesPagoSection`) | `propuestaCobrada`, `cobrarTotal()` |
+| Los avisos al cliente al cobrar / del saldo | `src/Cotizacion/Service/Message/CotizacionAvisosDeCobro.php` | `pagoRecibido()`, `saldoPendiente()` |
+| Cuándo se emite el saldo tras el adelanto | `src/Cotizacion/Command/CotizacionSaldoTrasAdelantoCommand.php` | `MINUTOS_SALDO_TRAS_ADELANTO`, `HORAS_DE_AVISO` |
+| Las variables de plantilla de un expediente | `src/Cotizacion/Service/Message/CotizacionMessageDataResolver.php` | `getMessageVariables()` |
+| El texto del aviso del saldo de un viaje | `src/Message/Command/MessageCrearSaldoPendienteViajeCommand.php` | `INICIO`, `BOTON` |
 
 ---
 
