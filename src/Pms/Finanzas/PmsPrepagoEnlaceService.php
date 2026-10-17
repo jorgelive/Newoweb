@@ -13,6 +13,7 @@ use App\Finanzas\Service\FinEnlacePagoService;
 use Psr\Log\LoggerInterface;
 use Throwable;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Enum\PmsPoliticaPrepago;
@@ -519,9 +520,12 @@ final readonly class PmsPrepagoEnlaceService
      * pedido cobrar el total y la skill contestaba «el canal ya cobró»; marcar la casilla no hacía
      * nada. Ahora la marca basta, y la cifra es el saldo (`loQueSePide()`).
      *
-     * ⚠️ **Sólo la marca de una persona**, no el día de llegada ni la última hora. Que el
-     * automático pida solo el total a esas reservas es ampliar su público —un enlace que nadie
-     * pidió en el WhatsApp de todo huésped de Airbnb con un extra—, y eso es otra decisión.
+     * ### Y los EXTRAS de un canal que cobra, desde el día de llegada (16/10/2026)
+     *
+     * Jorge: «que se emitan para los extras». Un huésped de Airbnb o VRBO con una cena, un traslado
+     * o una noche extra recibe el enlace por esos extras el día de llegada, como cualquier otro
+     * huésped recibe el del total. Ver `extrasDeCanalQueCobra()`. Un establecimiento `SIN_PREPAGO`
+     * sigue necesitando la marca: no hay ninguno hoy, y la petición fue la de los extras.
      *
      * @return array{monto: string, claveI18n: string, politica: string}|null
      */
@@ -536,7 +540,44 @@ final readonly class PmsPrepagoEnlaceService
         }
 
         return $this->calculador->calcular($info)
-            ?? ($info->isCobroTotalPedido() ? self::TOTAL_SIN_POLITICA : null);
+            ?? ($info->isCobroTotalPedido() || $this->extrasDeCanalQueCobra($info) ? self::TOTAL_SIN_POLITICA : null);
+    }
+
+    /**
+     * ¿Es una reserva de un canal que cobra por nosotros, ya en su día de llegada, cuyo saldo son
+     * EXTRAS nuestros? Entonces se le emite el enlace por ellos (ver `prepagoQueProcede()`).
+     *
+     * El saldo ES lo de los extras porque el depósito espejo (`PmsPagoOtaAutomaticoService`) cancela
+     * exactamente los cargos del canal: comprobado en producción el 16/10/2026 sobre las reservas de
+     * Airbnb de los últimos 60 días —las que tenían saldo sin extras eran canceladas, que no cobran—.
+     *
+     * 🛡️ Salvo un cargo de BEDS24 que cuenta y no lleva la marca de espejo (`esAutomatico`): es el
+     * flag mal puesto que ya se vio («Alojamiento 130.00» de Airbnb sin marcar, ver
+     * `ConsultarCuentaSkill::cuentaDeCanalQueCobra()`), y con él el «extra» sería el alojamiento que
+     * el huésped ya pagó a la plataforma. Ante la duda no se emite y se deja aviso. Los extras de
+     * verdad los teclea el operador, sin `beds24ItemId`.
+     */
+    private function extrasDeCanalQueCobra(PmsInformacionFinanciera $info): bool
+    {
+        $reserva = $info->getReserva();
+        $canal = $reserva?->getChannel()?->getId();
+
+        if ($canal === null || !\in_array($canal, PmsChannel::CANAL_PAGO_TOTAL, true) || !$this->calculador->yaLlegoElDia($info)) {
+            return false;
+        }
+
+        foreach ($info->getCargos() as $cargo) {
+            if ($cargo->cuentaParaElSaldo() && !$cargo->isEsAutomatico() && $cargo->getBeds24ItemId() !== null) {
+                $this->logger->warning('[prepago] cargo de Beds24 sin marca de espejo en un canal que cobra: no se emite el enlace de los extras.', [
+                    'reserva' => (string) $reserva->getId(),
+                    'cargo' => (string) $cargo->getId(),
+                ]);
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

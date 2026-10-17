@@ -1515,6 +1515,7 @@ que no pueden divergir:
 | **Última hora**: reservada con ≤ 2 días de antelación (10/10/2026) | total, **desde el primer enlace** | `Pago total de reserva X — Casita N` | el saldo entero |
 | **«Cobrar el total»** marcado por el operador o el agente (10/10/2026) | total, y se anula el del adelanto | `Pago total de reserva X — Casita N` | el saldo entero |
 | **«Cobrar el total»** en una reserva **sin adelanto que calcular**: `SIN_PREPAGO`, canal que ya cobró (extras de Airbnb), sin cargo de alojamiento (16/10/2026) | total | `Pago total de reserva X — Casita N` | el saldo entero (en Airbnb, los extras) |
+| Canal que ya cobró (Airbnb, VRBO, Expedia Collect) con **extras** nuestros, desde el día de llegada (16/10/2026) | total, solo | `Pago total de reserva X — Casita N` | los extras (el saldo: el depósito espejo cancela lo del canal) |
 | Antes del día de llegada, adelanto **pagado por enlace hace ≥ 30 min** (10/10/2026) | saldo, y aviso `saldo_pendiente` al huésped | `Saldo de reserva X — Casita N` | lo que queda |
 | Antes del día de llegada, con un pago **registrado a mano** | nada, y se retira el vivo | — | — |
 | Desde el día de llegada, sin pagos | total | `Pago total de reserva X — Casita N` | el saldo entero de la moneda que **más se debe en valor** (`PmsTotalesPorMoneda::monedaACobrar()`) |
@@ -1525,10 +1526,13 @@ que no pueden divergir:
 | Hay un enlace **manual** vivo | nada: el automático se abstiene (10/10/2026) | — | — |
 | Canal que ya cobró · sin política · base cero · saldo cero (sin «Cobrar el total») | nada, y se retira el vivo | — | — |
 
-⚠️ **El día de llegada NO amplía el público.** A una reserva `SIN_PREPAGO` o de Airbnb con extras el
-automático no le emite el total por llegar el día: sólo si una persona marca «Cobrar el total». Que
-lo haga solo sería un enlace que nadie pidió en el WhatsApp de cada huésped de Airbnb con un extra,
-y es una decisión de negocio por tomar, no un fallo (revisión del 16/10/2026).
+**Los extras de un canal que cobra, solos desde el día de llegada** (Jorge, 16/10/2026: «que se
+emitan para los extras»): `PmsPrepagoEnlaceService::extrasDeCanalQueCobra()`. Se comprobó antes en
+producción que el saldo de esas reservas es exactamente lo de los extras —el depósito espejo cancela
+lo del canal; las que tenían saldo sin extras eran canceladas—. 🛡️ Si cuenta un cargo **de Beds24**
+sin la marca de espejo (el flag mal puesto que ya se vio en Airbnb), no se emite y queda un
+`warning`: el «extra» sería el alojamiento ya pagado a la plataforma. Un establecimiento
+`SIN_PREPAGO` sigue necesitando «Cobrar el total» (hoy no hay ninguno).
 
 **«Pago total» o «Saldo»**: sin ningún pago, el enlace por todo se llama «Pago total» —es lo que
 dice la guía del huésped, «Total a pagar»—; con algo pagado, «Saldo» («Saldo por pagar»). Lo decide

@@ -27,9 +27,7 @@ decidió dejar para después:
    la aprueba (`msg:meta:push saldo_pendiente_viaje --ver`); si la rechaza, el aviso del saldo de un
    viaje sólo sale dentro de la ventana de 24 h.
    - Los tramos en alojamiento quedaron hechos el 16/10/2026 (`docs/FinanzasEnlacesPago.md` §11 bis).
-     **Queda una decisión de negocio:** si el automático debe emitir solo el total el día de llegada
-     a las reservas `SIN_PREPAGO` y a los extras de Airbnb/VRBO, o sólo cuando una persona marca
-     «Cobrar el total» (lo de hoy).
+     Los extras de Airbnb/VRBO reciben su enlace solos desde el día de llegada (decidido el mismo día).
 2. **Clonar un tour del catálogo a una cotización con los pasajeros reales.** El precio del
    catálogo es referencial («desde»); hoy la cotización vendible se hace a mano. La clonación ya
    existe (`docs/Cotizaciones.md`, «Clonar una cotización a OTRO expediente o a un CATÁLOGO»):
