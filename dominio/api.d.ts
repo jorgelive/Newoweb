@@ -3056,11 +3056,6 @@ export interface components {
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
             /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
-            /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
              */
@@ -3092,11 +3087,6 @@ export interface components {
             fechaPrimerServicio?: string | null;
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
-            /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
             /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
@@ -3130,11 +3120,6 @@ export interface components {
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
             /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
-            /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
              */
@@ -3166,11 +3151,6 @@ export interface components {
             fechaPrimerServicio?: string | null;
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
-            /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
             /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
@@ -3204,11 +3184,6 @@ export interface components {
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
             /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
-            /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
              */
@@ -3240,11 +3215,6 @@ export interface components {
             fechaPrimerServicio?: string | null;
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
-            /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
             /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
@@ -3278,11 +3248,6 @@ export interface components {
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
             /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
-            /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.
              */
@@ -3314,11 +3279,6 @@ export interface components {
             fechaPrimerServicio?: string | null;
             /** @description `true` desde Perú, `false` desde fuera, `null` sin saberlo. Ver `FinAudienciaCobro::desdePeru()`. */
             desdePeru?: boolean | null;
-            /**
-             * @description ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-             *     transferencia sin comisión. Sin país, también: es mejor una opción de más.
-             */
-            conTarjeta?: boolean;
             /**
              * @description Fichas de {@see \App\Finanzas\Entity\FinMedioCobro::fichaParaCliente()},
              *     ya filtradas por procedencia y por los días que faltan.

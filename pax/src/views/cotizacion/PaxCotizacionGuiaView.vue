@@ -2655,17 +2655,24 @@ const rotuloProcedencia = computed(() => {
                 {{ maestroStore.t('cot_por_donde_pagar') || 'Por dónde pagar' }}<template v-if="rotuloProcedencia"> · {{ rotuloProcedencia }}</template>
               </h4>
 
+              <!-- Las cuentas primero y la tarjeta al FINAL, para todos, como en alojamiento
+                   (`PmsSituacionDeCobroResolver`): es la opción cara, y abrir por ella empuja a pagar la
+                   comisión a quien podía transferir gratis. Sin cuentas que ofrecer, el widget no se
+                   pinta: la tarjeta ya es por dónde pagar. -->
+              <MediosPagoWidget v-if="store.comoReservar.medios.length"
+                                :medios-pago="store.comoReservar.medios" plegable />
+
               <!-- Con enlace vigente, la tarjeta es un BOTÓN: lo emite el servidor al publicar la
                    propuesta (`CotizacionEnlaceService`). Lleva el importe con la comisión de la
                    pasarela, que paga el cliente como en alojamiento. Si el cobro no cupo en el tope
                    de la pasarela salen VARIOS, «parte 1 de 2»…: se pagan todos. -->
-              <template v-if="store.comoReservar.conTarjeta && store.comoReservar.enlacesPago.length">
-                <p v-if="store.comoReservar.enlacesPago.length > 1" class="mt-3 text-[11px] font-bold text-slate-500 leading-snug">
+              <template v-if="store.comoReservar.enlacesPago.length">
+                <p v-if="store.comoReservar.enlacesPago.length > 1" class="mb-2 text-[11px] font-bold text-slate-500 leading-snug">
                   {{ maestroStore.t('cot_pago_en_partes', { n: String(store.comoReservar.enlacesPago.length) }) || `El pago va en ${store.comoReservar.enlacesPago.length} partes, por el límite por operación de la pasarela: págalas todas.` }}
                 </p>
                 <a v-for="enlace in store.comoReservar.enlacesPago" :key="enlace.url"
                    :href="enlace.url"
-                   class="mt-2 flex items-center gap-3 rounded-2xl bg-[#E07845] hover:bg-[#D06535] px-4 py-3 shadow-sm text-white transition-colors">
+                   class="mb-2 flex items-center gap-3 rounded-2xl bg-[#E07845] hover:bg-[#D06535] px-4 py-3 shadow-sm text-white transition-colors">
                   <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-white/15">
                     <i class="fas fa-credit-card text-sm"></i>
                   </span>
@@ -2685,8 +2692,8 @@ const rotuloProcedencia = computed(() => {
               </template>
 
               <!-- Sin enlace todavía: la tarjeta no es una cuenta, se le manda uno al pedirlo. -->
-              <div v-else-if="store.comoReservar.conTarjeta"
-                   class="mt-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white px-4 py-3 shadow-sm">
+              <div v-else
+                   class="mb-3 flex items-start gap-3 rounded-2xl border border-[#376875]/10 bg-white px-4 py-3 shadow-sm">
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[#376875] text-white">
                   <i class="fas fa-credit-card text-sm"></i>
                 </span>
@@ -2697,11 +2704,6 @@ const rotuloProcedencia = computed(() => {
                   </span>
                 </span>
               </div>
-
-              <!-- Sin cuentas que ofrecer (Western Union ya no llega a tiempo), el widget pinta su
-                   «consúltanos por el chat». Con la tarjeta delante sobra: ya hay por dónde pagar. -->
-              <MediosPagoWidget v-if="store.comoReservar.medios.length || !store.comoReservar.conTarjeta"
-                                :medios-pago="store.comoReservar.medios" plegable />
 
               <p class="text-[11px] font-bold text-slate-500 leading-snug">
                 {{ maestroStore.t('res_aviso_pago') || 'Avísanos cuando lo hayas hecho y el equipo lo confirma. Si quieres, mándanos la captura.' }}

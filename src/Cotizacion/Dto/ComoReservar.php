@@ -42,13 +42,6 @@ final readonly class ComoReservar
         #[Groups(['pax_cotizacion:read'])]
         public ?bool $desdePeru,
 
-        /**
-         * ¿Se le ofrece la tarjeta? Al de fuera sí; al de Perú no, porque tiene Yape, Plin y
-         * transferencia sin comisión. Sin país, también: es mejor una opción de más.
-         */
-        #[Groups(['pax_cotizacion:read'])]
-        public bool $conTarjeta,
-
         #[Groups(['pax_cotizacion:read'])]
         public array $medios,
 

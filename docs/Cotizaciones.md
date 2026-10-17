@@ -4064,9 +4064,14 @@ pax: PaxCotizacionGuiaView ── montoDeAdelanto() / saldoTrasAdelanto() (domin
     `origenHash: 'manual'`: sueltas, el traductor estropea las palabras, y una traducción sin hash
     se rehace en el siguiente guardado. El sol no se traduce: «Soles» en todos.
     Durante unas horas fueron dos cadenas de UI (`gui_moneda_*`); las borró `Version20261016200000`.
-- **La tarjeta no es una cuenta**: al de fuera (y a quien no se sabe) se le dice que se le manda un
-  enlace de pago seguro. Generarlo desde la propia vista (Culqi) es la segunda entrega: falta un
-  `FinOrigenCobroResolverInterface` para el expediente. Ver `docs/Pendientes.md`.
+- **La tarjeta se ofrece a TODOS y va al FINAL**, después de las cuentas, igual que en alojamiento
+  (`PmsSituacionDeCobroResolver`): es la opción cara, y abrir por ella empuja a pagar la comisión a
+  quien podía transferir gratis. La audiencia filtra las CUENTAS (Yape, transferencias, Western
+  Union), no la tarjeta. Con enlace vigente es el botón «Pagar con tarjeta»; sin él, «te enviamos un
+  enlace de pago seguro».
+  - 🔥 Hasta el 16/10/2026 se le ocultaba al cliente de Perú y salía ANTES de las cuentas: EG95UF
+    (peruano) tenía su enlace emitido y no lo veía. Jorge preguntó si era la lógica de alojamiento;
+    no lo era, y se alineó.
 - **Las devoluciones no se redactan aquí**: se enlaza `/legal/politica-de-cambios-y-devoluciones`
   de la web (`front_legal`, español o inglés; otro idioma lee la inglesa). Copiar los tramos
   serían dos versiones de una condición legal.
@@ -4164,8 +4169,8 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
   si no la publicada (`CuentaDelExpediente::propuestas()`). Cada propuesta tiene sus enlaces; el
   pago entra en el EXPEDIENTE con su número de propuesta.
 - **Se emite solo al PUBLICAR**, el adelanto, si la propuesta se ofrece, pide adelanto, tiene
-  total y no tiene nada pagado. Para TODOS los clientes: pax enseña el botón a quien se le ofrece
-  tarjeta, y el operador puede mandarlo a cualquiera. Republicar no duplica (reutiliza el vivo por
+  total y no tiene nada pagado. Para TODOS los clientes, y pax lo enseña a todos (al final de los
+  medios de pago). Republicar no duplica (reutiliza el vivo por
   el mismo importe); despublicar no anula.
 - **La comisión la paga el cliente** (`conRecargo`), como en alojamiento: el enlace cobra neto +
   comisión y lo que entra al expediente es el neto.

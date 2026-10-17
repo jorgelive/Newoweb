@@ -139,7 +139,6 @@ final readonly class ComoReservarResolver
             porcentajeAdelanto: $cotizacion->porcentajeDeAdelanto(),
             fechaPrimerServicio: $inicio?->format('Y-m-d'),
             desdePeru: $desdePeru,
-            conTarjeta: $desdePeru !== true,
             medios: $medios,
             politicaDevoluciones: [
                 'es' => $this->politica('es'),
