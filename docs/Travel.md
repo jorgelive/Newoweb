@@ -1838,7 +1838,8 @@ otra.
 y Starlodge el paquete lo incluye todo y sus transportes llevan «Van (Incluido en paquete externo)»
 a 0,00. **Vertical Sky recoge en Ollantaytambo**: el tramo Cusco ↔ Ollantaytambo lo ponemos
 nosotros y se cobra, así que sus dos filas de transporte NO llevan esa tarifa. Copiar el patrón de
-Skylodge aquí regalaría el traslado.
+Skylodge aquí regalaría el traslado. Llevan la **Van privada** (73 USD por grupo), que eligió Jorge
+ese día; la pone el mismo `app:travel:montar-circuito-vertical-sky`, sólo en filas sin tarifa.
 
 ⚠️ **Lo que sigue roto en Vertical Sky es el PRECIO.** Con las actividades a 0, todo el importe
 tiene que estar en el alojamiento, y la cápsula usa «Alojamiento en Ollantaytambo», un componente

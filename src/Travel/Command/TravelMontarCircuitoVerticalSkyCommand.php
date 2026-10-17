@@ -48,7 +48,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:montar-circuito-vertical-sky',
-    description: 'Crea el componente del circuito de aventura de Vertical Sky (a 0,00) y lo marca como principal del día 2.',
+    description: 'Crea el circuito de aventura de Vertical Sky (a 0,00, principal del día 2) y le pone la van privada a su transporte.',
     hidden: true,
 )]
 final class TravelMontarCircuitoVerticalSkyCommand extends Command
@@ -57,6 +57,15 @@ final class TravelMontarCircuitoVerticalSkyCommand extends Command
     private const string SEGMENTO = 'Circuito Completo de Aventura Vertical';
     private const string COMPONENTE = 'Experiencia Circuito Vertical Sky';
     private const string TARIFA = 'Incluido en el Paquete';
+
+    /**
+     * La tarifa del transporte Cusco ↔ Ollantaytambo en esta plantilla. Privada y por grupo.
+     *
+     * ⚠️ **No es la de Skylodge.** Allí el paquete lo incluye todo y el transporte va con «Van
+     * (Incluido en paquete externo)» a 0,00. Vertical Sky recoge en Ollantaytambo: el tramo desde
+     * Cusco lo ponemos nosotros y se cobra (Jorge, 17/10/2026, que eligió la van privada).
+     */
+    private const string TARIFA_TRANSPORTE = 'Van';
     private const int DIA = 2;
     private const string HORA = '08:00';
     private const string HORA_FIN = '11:30';
@@ -159,6 +168,30 @@ final class TravelMontarCircuitoVerticalSkyCommand extends Command
             $io->writeln(sprintf('  + pivote de la plantilla: día %d, %s–%s, servicio principal', self::DIA, self::HORA, self::HORA_FIN));
         } else {
             $io->writeln('  = pivote de la plantilla ya existe');
+        }
+
+        // El transporte de la plantilla, con su tarifa: sin predeterminada, quien cotiza tiene que
+        // elegirla a mano cada vez. Sólo se rellena la que está vacía.
+        foreach ($this->em->getRepository(TravelSegmentoComponente::class)->findBy(['itinerarioContexto' => $plantilla]) as $fila) {
+            $transporte = $fila->getComponente();
+            if ($transporte === null || $transporte->getTipo() !== ComponenteTipoEnum::TRANSPORTE || $fila->getTarifaPredeterminada() !== null) {
+                continue;
+            }
+
+            $van = null;
+            foreach ($transporte->getTarifas() as $candidata) {
+                if ($candidata->getNombreInterno() === self::TARIFA_TRANSPORTE) {
+                    $van = $candidata;
+                }
+            }
+
+            if ($van === null) {
+                $io->warning(sprintf('«%s» no tiene la tarifa «%s»: la fila del día %d se queda sin tarifa.', $transporte->getNombreInterno(), self::TARIFA_TRANSPORTE, $fila->getDia() ?? 0));
+                continue;
+            }
+
+            $fila->setTarifaPredeterminada($van);
+            $io->writeln(sprintf('  + transporte del día %d → «%s» %s %s', $fila->getDia() ?? 0, self::TARIFA_TRANSPORTE, $van->getMonto(), $van->getMoneda()?->getId() ?? ''));
         }
 
         // 6 · los dos pools del servicio
