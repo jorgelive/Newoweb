@@ -23,9 +23,9 @@ Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §
 decidió dejar para después:
 
 1. **Enlace de Culqi desde la cotización: HECHO el 16/10/2026**, con los avisos por WhatsApp
-   (`docs/Cotizaciones.md` §6.a). Queda **mandar a Meta `saldo_pendiente_viaje`**
-   (`msg:meta:push saldo_pendiente_viaje --todos`): hasta que la apruebe, el aviso del saldo de un
-   viaje sólo sale dentro de la ventana de 24 h. Es enviar algo a un tercero: lo decide Jorge.
+   (`docs/Cotizaciones.md` §6.a). `saldo_pendiente_viaje` se envió a Meta ese día: comprobar que
+   la aprueba (`msg:meta:push saldo_pendiente_viaje --ver`); si la rechaza, el aviso del saldo de un
+   viaje sólo sale dentro de la ventana de 24 h.
    - **Y en alojamiento, si algún día una reserva pasa del tope de Culqi** (3000 USD): el enlace
      emitido a mano ya sale en tramos (`crearEnTramos()`), pero el prepago automático
      (`PmsPrepagoEnlaceService`) sigue con `crear()` y no emitiría, y la guía del huésped enseñaría

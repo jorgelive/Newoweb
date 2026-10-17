@@ -4206,7 +4206,12 @@ util «Pagos del cliente» ── «Enlaces de pago» por propuesta (ReservaEnla
   ya está registrado… El saldo de tu viaje es de {{importe_saldo}}… a más tardar el día del primer
   servicio… medios de pago de tu cotización». La de alojamiento dice «tu llegada» y «tu guía».
   **Hasta que Meta la apruebe, fuera de la ventana de 24 h no sale** (queda el error en el
-  mensaje): subirla es `msg:meta:push saldo_pendiente_viaje --todos`, decisión de Jorge.
+  mensaje). **Enviada a revisión el 16/10/2026** (`saldo_pendiente_viaje_v1`, los siete idiomas);
+  el estado lo trae `app:whatsapp:sync-templates` a las 03:15.
+  ⚠️ **El traductor leyó «viaje» y «servicio» como trayecto y revisión de coche**: fr «trajet»,
+  de «ersten Fahrt», nl «rit» y «eerste servicebeurt» (y de «u», cuando el neerlandés tutea). Se
+  corrigieron a mano en los tres cuerpos —Meta, Beds24 y ventana— con `origenHash: 'manual'`
+  antes de enviarla. Una plantilla de turismo nueva: revisar esas dos palabras en todos.
 - **Las variables del expediente** (`guest_name`, `account_url`, `account_path` → `file/{loc}`, la
   portada de pax con cada propuesta y lo pagado) las pone `CotizacionMessageDataResolver`, que no
   existía: hasta hoy el hilo de un expediente no sabía rellenar ninguna plantilla.
