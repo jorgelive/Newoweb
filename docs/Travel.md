@@ -1834,6 +1834,12 @@ del texto del traslado de salida («después del desayuno, o al culminar las act
 por la mañana») y de que ese traslado sale a las 12:00: se corrige en el panel si el proveedor dice
 otra.
 
+⚠️ **El transporte NO va en el paquete, a diferencia de Skylodge** (Jorge, 17/10/2026). En Skylodge
+y Starlodge el paquete lo incluye todo y sus transportes llevan «Van (Incluido en paquete externo)»
+a 0,00. **Vertical Sky recoge en Ollantaytambo**: el tramo Cusco ↔ Ollantaytambo lo ponemos
+nosotros y se cobra, así que sus dos filas de transporte NO llevan esa tarifa. Copiar el patrón de
+Skylodge aquí regalaría el traslado.
+
 ⚠️ **Lo que sigue roto en Vertical Sky es el PRECIO.** Con las actividades a 0, todo el importe
 tiene que estar en el alojamiento, y la cápsula usa «Alojamiento en Ollantaytambo», un componente
 genérico cuyas tarifas son de hotel u hostal (0,00) o de cabaña (200 PEN por persona). Ninguna es de
