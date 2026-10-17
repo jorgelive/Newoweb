@@ -610,7 +610,7 @@ primera. Vale la pena descartarlo con el log antes que con la intuición.
 | Salvaguarda | Dónde | Qué evita |
 |---|---|---|
 | **Cierre forzado** con `functionCallingConfig: NONE` | `GoogleAIEngine::cerrarSinHerramientas()` | Que el turno caro sea **además** mudo |
-| **Racha de fallos** (`MAX_FALLOS_SEGUIDOS = 3`) | `GoogleAIEngine::conversar()` | Que la racha llegue a ocho vueltas |
+| **Racha de fallos** (`MAX_FALLOS_SEGUIDOS = 3`) | `ControlDeVueltas::finDeVuelta()`, en los tres motores | Que la racha llegue a ocho vueltas |
 | **Llamada repetida** (`skill + argumentos`) | idem, mapa `$servidas` | Pagar dos veces por la misma pregunta, y que una skill de escritura escriba dos veces |
 
 **El cierre forzado es el que más vale.** Antes, agotar las vueltas devolvía
@@ -925,7 +925,9 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
-| Cambiar cuándo se corta un bucle de herramientas | `src/Agent/Provider/Google/GoogleAIEngine.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `cerrarSinHerramientas()` |
+| Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
+| Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
+| Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
 | Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |
 | Qué horas de entrada/salida ve quien aún no reservó | `src/Agent/Skill/Pms/ConsultarGuiaSkill.php` | `horasEstandar()` — de `PmsEstablecimiento`; con reserva mandan las de la estancia |
 | Cambiar qué se registra de cada llamada a skill | `src/Agent/Skill/RastroDeSkill.php` | `argumentos()`, `resultado()`, `fueFallo()` |
