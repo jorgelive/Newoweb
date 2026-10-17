@@ -8,7 +8,9 @@ use App\Command\EntradaDeConsola;
 use App\Finanzas\Entity\FinEnlacePago;
 use App\Finanzas\Enum\FinOrigenCobro;
 use App\Finanzas\Repository\FinEnlacePagoRepository;
+use App\Pms\Entity\PmsChannel;
 use App\Pms\Entity\PmsInformacionFinanciera;
+use Doctrine\DBAL\ArrayParameterType;
 use App\Pms\Finanzas\PmsPrepagoEnlaceService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,7 +23,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Releva el enlace de ADELANTO por uno del SALDO en las reservas que ya llegaron.
+ * Releva el enlace de ADELANTO por uno del SALDO en las reservas que ya llegaron, y emite el de
+ * los EXTRAS a las de un canal que cobra (Airbnb, VRBO) que no tienen ninguno — ver
+ * `extrasDeCanalQueCobra()`.
  *
  * ### Por qué hace falta un reloj
  *
@@ -140,6 +144,8 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
             ],
         );
 
+        $this->extrasDeCanalQueCobra($io, $seco, $desde, $hoy);
+
         if ($filas === []) {
             $io->success('Ninguna reserva ya llegada conserva un enlace automático vivo.');
 
@@ -242,6 +248,61 @@ final class PmsPrepagoRevisarLlegadasCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Los EXTRAS de un canal que cobra (Airbnb, VRBO) se piden desde el día de llegada (16/10/2026,
+     * `PmsPrepagoEnlaceService::extrasDeCanalQueCobra()`). Esas reservas no tienen enlace previo
+     * que relevar —el canal cobró el alojamiento—, así que la consulta de arriba no las ve: un extra
+     * tecleado días antes de llegar se quedaba sin enlace, porque ese día nada mueve la cuenta.
+     *
+     * Candidatas: alojadas (llegadas en la ventana y sin salir), con algún cargo nuestro (sin marca
+     * de espejo) y sin enlace vivo. Si procede lo decide el emisor, como siempre.
+     */
+    private function extrasDeCanalQueCobra(SymfonyStyle $io, bool $seco, DateTimeImmutable $desde, DateTimeImmutable $hoy): void
+    {
+        /** @var list<array{info_id: string, loc: string}> $filas */
+        $filas = $this->em->getConnection()->fetchAllAssociative(
+            'SELECT DISTINCT BIN_TO_UUID(i.id) AS info_id, r.localizador AS loc
+             FROM pms_reserva r
+             INNER JOIN pms_informacion_financiera i ON i.reserva_id = r.id
+             INNER JOIN pms_cargo_financiero c ON c.informacion_id = i.id
+                AND c.es_automatico = 0 AND COALESCE(c.total_linea, c.monto) <> 0
+             WHERE r.channel_id IN (:canales)
+               AND r.fecha_llegada BETWEEN :desde AND :hoy
+               AND r.fecha_salida >= :hoy
+               AND NOT EXISTS (
+                   SELECT 1 FROM fin_enlace_pago e
+                   WHERE e.origen_id = r.id AND e.origen_tipo = :tipo AND e.estado IN (:pendiente, :fallido)
+               )',
+            [
+                'canales' => PmsChannel::CANAL_PAGO_TOTAL,
+                'desde' => $desde->format('Y-m-d'),
+                'hoy' => $hoy->format('Y-m-d'),
+                'tipo' => FinOrigenCobro::PMS_RESERVA->value,
+                'pendiente' => 'pendiente',
+                'fallido' => 'fallido',
+            ],
+            ['canales' => ArrayParameterType::STRING],
+        );
+
+        foreach ($filas as $fila) {
+            $info = $this->em->getRepository(PmsInformacionFinanciera::class)->find($fila['info_id']);
+
+            if (!$info instanceof PmsInformacionFinanciera) {
+                continue;
+            }
+
+            if ($seco) {
+                $io->writeln(sprintf('  %s · extras de un canal que cobra, sin enlace', $fila['loc']));
+                continue;
+            }
+
+            $nuevo = $this->prepago->emitirPorCambioDeCargos($info);
+            $io->writeln($nuevo === null
+                ? sprintf('  %s · extras sin enlace: no procede', $fila['loc'])
+                : sprintf('  ✅ %s · enlace de los extras %s %s', $fila['loc'], $nuevo->getMonedaCodigo(), $nuevo->getMontoNeto()));
+        }
     }
 
     /** El enlace automático que todavía se puede pagar, si lo hay. */

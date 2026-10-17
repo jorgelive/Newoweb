@@ -1543,7 +1543,7 @@ dice la guía del huésped, «Total a pagar»—; con algo pagado, «Saldo» («
 | Disparador | Cuándo |
 |---|---|
 | `PmsInformacionFinancieraCoherenciaListener::postFlush()` | cuando en ese flush se movió un cargo, un pago, una estancia o nació la reserva — o sea, por **movimiento** |
-| `app:pms:prepago:revisar-llegadas` (cron, 05:05 UTC = 00:05 de Lima) | por **reloj**: el día de llegada la regla cambia y puede que nada mueva esa cuenta |
+| `app:pms:prepago:revisar-llegadas` (cron, 05:05 UTC = 00:05 de Lima) | por **reloj**: el día de llegada la regla cambia y puede que nada mueva esa cuenta. También emite el de los **extras** de Airbnb/VRBO alojadas sin enlace (16/10/2026): un extra tecleado antes de llegar no tiene otro momento en que salir |
 | `app:pms:prepago:saldo-tras-adelanto` (cron, cada 5 min) | por **reloj**: media hora después de pagado el adelanto por enlace (10/10/2026) |
 
 Cuenta como movimiento, desde el 10/10/2026, también que una **estancia** nazca, se borre o cambie
