@@ -1515,6 +1515,15 @@ fuente: Medio Día Uros, Checoq y Full Day Maras privados, y los tres 2D de Titi
 del día 1 y el 15:00 del tarifario es la vuelta del día 2—. El global de «Transporte Super Valle»
 conserva su 07:00: el privado tiene promovido y no muerde, pero contradice la misma regla.
 
+**Los 2D/1N del Titicaca son los primeros cargados así (16/10/2026).** Un componente `pool` por
+plantilla —«Segundo día Uros Amantaní 2D1N»…—, tarifa a 0 de Qhapaq (lo que cobra ya va en el
+pool del día 1), sin título público y **sólo con el pivote de plantilla**: el desayuno de Amantaní
+con el que empieza el día lo comparten dos plantillas, y un global colgado de él metería el
+segundo día de una en la otra. Día 2 de 07:00 (desayuno, Jorge) a 15:00 (tarifario). El mismo
+comando, `app:travel:titicaca-segundo-dia`, cerró el Medio Día Uros a las 12:00: tarifario e
+itinerario oficial dan «3 horas approx.» y sale a las 09:00. De los «6 sin fin» de arriba quedan
+Checoq y el Full Day Maras privados.
+
 **Estado al 22/08/2026:** las cinco plantillas de varios días del catálogo —Two Day Camino Inca,
 Two Day MAPI bimodal, Two Day Vertical Sky, Skylodge y Starlodge— **no tienen ninguna marca por
 día**. `app:travel:proponer-puntos` las saca en una sección propia, «para revisar», cada vez que
