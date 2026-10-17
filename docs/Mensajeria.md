@@ -4585,6 +4585,19 @@ desconocido— porque quien filtre la bandeja tiene que poder separarlas: esto n
 El teléfono se refresca en cada aviso: si el operador cambia de móvil, los siguientes van al
 nuevo sin tocar nada.
 
+⚠️ **Y se VINCULA, no sólo se refresca (17/10/2026).** Si el móvil nuevo no es de ningún hilo, el
+de equipo se encuentra por el operador, y hasta entonces sólo se le cambiaba el número de SALIDA:
+el móvil no pasaba a ser identidad del hilo, así que cuando el operador contestara desde él su
+mensaje caería en un hilo suelto aparte. Ahora `conversacionStaff()` llama también a
+`ResolutorDeHilo::vincular()`, que no duplica ni le quita el número a otro hilo. Comprobado contra
+la base local: sin la línea, el móvil nuevo no lleva a ningún hilo; con ella, al de equipo.
+
+> **Dónde acaban los avisos hoy, y es lo esperado.** Desde que el hilo se resuelve por teléfono
+> (§ «Los hilos `staff` también se unen»), los avisos de cada operador van al hilo de su número:
+> en producción, los de Susan (156) al de una de sus reservas y los de Jorge (157) a su hilo
+> manual. Los dos hilos `staff` de agosto existen, con 0 mensajes y sin identidades: sólo se
+> usarían para un móvil que no fuera de nadie.
+
 #### 🔤 Encontrar al huésped: el eslabón del que cuelgan todos los demás
 
 Casi toda cadena empieza en `buscar_reserva`. Si ahí no aparece nadie, no hay guía que enviar ni

@@ -996,8 +996,6 @@ Salieron de la segunda revisión de Fable del cambio «la ventana de WhatsApp es
 - ~~**Los botones contestan a la salida, no al que pulsó.**~~ **Arreglado el 17/10/2026**:
   `MessageConversation::telefonoParaResponderA()`, que usan el agente, `SendTemplateActionHandler`
   (todos los botones) y `EnviarmePlantillaSkill`. Ver `docs/Mensajeria.md` §5.
-- **El hilo `staff` de un operador no vincula su móvil nuevo.**
-  `AvisoAlEquipoService::conversacionStaff()` sólo llama a `vincular()` al CREAR el hilo. Si el
-  operador cambia de móvil, `setGuestPhone()` deja ahora la ventana cerrada —bien: ese número nunca
-  escribió—, pero el número no queda como identidad, y cuando el operador escriba desde él caerá en
-  un hilo `manual` aparte. Falta vincularlo también en el camino del hilo existente.
+- ~~**El hilo `staff` de un operador no vincula su móvil nuevo.**~~ **Arreglado el 17/10/2026**:
+  `conversacionStaff()` vincula también en el camino del hilo existente. Ver `docs/Mensajeria.md`,
+  «Las conversaciones `staff`».

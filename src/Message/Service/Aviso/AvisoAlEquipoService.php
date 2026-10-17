@@ -215,6 +215,13 @@ final readonly class AvisoAlEquipoService
             // yendo al número viejo.
             $conversacion->setGuestPhone((string) $operador->getTelefono());
 
+            // ⚠️ Y se le vincula como suyo (17/10/2026). Refrescar el número de SALIDA no basta: si
+            // el hilo se encontró por el operador y no por el teléfono, el móvil nuevo aún no es
+            // una identidad del hilo, y cuando el operador contestara desde él su mensaje caería en
+            // un hilo suelto aparte. `vincular()` no duplica, no le quita el número a otro hilo y
+            // entre hilos del equipo no sugiere fusión.
+            $this->resolutor->vincular($conversacion, IdentidadTipo::TELEFONO, $telefono, 'staff');
+
             return $conversacion;
         }
 
