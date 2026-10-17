@@ -1813,6 +1813,8 @@ día en esta plantilla», §4): por eso se marca sólo el segmento que cae en es
 |---|---|---|---|
 | Two Day Camino inca | 1 | Pool Camino Inca 2d (07:30–15:00, la caminata del km 104) | hecho el 17/10/2026 |
 | Two Day Vertical Sky con actividades | 2 | Experiencia Circuito Vertical Sky (08:00–11:30) | hecho el 17/10/2026 |
+| Skylodge con actividades | 1 · 2 | Primer día Skylodge (14:00–18:30) · Segundo día Skylodge (07:00–13:00) | hecho el 17/10/2026 |
+| Starlodge con actividades | 1 · 2 | Primer día Starlodge (12:00–19:00) · Segundo día Starlodge (06:30–13:00) | hecho el 17/10/2026 |
 
 Revisadas el mismo día las seis plantillas de varios días que lista `app:travel:proponer-puntos`:
 
@@ -1853,6 +1855,14 @@ Skylodge a las 11:30; actividades de Starlodge desde las 15:00, porque las 14:30
   combinación (Skylodge 01 = Zip Line + noche, 02 = Via Ferrata + noche, FULL = las dos).
 - **Comisión: la estándar** (Jorge), aunque el tarifario llame «no comisionables» a las tarifas por
   cápsula.
+- **El servicio principal de cada día** sigue el patrón del Titicaca: un `pool` a 0 por día, sin
+  título público, con tarifa de Natura Vive y **sólo la fila de plantilla** —«Traslado desde la
+  Ciudad de Cusco» lo comparten las dos cápsulas y un global metería el día de una en la otra—.
+  Horas del itinerario oficial de cada tarifario (tabla de arriba).
+- **La plantilla de Skylodge tiene filas de segmentos que no están en ella**, y no sobran: son las
+  variantes que el tarifario permite (recojo en el Valle Sagrado; la ruta Zipline, que sube por
+  tirolesa y baja por rapel). Dan la hora si alguien cambia a esa variante. La del descenso por
+  rapel tenía **día 1** —un descenso siempre es el día 2— y con él no habría entrado: corregida.
 - ⚠️ **Lo que el catálogo NO modela y hay que añadir a mano**: el **+25 %** de las noches del 24 y
   del 31 de diciembre, y el **IGV del 10,5 %** que pagan los peruanos y los residentes (los precios
   van sin IGV). Y las tarifas rigen hasta el 31/12/2026: el tarifario de 2027 hay que volver a

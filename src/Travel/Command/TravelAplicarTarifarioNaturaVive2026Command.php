@@ -10,7 +10,10 @@ use App\Travel\Entity\TravelOrganizacion;
 use App\Travel\Entity\TravelSegmento;
 use App\Travel\Entity\TravelSegmentoComponente;
 use App\Travel\Entity\TravelTarifa;
+use App\Entity\Maestro\MaestroMoneda;
 use App\Travel\Enum\ComponenteModoEnum;
+use App\Travel\Enum\ComponenteTipoEnum;
+use App\Travel\Enum\TarifaModalidadEnum;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -36,8 +39,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *    Ollantaytambo», y sus tarifas están en «Alojamiento en Skylodge Starlodge».
  *  - **Tarifa predeterminada de la cápsula**: la FULL por persona, porque las dos plantillas son
  *    «con actividades». Sin ella, quien cotiza la elige a mano cada vez.
- *  - **Dos horas** del itinerario oficial: el retorno de Skylodge sale a las 11:30 (no a las 11:00)
- *    y las actividades de Starlodge empiezan a las 15:00 (las 14:30 son la charla).
+ *  - **Horas** del itinerario oficial: el retorno de Skylodge sale a las 11:30 (no a las 11:00), las
+ *    actividades de Starlodge empiezan a las 15:00 (las 14:30 son la charla) y su retorno, a las 10:30.
+ *  - **El servicio principal de cada día** (`DIAS`), y el descenso por rapel de Skylodge, que
+ *    tenía día 1.
  *
  * La comisión de las tarifas por cápsula se queda en la estándar (Jorge, 17/10/2026), aunque el
  * tarifario las llame «no comisionables». No se modela el +25 % del 24 y 31 de diciembre ni el
@@ -82,6 +87,30 @@ final class TravelAplicarTarifarioNaturaVive2026Command extends Command
     private const array HORAS = [
         ['plantilla' => 'Skylodge con actividades', 'componente' => 'Transporte Cusco ↔ Ollanta (ida o vuelta)', 'dia' => 2, 'hora' => '11:30', 'horaFin' => '13:00'],
         ['plantilla' => 'Starlodge con actividades', 'componente' => 'Experiencia Via Ferrata Skylodge', 'dia' => 1, 'hora' => '15:00', 'horaFin' => '17:00'],
+        // Check-out a las 10:30 y «10.30 am – 13:00 pm Transporte» en su itinerario.
+        ['plantilla' => 'Starlodge con actividades', 'componente' => 'Transporte Cusco ↔ Ollanta (ida o vuelta)', 'dia' => 2, 'hora' => '10:30', 'horaFin' => '13:00'],
+    ];
+
+    /**
+     * El servicio principal de cada día: un componente `pool` a 0 que sólo aporta inicio y fin,
+     * como los segundos días del Titicaca (`app:travel:titicaca-segundo-dia`). Horas del itinerario
+     * oficial de cada tarifario:
+     *
+     *   Skylodge   día 1  14:00 recojo en Cusco → 18:30 fin de la charla del lodge
+     *              día 2  07:00 café en la suite → 13:00 llegada a Cusco
+     *   Starlodge  día 1  12:00 recojo en Cusco → 19:00 fin del check-in (luego tinas y cena)
+     *              día 2  06:30 desayuno → 13:00 llegada a Cusco o al Valle
+     *
+     * Cuelga del primer segmento del día y **sólo con la fila de plantilla**: «Traslado desde la
+     * Ciudad de Cusco» lo comparten las dos, y un global metería el día de una en la otra.
+     *
+     * @var list<array{plantilla: string, dia: int, nombre: string, segmento: string, hora: string, horaFin: string}>
+     */
+    private const array DIAS = [
+        ['plantilla' => 'Skylodge con actividades', 'dia' => 1, 'nombre' => 'Primer día Skylodge', 'segmento' => 'Traslado desde la Ciudad de Cusco', 'hora' => '14:00', 'horaFin' => '18:30'],
+        ['plantilla' => 'Skylodge con actividades', 'dia' => 2, 'nombre' => 'Segundo día Skylodge', 'segmento' => 'Descenso por Zipline (Circuito de Tirolesas Completo)', 'hora' => '07:00', 'horaFin' => '13:00'],
+        ['plantilla' => 'Starlodge con actividades', 'dia' => 1, 'nombre' => 'Primer día Starlodge', 'segmento' => 'Traslado desde la Ciudad de Cusco', 'hora' => '12:00', 'horaFin' => '19:00'],
+        ['plantilla' => 'Starlodge con actividades', 'dia' => 2, 'nombre' => 'Segundo día Starlodge', 'segmento' => 'Descenso del StarLodge: Retorno al Valle', 'hora' => '06:30', 'horaFin' => '13:00'],
     ];
 
     private int $cambios = 0;
@@ -212,6 +241,24 @@ final class TravelAplicarTarifarioNaturaVive2026Command extends Command
             }
         }
 
+        $io->section('La variante de rapel de Skylodge');
+        // La ruta Zipline (Skylodge 01) sube por tirolesa y BAJA por rapel y Vía Ferrata. Su
+        // descenso tenía día 1, y un componente con día sólo entra si el segmento cae ese día: al
+        // cambiar a esa variante, el descenso del día 2 se quedaba sin componente.
+        $skylodge = $this->em->getRepository(TravelItinerario::class)->findOneBy(['nombreInterno' => 'Skylodge con actividades']);
+        $descensoRapel = $this->componente('Descenso sin actividades Skylodge');
+        if ($skylodge !== null && $descensoRapel !== null) {
+            foreach ($this->em->getRepository(TravelSegmentoComponente::class)->findBy(['itinerarioContexto' => $skylodge, 'componente' => $descensoRapel, 'dia' => 1]) as $fila) {
+                $this->anotar($io, 'Descenso por rapel de Skylodge: día 1 → 2');
+                $fila->setDia(2);
+            }
+        }
+
+        $io->section('Servicio principal de cada día');
+        foreach (self::DIAS as $dia) {
+            $this->principalDelDia($io, $dia, $prestador);
+        }
+
         if ($this->cambios === 0) {
             $io->success('Todo coincide ya con el tarifario.');
 
@@ -228,6 +275,70 @@ final class TravelAplicarTarifarioNaturaVive2026Command extends Command
         $io->success(sprintf('%d cambios aplicados.', $this->cambios));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param array{plantilla: string, dia: int, nombre: string, segmento: string, hora: string, horaFin: string} $dia
+     */
+    private function principalDelDia(SymfonyStyle $io, array $dia, TravelOrganizacion $prestador): void
+    {
+        $plantilla = $this->em->getRepository(TravelItinerario::class)->findOneBy(['nombreInterno' => $dia['plantilla']]);
+        $segmento = $this->em->getRepository(TravelSegmento::class)->findOneBy(['nombreInterno' => $dia['segmento']]);
+        $servicio = $plantilla?->getServicio();
+
+        if ($plantilla === null || $segmento === null || $servicio === null) {
+            $io->warning(sprintf('Falta la plantilla, su servicio o el segmento «%s».', $dia['segmento']));
+
+            return;
+        }
+
+        $componente = $this->componente($dia['nombre']);
+        if ($componente === null) {
+            // Sin título público: en un `pool` titula el segmento (docs/TravelCargaDeCatalogo.md).
+            $componente = (new TravelComponente())
+                ->setNombreInterno($dia['nombre'])
+                ->setTipo(ComponenteTipoEnum::EXCURSION_POOL);
+            $this->em->persist($componente);
+            $this->anotar($io, sprintf('+ componente «%s» (pool)', $dia['nombre']));
+        }
+
+        if (!$servicio->getComponentes()->contains($componente)) {
+            $servicio->addComponente($componente);
+        }
+
+        $tarifa = $componente->getTarifas()->first() ?: null;
+        if ($tarifa === null) {
+            // Lo que cobra Natura Vive ya está entero en la cápsula: ésta existe para que el
+            // componente no entre «sin tarifa». Los setters de la tarifa no se encadenan.
+            $tarifa = new TravelTarifa();
+            $tarifa->setComponente($componente);
+            $tarifa->setNombreInterno($dia['nombre'] . ' · Incluido en el paquete');
+            $tarifa->setTitulo([['language' => 'es', 'content' => 'Incluido']]);
+            $tarifa->setMoneda($this->em->getReference(MaestroMoneda::class, 'PEN'));
+            $tarifa->setMonto('0.00');
+            $tarifa->setModalidad(TarifaModalidadEnum::COMPARTIDO);
+            $tarifa->setPrestador($prestador);
+            $tarifa->setComprador($prestador);
+            $componente->addTarifa($tarifa);
+            $this->em->persist($tarifa);
+        }
+
+        $fila = $this->em->getRepository(TravelSegmentoComponente::class)->findOneBy([
+            'segmento' => $segmento, 'componente' => $componente, 'itinerarioContexto' => $plantilla,
+        ]);
+
+        if ($fila === null) {
+            $this->em->persist((new TravelSegmentoComponente())
+                ->setSegmento($segmento)->setComponente($componente)
+                ->setItinerarioContexto($plantilla)
+                ->setModo(ComponenteModoEnum::INCLUIDO)
+                ->setTarifaPredeterminada($tarifa)
+                ->setDia($dia['dia'])->setOrden(1)
+                ->setHora(new DateTimeImmutable($dia['hora']))
+                ->setHoraFin(new DateTimeImmutable($dia['horaFin']))
+                ->setHoraServicioCompleto(true));
+            $this->anotar($io, sprintf('%s, día %d: principal «%s» %s–%s', $dia['plantilla'], $dia['dia'], $dia['nombre'], $dia['hora'], $dia['horaFin']));
+        }
     }
 
     private function componente(string $nombre): ?TravelComponente
