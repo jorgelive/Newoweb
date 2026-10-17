@@ -890,6 +890,11 @@ la venta (`VENTA`) y ningún contexto volátil. Con el equipo Turismo no dice na
 no tiene nada que decirle a ese perfil, cede el turno al resto** (el compañero conserva su bloque
 de siempre).
 
+**La regla de cuándo escalar viaja con la herramienta (17/10/2026):** «anotar ya avisa; escalar
+sólo si es para hoy o mañana» vivía sólo en el bloque `VENTA`, que el huésped de una casita no
+recibe (sólo le habla el alojamiento). Está ahora en la descripción de `anotar_pedido_cotizacion`,
+escrita en positivo, y llega a cualquiera que tenga la herramienta.
+
 ⚠️ **Lo que queda por hacer:** el pasajero de un expediente no tiene bloque propio —su viaje, sus
 fechas, su punto de encuentro—: recibe el de la venta. `CotizacionFrentes::frentesVivos()`
 devuelve vacío porque la enumeración de frentes aún no la lee nadie para el prompt.

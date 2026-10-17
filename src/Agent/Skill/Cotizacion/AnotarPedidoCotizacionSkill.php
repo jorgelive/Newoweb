@@ -73,10 +73,13 @@ final readonly class AnotarPedidoCotizacionSkill implements SkillInterface, Skil
                 . '⚠️ ÚSALA SIEMPRE QUE DIGAS QUE LO VAS A COTIZAR O QUE ALGUIEN LE ESCRIBIRÁ CON '
                 . 'LA COTIZACIÓN: si no la llamas, ese pedido no queda en ninguna parte y nadie '
                 . 'sabe que hay que trabajarlo. '
-                . 'NO es para lo urgente —eso es «escalar_al_equipo»—, y no sustituye a '
-                . 'responderle: si algo de lo que pide ya tiene precio y disponibilidad a mano '
-                . '(consultar_tarifas, consultar_disponibilidad, buscar_tarifas), cuéntaselo, y '
-                . 'ADEMÁS anótalo si hace falta armar el resto.',
+                // Escrito en positivo y con la regla de cuándo escalar DENTRO (17/10/2026): vivía
+                // sólo en el bloque de venta del prompt, que el huésped de una casita no recibe, y el
+                // 13/10 se anotó y además se escaló un traslado a cinco semanas vista.
+                . 'Anotarlo YA avisa a Cotizaciones: para lo que es de más adelante, con eso basta. '
+                . 'Si es para HOY o MAÑANA, llama además a «escalar_al_equipo». Y contéstale igual: '
+                . 'lo que ya tenga precio y disponibilidad a mano (consultar_tarifas, '
+                . 'consultar_disponibilidad, buscar_tarifas) cuéntaselo, y anota el resto.',
             parametros: [
                 SkillParameter::texto('pedido', 'Qué pide, en una línea y con sus palabras: '
                     . '«Valle Sagrado lunes 5 para 4, Montaña 7 Colores miércoles 7 para 4, '
