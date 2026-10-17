@@ -8640,7 +8640,7 @@ salió, nadie se enteró, y la huésped se quedó sin respuesta.
 | `postPersist` **y** `postUpdate` | hay dos caminos a `FAILED`: nacer fallido (el despachador no generó cola) o morir después (todas las colas fracasaron) |
 | En el update se mira el **changeset** | si se mirara el estado actual, marcar leído o guardar metadata sobre un mensaje ya fallido volvería a avisar. Es el fallo que ya se pagó en `MessageAutoResponderListener` |
 | Sólo `SENDER_HOST` | lo automático es cosa del motor de reglas; avisar de cada uno llena el móvil del equipo con algo que no puede arreglar |
-| Va por el bus | esto corre dentro de un flush y mandar push es I/O de red |
+| Va por el bus **asíncrono** | esto corre dentro de un flush y mandar push es I/O de red. ⚠️ **Hasta el 17/10/2026 no lo era**: a `AvisarEnvioFallidoDispatch` le faltaba su línea en el `routing` de `messenger.yaml`, y un mensaje sin ruta se maneja SÍNCRONO. El push salía dentro del `postPersist`, con un `em->refresh()` a media transacción y, si el navegador ya había dado de baja la suscripción (404/410), el `remove()` + `flush()` de `WebPushNotificationService::removeExpiredSubscription()`: un flush anidado. Lo encontró la búsqueda de flushes en listeners que siguió al de tipo de cambio (`docs/PmsBeds24ReservasSync.md` §12.18). Ir «por el bus» no aísla nada si el mensaje no tiene ruta |
 
 El cuerpo del aviso lleva el motivo tal cual lo guardó el despachador —«la ventana de 24 h ha
 caducado», «no se permite enviar a reservas directas por Beds24»—, que es lo único que dice qué

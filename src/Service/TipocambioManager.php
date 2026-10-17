@@ -10,9 +10,11 @@ use App\Entity\Maestro\MaestroTipocambio;
 use App\Entity\Maestro\MaestroTipocambioConsulta;
 use DateTime;
 use DateTimeImmutable;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class TipocambioManager
@@ -201,8 +203,8 @@ class TipocambioManager
             return $this->findLastAvailableInDb($fechaBuscada);
         }
 
-        // 4) Guardado Masivo
-        $this->persistMonthData($dtos, $fechaBuscada);
+        // 4) Guardado Masivo, por SQL directo: ver el docblock de `persistMonthData()`.
+        $this->persistMonthData($dtos);
 
         // 5) Retorno: Buscar match en la data fresca
         $bestDto = $this->findBestMatch($dtos, $fechaBuscada);
@@ -211,8 +213,8 @@ class TipocambioManager
             return $this->findLastAvailableInDb($fechaBuscada);
         }
 
-        // Buscamos de nuevo en BD (IdentityMap lo hará instantáneo)
-        // Asegurándonos de usar la fecha del DTO normalizada
+        // Se lee de la base la fila que acaba de entrar por SQL: hidratarla es un SELECT, que se
+        // puede hacer en mitad de un flush sin tocar su UnitOfWork.
         $fechaDto = DateTime::createFromImmutable($bestDto->date)->setTime(0, 0, 0);
 
         return $repo->findOneBy([
@@ -390,70 +392,62 @@ class TipocambioManager
     }
 
     /**
+     * Guarda las cotizaciones que falten, **por SQL directo y sin pasar por el ORM**.
+     *
+     * 🔴 **Antes era `persist()` + `flush()`, y ese `flush` corría DENTRO de otro.** A esto se
+     * llega desde `PmsTipoCambioSnapshotListener::sellarFicha()`, un `prePersist` que dispara
+     * `PmsInformacionFinancieraCoherenciaListener::onFlush()` al crear la cabecera de una reserva
+     * nueva. El `flush` interno volvía a ver la reserva como inserción pendiente y le creaba OTRA
+     * cabecera, cuyo `prePersist` volvía a pedir la tasa —que aún no estaba en la base—, volvía a
+     * llamar a decolecta, y vuelta a empezar. Al deshacerse la pila, la segunda cabecera chocaba
+     * con `UNIQ_2AFB3104D67139E8` (`reserva_id`) y el EntityManager quedaba **cerrado**: lo que
+     * viniera detrás en ese proceso fallaba con un `1064` sin sentido.
+     *
+     * En producción, el 09/10/2026 (2PFZNT) fueron 70 peticiones en dos segundos y el 13/10
+     * (MDQNXT) **unas mil en dos minutos**, hasta que decolecta empezó a contestar 403: esa
+     * recursión es la que agotó la cuota del plan. El tope diario del 13/10 la corta hoy en el
+     * segundo nivel, pero el `flush` anidado seguía rompiendo el EntityManager.
+     *
+     * Por SQL no hay UnitOfWork que reabrir: quien pida la tasa —un listener, un comando, un
+     * controlador— no dispara ningún flush. `MaestroTipocambio` no tiene listeners que saltarse
+     * (sólo `created_at`, que se escribe aquí), así que no se pierde nada al no pasar por el ORM.
+     *
+     * ⚠️ **`ON DUPLICATE KEY UPDATE`, no `INSERT IGNORE`.** Los dos se apoyan en
+     * `uniq_tipocambio_moneda_fecha` para que dos procesos a la vez no dupliquen el día (ya pasó
+     * el 15/09/2026), pero `IGNORE` también rebaja a aviso un valor que no cabe en la columna
+     * DECIMAL y guarda un 0.000 como tipo de cambio de ese día. Éste sólo perdona la clave
+     * repetida.
+     *
      * @param array<string, ExchangeRateDto> $dtos Indexadas por fecha `Y-m-d`.
      */
-    private function persistMonthData(array $dtos, DateTime $fechaReferencia): void
+    private function persistMonthData(array $dtos): void
     {
-        $inicio = (clone $fechaReferencia)->modify('first day of this month')->setTime(0,0,0);
-        $fin    = (clone $fechaReferencia)->modify('last day of this month')->setTime(23,59,59);
+        $conexion = $this->em->getConnection();
+        // Misma hora que pondría `TimestampTrait::setTimestampsOnPersist()`.
+        $ahora = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
-        // Obtenemos solo las fechas existentes
-        /** @var list<array{fecha: \DateTimeInterface|string|null}> $existingRows */
-        $existingRows = $this->em->createQueryBuilder()
-            ->select('tc.fecha')
-            ->from(MaestroTipocambio::class, 'tc')
-            ->where('tc.moneda = :moneda')
-            ->andWhere('tc.fecha BETWEEN :inicio AND :fin')
-            ->setParameter('moneda', $this->getUsdRef()) // Usamos referencia aquí también
-            ->setParameter('inicio', $inicio)
-            ->setParameter('fin', $fin)
-            ->getQuery()
-            ->getScalarResult();
-
-        $existingMap = [];
-        foreach ($existingRows as $row) {
-            $fecha = $row['fecha'] ?? null;
-            if (is_string($fecha)) {
-                $fechaDb = substr($fecha, 0, 10);
-            } elseif ($fecha instanceof \DateTimeInterface) {
-                $fechaDb = $fecha->format('Y-m-d');
-            } else {
-                continue;   // una fila sin fecha no marca ningún día como existente
-            }
-            $existingMap[$fechaDb] = true;
-        }
-
-        $monedaRef = $this->getUsdRef();
-        $batchSize = 20;
-        $i = 0;
-
-        foreach ($dtos as $dateKey => $dto) {
+        foreach ($dtos as $dto) {
             // `MONEDA_TARGET` ES 'USD' (MaestroMoneda::DB_ID_USD), así que comparar contra las dos
             // era la misma comprobación escrita dos veces. Se queda la constante, que es la que
             // sigue al maestro si algún día ese id deja de ser el literal.
             if ($dto->currencyCode !== self::MONEDA_TARGET) {
                 continue;
             }
-            if (isset($existingMap[$dateKey])) {
-                continue;
-            }
 
-            $entity = new MaestroTipocambio();
-            // Aseguramos medianoche al persistir
-            $entity->setFecha(DateTime::createFromImmutable($dto->date)->setTime(0, 0, 0));
-            $entity->setCompra($dto->buy);
-            $entity->setVenta($dto->sell);
-            $entity->setMoneda($monedaRef);
-
-            $this->em->persist($entity);
-
-            if ((++$i % $batchSize) === 0) {
-                $this->em->flush();
-            }
-        }
-
-        if ($i > 0) {
-            $this->em->flush();
+            $conexion->executeStatement(
+                'INSERT INTO maestro_tipocambio (id, moneda_id, fecha, compra, venta, created_at) '
+                . 'VALUES (?, ?, ?, ?, ?, ?) '
+                . 'ON DUPLICATE KEY UPDATE id = id',
+                [
+                    Uuid::v7()->toBinary(),
+                    self::MONEDA_TARGET,
+                    $dto->date->format('Y-m-d'),
+                    $dto->buy,
+                    $dto->sell,
+                    $ahora,
+                ],
+                [ParameterType::BINARY]
+            );
         }
     }
 

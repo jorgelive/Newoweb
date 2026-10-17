@@ -6376,8 +6376,14 @@ no la arregla operaciones: la arregla quien paga el plan o cambia la llave.
   endpoint de consulta la piden a cualquier hora, y cada intento son DOS peticiones (mes y día).
 
 ⚠️ **Y decolecta cuenta las RECHAZADAS.** Con la API caída nadie recordaba el fallo y cada
-petición volvía a llamar: **873 peticiones rechazadas del 9 al 13/10/2026** (~170 al día). El
-plan de 1000 comprado el 13/10 continuó el contador del mes y **nació agotado (1001 / 1000)**.
+petición volvía a llamar: **873 peticiones rechazadas del 9 al 13/10/2026** (~170 al día).
+
+🔴 **Corrección del 17/10/2026: las dos cuotas no se gastaron solas, se las comió una recursión.**
+Aquí decía que el plan de 1000 «nació agotado (1001 / 1000)». No: `info.log` tiene **exactamente
+1000 respuestas 200** de decolecta entre las 14:46:40 y las 14:48:44 del 13/10, todas dentro del
+mismo mensaje de Messenger (el webhook de la reserva MDQNXT). Y el 09/10 a las 00:09, con 2PFZNT,
+**70 respuestas 200 en dos segundos** sobre las ~20 del mes: eso es lo que agotó el plan gratis de
+100. Las dos ráfagas son el `flush` dentro del `flush` de la subsección de abajo.
 
 **Desde el 13/10/2026 hay tope: `TipocambioManager::MAX_CONSULTAS_DIA` = 20 peticiones al día**
 (hora de Lima), sumando todos los procesos. Vive en la tabla `maestro_tipocambio_consulta`, una
@@ -6423,6 +6429,71 @@ que mire.
 
 La zona horaria se fija a `America/Lima` dentro del comando, no se hereda del servidor: en UTC, a
 partir de las 19:00 de Lima «hoy» ya es mañana y se pediría una cotización que aún no existe.
+
+### 🔴 El guardado del mes hacía `flush` dentro de otro `flush` (17/10/2026)
+
+Crear una reserva podía reventar con `Duplicate entry … for key
+'pms_informacion_financiera.UNIQ_2AFB3104D67139E8'` (`reserva_id`) y dejar el EntityManager
+**cerrado**; detrás salían en cascada `1064 You have an error in your SQL syntax … near '?, ?, ?'`.
+Pasaba la primera vez por proceso y día en que la tasa de hoy no estuviera en `maestro_tipocambio`
+y decolecta contestara 200: fines de semana, feriados, antes de que SUNAT publique.
+
+```
+flush() de la reserva
+ └─ PmsInformacionFinancieraCoherenciaListener::onFlush()
+     └─ crearCabeceraPara()  → persist(cabecera 1)
+         └─ PmsTipoCambioSnapshotListener::sellarFicha()          (prePersist)
+             └─ TipoCambioDelDia::venta() → TipocambioManager::getTipodecambio()
+                 └─ hoy no está en base → decolecta (200) → persistMonthData()
+                     └─ persist(filas) + flush()   ← flush ANIDADO
+                         └─ onFlush otra vez: la reserva sigue «por insertar»
+                             └─ crearCabeceraPara() → persist(cabecera 2) → sellarFicha()
+                                 └─ la tasa aún no está en base → decolecta otra vez → …
+```
+
+Cada nivel volvía a llamar a decolecta, porque las filas del nivel anterior todavía no estaban en
+la base (la memoria de `TipoCambioDelDia` no ayuda: se rellena al VOLVER). La pila sólo paraba
+cuando la API dejaba de contestar 200. Al deshacerse, el `flush` más interno guardaba reserva y
+cabecera, y el siguiente chocaba con la clave única. La excepción salía dentro de `getTipodecambio()`,
+así que `TipoCambioDelDia::referencia()` la atrapaba y la dejaba en un WARNING — pero un fallo
+dentro de un `flush` cierra el EntityManager igual.
+
+- **En producción** fueron 70 peticiones el 09/10 y 1000 el 13/10 (ver la corrección de arriba).
+  Desde el tope del 13/10 la recursión se corta en el segundo nivel —la segunda llamada sale
+  frenada y cae al respaldo— pero la doble cabecera y el EntityManager cerrado seguían igual. Se
+  reprodujo en local el sábado 17/10.
+- **Las dos reservas de entonces quedaron bien**, comprobado el 17/10: 2PFZNT (Airbnb #94403092) y
+  MDQNXT (Booking #94638253) tienen UNA cabecera, su estancia, sus cargos (1 y 3, los mismos
+  `INVS` del webhook) y 2PFZNT su pago OTA. El `flush` más interno las guardó enteras, la cola de
+  fallidos está vacía y no quedaron filas repetidas en `maestro_tipocambio`. Lo único: MDQNXT se
+  selló con 3.453 (respaldo del 08/10) en vez de 3.448; se queda así por la decisión de abajo.
+- **Y una consecuencia de menos visibilidad**: la cabecera que sí se guardaba era la del nivel
+  más interno, sellada con la tasa del **respaldo**, no con la recién traída.
+
+**El arreglo: `persistMonthData()` escribe por SQL directo** (`INSERT … ON DUPLICATE KEY UPDATE`),
+sin `persist` ni `flush`. Pedir la tasa ya no toca el UnitOfWork desde ningún sitio —listener,
+comando, controlador o push de tarifas—, y la fila nueva se hidrata después con un `SELECT`, que
+sí se puede hacer en mitad de un flush. `MaestroTipocambio` no tiene listeners que saltarse.
+
+- **Índice único `uniq_tipocambio_moneda_fecha` (moneda, fecha)**, migración
+  `Version20261017180000`. Sin él el SQL directo podría duplicar el día con dos procesos a la vez,
+  y ya pasó una vez con el ORM: USD 2026-09-15, dos filas con un segundo de diferencia. La migración
+  borra antes esa copia (se queda la más antigua; nadie referencia la tabla por FK).
+- ⚠️ **`ON DUPLICATE KEY UPDATE`, no `INSERT IGNORE`**: `IGNORE` también rebaja a aviso un valor que
+  no cabe en la columna DECIMAL, y guarda un 0.000 como tipo de cambio.
+- Verificado en local con el día ausente, en transacción con rollback y la API simulada: antes,
+  `UniqueConstraintViolationException` y EntityManager cerrado; después, una cabecera sellada con
+  la tasa recién traída, el EntityManager abierto y una sola petición. Que no vuelva a pasar por
+  el ORM lo fija `TipocambioManagerTest::testGuardarElMesVaPorSqlSinPersistNiFlush()`.
+
+⚠️ **La regla que deja: nada que corra dentro de un listener de Doctrine hace `flush`, ni a tres
+llamadas de distancia.** Aquí no lo hacía el listener: lo hacía un servicio de *lectura* que de paso
+guardaba. La pregunta antes de llamar a un servicio desde un `prePersist`/`onFlush`/`postPersist`
+es si ese servicio, en alguna rama, escribe con el ORM. Si escribe, o va por SQL, o se aplaza a
+`postFlush` con guarda, o se manda al bus **con ruta asíncrona** — la búsqueda del 17/10 encontró
+además `AvisarEnvioFallidoDispatch` sin ruta, manejándose síncrono dentro de un `postPersist` y
+pudiendo hacer `flush` (ver `docs/Mensajeria.md` §9). Los `flush` en `postFlush` del proyecto
+tienen todos su guarda contra recursión.
 
 ### Lo sellado con tasa vieja se queda así (decidido el 13/10/2026)
 
@@ -6669,6 +6740,7 @@ contra la base local: mismos veredictos que antes.
 | Levantar los candados de moneda desde otro sitio (§12.4.4) | `MonedaBaseRebaseContext` | `durante()` — **no** debilites los `assert*` del listener |
 | Cambiar qué tipo de cambio se snapshotea (venta/promedio/compra) | `TipoCambioDelDia` | `venta()` |
 | Cambiar el tope diario de peticiones a decolecta (§12.18) | `TipocambioManager` | `MAX_CONSULTAS_DIA` (hoy 20) y `MINUTOS_ENTRE_CONSULTAS` (hoy 20); la reserva en `reservarConsulta()` |
+| Cambiar cómo se guardan las cotizaciones que trae la API (§12.18) | `TipocambioManager` | `persistMonthData()` — SQL directo con `ON DUPLICATE KEY`; **nunca `persist`/`flush`**: lo llaman listeners de Doctrine |
 | Cambiar a quién y cómo avisa el tipo de cambio atrasado (§12.18) | `TipoCambioSincronizarCommand` | `alarma()` — WhatsApp a `TECH_SUPPORT`, push de respaldo |
 | Cambiar el % de comisión de tarjeta (hoy 5.5%) | `PmsMedioPago` | `comisionPorcentaje()` |
 | Cambiar la fórmula del recargo / total cobrado (§11.5) | `PmsPagoFinanciero` + `util/src/types/pmsFinanzasModel.ts` | `getMontoComision()` / `totalConComision()` (son **espejo**: tocar los dos) |

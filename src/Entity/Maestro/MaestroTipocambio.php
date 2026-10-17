@@ -20,6 +20,10 @@ use Symfony\Component\Uid\Uuid;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'maestro_tipocambio')]
+// Un día, una cotización por moneda. Es lo que deja a `TipocambioManager::persistMonthData()`
+// escribir por SQL con `ON DUPLICATE KEY` sin que dos procesos a la vez dupliquen el día (pasó el
+// 15/09/2026, con un segundo de diferencia).
+#[ORM\UniqueConstraint(name: 'uniq_tipocambio_moneda_fecha', columns: ['moneda_id', 'fecha'])]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     shortName: 'TipoCambio',
