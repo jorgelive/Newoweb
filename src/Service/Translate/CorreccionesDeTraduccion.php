@@ -52,6 +52,9 @@ final class CorreccionesDeTraduccion
     /** @var array<string, array<string, string>> idioma → [frase de Google → frase corregida] */
     private const array CORRECCIONES = [
         'en' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026). «bathe in succession» sonaba a manual.
+            'The heaters are gas-powered and instantaneous: they have no tank, so the hot water <strong>doesn&#39;t run out</strong> even if several people bathe in succession.'
+                => 'The water heaters are gas-fired and instantaneous: there&#39;s no tank, so the hot water <strong>won&#39;t run out</strong>, even if several people shower one after another.',
             // Puertas (casas 1-7)
             'the second gate, right at the foot of the stands.'
                 => 'the second door, right at the foot of the steps.',
@@ -142,6 +145,9 @@ final class CorreccionesDeTraduccion
                 => 'Calle Saphy 644',
         ],
         'pt' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026).
+            'mesmo se várias pessoas tomarem banho em sequência.'
+                => 'mesmo que várias pessoas tomem banho uma após a outra.',
             // Puertas (casas 1-7)
             'É o segundo portão, bem no pé das arquibancadas.'
                 => 'É a segunda porta, bem ao pé da escada.',
@@ -249,6 +255,10 @@ final class CorreccionesDeTraduccion
                 => 'Também guardamos por <strong>vários dias</strong>',
         ],
         'fr' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026). «se baignent» es bañarse en el mar o la piscina.
+            // Sin los dos puntos en la búsqueda: el francés lleva espacio duro delante.
+            'ils n&#39;ont pas de réservoir, donc l&#39;eau chaude <strong>ne manque pas</strong> même si plusieurs personnes se baignent successivement.'
+                => 'ils n&#39;ont pas de réservoir, l&#39;eau chaude <strong>ne s&#39;épuise donc pas</strong>, même si plusieurs personnes se douchent l&#39;une après l&#39;autre.',
             // Puertas (casas 1-7)
             'Il possède une seule serrure'
                 => 'Elle a une seule serrure',
@@ -372,6 +382,9 @@ final class CorreccionesDeTraduccion
                 => '<strong>des transferts privés depuis l&#39;aéroport</strong>, avec supplément',
         ],
         'it' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026).
+            'nemmeno se più persone fanno la doccia in successione.'
+                => 'nemmeno se più persone fanno la doccia una dopo l&#39;altra.',
             // Puertas (casas 1-7)
             'Come aprirlo:'
                 => 'Come aprirla:',
@@ -587,6 +600,10 @@ final class CorreccionesDeTraduccion
                 => 'viene offerto il trasferimento gratuito dall&#39;aeroporto',
         ],
         'de' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026). «Sie haben» tras los dos puntos leía «USTED
+            // tiene» en vez de «ellos tienen», y «baden» es bañarse en tina.
+            'Die Durchlauferhitzer sind gasbetrieben und funktionieren sofort: Sie haben keinen Speicher, sodass das heiße Wasser auch dann <strong>nicht ausgeht,</strong> wenn mehrere Personen nacheinander baden.'
+                => 'Die Warmwasserbereiter sind Gas-Durchlauferhitzer: Es gibt keinen Speicher, daher <strong>geht das warme Wasser nicht aus</strong>, auch wenn mehrere Personen nacheinander duschen.',
             // Puertas (casas 1-7)
             'So öffnen Sie es:</strong> Es hat ein einzelnes Schloss'
                 => 'So öffnen Sie die Tür:</strong> Sie hat ein einzelnes Schloss',
@@ -716,6 +733,10 @@ final class CorreccionesDeTraduccion
                 => 'Einige <strong>Genius</strong>-Kunden',
         ],
         'nl' => [
+            // Duchas: el agua caliente no se acaba (17/10/2026). «De boilers… geen boiler» se contradecía: en
+            // neerlandés «boiler» ES el calentador con depósito; el de paso a gas es «geiser».
+            'De boilers werken op gas en geven direct warm water: ze hebben geen boiler, dus het warme water <strong>raakt niet op,</strong> zelfs niet als meerdere mensen achter elkaar douchen.'
+                => 'De geisers werken op gas en verwarmen het water terwijl het erdoor stroomt: er is geen voorraadvat, dus het warme water <strong>raakt niet op</strong>, ook niet als meerdere mensen na elkaar douchen.',
             // Puertas (casas 1-7)
             'Hoe open je het:</strong> Het heeft één slot'
                 => 'Hoe open je hem:</strong> Er zit één slot op',
