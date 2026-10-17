@@ -9,6 +9,8 @@ use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\SkillRegistry;
+use Anthropic\Lib\Tools\BetaToolRunner;
+use App\Agent\Skill\ControlDeVueltas;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -25,8 +27,6 @@ final readonly class AnthropicEngine implements AgentEngineInterface
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
 
-    /** Vueltas de herramientas por turno: las mismas que `DeepSeekEngine::MAX_VUELTAS`. */
-    private const int MAX_VUELTAS = 8;
 
     public function __construct(
         private AnthropicClientFactory $anthropic,
@@ -74,7 +74,11 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         }
 
         $usadas = [];
-        $tools = $this->adaptador->traducir($skills, $peticion->actor, $usadas);
+        // Las protecciones del bucle, las mismas de Google y DeepSeek (17/10/2026). El `toolRunner`
+        // del SDK se queda: la llamada repetida se corta dentro de cada herramienta (ver el
+        // adaptador) y la racha y el tope se cortan aquí, dejando de pedirle mensajes al runner.
+        $control = new ControlDeVueltas();
+        $tools = $this->adaptador->traducir($skills, $peticion->actor, $usadas, $control);
 
         $mensajes = [
             ...$this->turnosPrevios($peticion->historial),
@@ -102,9 +106,11 @@ final readonly class AnthropicEngine implements AgentEngineInterface
             tools: $tools,
             // 🔒 Un tope, como los otros dos motores (16/10/2026). Sin él `BetaToolRunner` gira
             // SIN LÍMITE: un modelo en bucle llamando a la misma skill no paraba nunca.
-            maxIterations: self::MAX_VUELTAS,
+            maxIterations: ControlDeVueltas::MAX_VUELTAS,
             extraParams: ['system' => $this->bloquesDeSistema($peticion)],
         );
+
+        $cerrando = false;
 
         foreach ($runner as $mensaje) {
             $vueltas++;
@@ -127,10 +133,24 @@ final readonly class AnthropicEngine implements AgentEngineInterface
                 return ConversationResponse::rechazada();
             }
 
+            // Las herramientas de la vuelta anterior ya se ejecutaron: el runner lo hace al pedirle
+            // este mensaje. Se cierra esa vuelta para llevar la racha de fallos. (El mensaje del
+            // cierre forzado no viene de ninguna vuelta: no cuenta.)
+            $motivo = $vueltas > 1 && !$cerrando ? $control->finDeVuelta() : null;
+
             // 🔥 Sólo cuenta el texto de un mensaje que NO pide herramientas (16/10/2026): el que
             // acompaña a un `tool_use` es un preámbulo —«un momento, reviso tu reserva…»—, y si
             // la vuelta siguiente no traía texto o se agotaba el tope, salía como respuesta final.
             if ($mensaje->stopReason === 'tool_use') {
+                // Racha de fallos, o la última vuelta: se le pide la respuesta SIN herramientas, y
+                // las que pide este mensaje no se ejecutan. Ver `forzarCierre()`. Con la racha se
+                // tira esta petición ya hecha: es el precio de no sustituir el runner, y sólo se
+                // paga cuando el turno ya iba mal.
+                if (!$cerrando && ($motivo !== null || ControlDeVueltas::esLaUltima($vueltas - 1))) {
+                    $this->forzarCierre($runner, $peticion, $motivo ?? ControlDeVueltas::motivoDelTope());
+                    $cerrando = true;
+                }
+
                 continue;
             }
 
@@ -166,6 +186,49 @@ final readonly class AnthropicEngine implements AgentEngineInterface
         return $usadas === []
             ? ConversationResponse::sinSkill($texto)
             : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
+    }
+
+    /**
+     * Pide al runner la respuesta final PROHIBIÉNDOLE llamar a nada más: `toolChoice: none` y la
+     * orden de cierre en el hilo. El `cerrarSinHerramientas()` de Google, sin salir del runner.
+     *
+     * 🔑 `setMessagesParams()` durante la iteración es la palanca que da el SDK: el runner entiende
+     * que llevamos el historial a mano, así que NO añade el mensaje en curso ni ejecuta sus
+     * herramientas, y la siguiente vuelta es una petición con lo que le damos. Así no hace falta
+     * sustituir el `toolRunner` por un bucle propio.
+     *
+     * La orden va en el último turno de usuario, detrás de los `tool_result` (dos turnos de usuario
+     * seguidos no son un hilo válido). Las herramientas siguen declaradas: el hilo ya lleva
+     * `tool_use`, y lo que se retira es el permiso, no la definición. `maxIterations: null` para
+     * que el tope del runner no se coma la petición del cierre.
+     */
+    private function forzarCierre(BetaToolRunner $runner, ConversationRequest $peticion, string $motivo): void
+    {
+        $this->logger->warning(sprintf(
+            'Agent (anthropic): cierre forzado para %s (%s); se le pide la respuesta SIN herramientas.',
+            $peticion->actor->etiqueta(),
+            $motivo,
+        ));
+
+        $runner->setMessagesParams(static function (array $params): array {
+            $mensajes = is_array($params['messages'] ?? null) ? array_values($params['messages']) : [];
+            $ultimo = array_key_last($mensajes);
+            $orden = ['type' => 'text', 'text' => ControlDeVueltas::ORDEN_DE_CIERRE];
+
+            if ($ultimo !== null && is_array($mensajes[$ultimo]) && ($mensajes[$ultimo]['role'] ?? null) === 'user'
+                && is_array($mensajes[$ultimo]['content'] ?? null)
+            ) {
+                $mensajes[$ultimo]['content'][] = $orden;
+            } else {
+                $mensajes[] = ['role' => 'user', 'content' => [$orden]];
+            }
+
+            return [
+                'messages' => $mensajes,
+                'toolChoice' => ['type' => 'none'],
+                'maxIterations' => null,
+            ];
+        });
     }
 
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string

@@ -117,6 +117,22 @@ final class InstruccionesDominioRegistryTest extends TestCase
     }
 
     #[Test]
+    public function al_huesped_de_una_casita_turismo_se_le_presenta_detras_del_alojamiento(): void
+    {
+        $registro = new InstruccionesDominioRegistry([
+            new CotizacionInstruccionesDominio(),
+            $this->dominio('alojamiento', 'pms_reserva', true, 'REGLAS DEL HUÉSPED'),
+        ]);
+
+        $huesped = $registro->para('pms_reserva', PerfilConversacion::Huesped);
+        self::assertStringStartsWith('REGLAS DEL HUÉSPED', $huesped);
+        self::assertStringContainsString('TAMBIÉN SOMOS AGENCIA', $huesped);
+
+        // A una consulta de OTA no se le ofrece nada fuera de la plataforma.
+        self::assertSame('REGLAS DEL HUÉSPED', $registro->para('pms_reserva', PerfilConversacion::Interesado));
+    }
+
+    #[Test]
     public function si_el_dominio_propio_calla_habla_el_resto(): void
     {
         // Un compañero del equipo en un expediente conserva su bloque de siempre.

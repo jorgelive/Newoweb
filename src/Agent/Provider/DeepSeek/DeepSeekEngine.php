@@ -7,6 +7,7 @@ namespace App\Agent\Provider\DeepSeek;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -20,7 +21,7 @@ use Throwable;
  * ## El bucle es NUESTRO
  *
  * Anthropic trae un `toolRunner` que gira solo. Aquí no: la API devuelve `tool_calls`, hay que
- * ejecutarlas, añadirlas al hilo y volver a llamar. De ahí {@see self::MAX_VUELTAS}, que es la red
+ * ejecutarlas, añadirlas al hilo y volver a llamar. De ahí {@see ControlDeVueltas::MAX_VUELTAS}, que es la red
  * que impide que un modelo terco encadene herramientas hasta agotar el tiempo o el saldo.
  *
  * ## 🔑 Cómo se aprovecha el caché, que es lo que hace barato este proveedor
@@ -46,14 +47,6 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
 
-    /**
-     * Vueltas de herramientas por turno.
-     *
-     * Ocho es lo que permite el runner de Anthropic, y se replica para que cambiar de proveedor no
-     * cambie lo que el agente es capaz de resolver. Al llegar al tope se devuelve lo que haya:
-     * quedarse sin respuesta es peor que una respuesta a medias.
-     */
-    private const int MAX_VUELTAS = 8;
 
     public function __construct(
         private DeepSeekClient $deepseek,
@@ -115,7 +108,10 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
         $falloCache = 0;
         $salida = 0;
 
-        for ($i = 0; $i < self::MAX_VUELTAS; ++$i) {
+        // Las protecciones del bucle, las mismas de Google (17/10/2026): ver `ControlDeVueltas`.
+        $control = new ControlDeVueltas();
+
+        for ($i = 0; $i < ControlDeVueltas::MAX_VUELTAS; ++$i) {
             ++$vueltas;
 
             try {
@@ -180,17 +176,10 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
 
             // ⚠️ En la ÚLTIMA vuelta no se ejecuta nada, y no es cosmético: ejecutar sin poder
             // volver a llamar significa que la skill escribe en la base y su resultado se tira,
-            // porque no hay quien lo lea. El turno acabaría entregando un «déjame consultar…» de
-            // una vuelta anterior, marcado como si esas skills hubieran informado la respuesta.
-            if ($i === self::MAX_VUELTAS - 1) {
-                $this->logger->warning(sprintf(
-                    'Agent (deepseek): tope de %d vueltas con herramientas aún pendientes para %s; '
-                    .'no se ejecutan y se entrega lo que haya.',
-                    self::MAX_VUELTAS,
-                    $peticion->actor->etiqueta(),
-                ));
-
-                break;
+            // porque no hay quien lo lea. Se le pide la respuesta SIN herramientas, con lo que ya
+            // tiene en el hilo.
+            if (ControlDeVueltas::esLaUltima($i)) {
+                return $this->cerrarSinHerramientas($modelo, $tools, $mensajes, $peticion, $usadas, ControlDeVueltas::motivoDelTope());
             }
 
             // El turno del asistente vuelve al hilo TAL CUAL lo devolvió la API: la API exige que
@@ -198,11 +187,31 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
             $mensajes[] = $leida->turnoCrudo;
 
             foreach ($leida->llamadas as $llamada) {
+                // La misma skill con los mismos argumentos no se vuelve a ejecutar: el resultado ya
+                // está en el hilo, y si escribe, escribiría dos veces.
+                if ($control->yaServida($llamada->nombre, $llamada->argumentos)) {
+                    $this->logger->warning(sprintf(
+                        'Agent (deepseek): %s repite la llamada a "%s"; no se ejecuta.',
+                        $peticion->actor->etiqueta(),
+                        $llamada->nombre,
+                    ));
+                    $contenido = json_encode(ControlDeVueltas::respuestaRepetida(), JSON_UNESCAPED_UNICODE) ?: '{}';
+                } else {
+                    $contenido = $this->adaptador->ejecutar($skills, $llamada->nombre, $llamada->argumentos, $peticion->actor, $usadas);
+                    $control->registrarJson($contenido);
+                }
+
                 $mensajes[] = [
                     'role' => 'tool',
                     'tool_call_id' => $llamada->id,
-                    'content' => $this->adaptador->ejecutar($skills, $llamada->nombre, $llamada->argumentos, $peticion->actor, $usadas),
+                    'content' => $contenido,
                 ];
+            }
+
+            $motivo = $control->finDeVuelta();
+
+            if ($motivo !== null) {
+                return $this->cerrarSinHerramientas($modelo, $tools, $mensajes, $peticion, $usadas, $motivo);
             }
         }
 
@@ -376,5 +385,64 @@ final readonly class DeepSeekEngine implements AgentEngineInterface
         }
 
         return $turnos;
+    }
+    /**
+     * Le pide la respuesta final PROHIBIÉNDOLE llamar a nada más: `tool_choice: none` y la orden
+     * de cierre en el hilo. Es el `cerrarSinHerramientas()` de Google, en el formato de esta API.
+     * Antes, el tope entregaba «lo que hubiera» —un preámbulo— y una racha de fallos no paraba.
+     *
+     * Las `tools` siguen DECLARADAS: el hilo ya lleva llamadas y resultados, y lo que se retira es
+     * el permiso de volver a llamarlas, no su definición.
+     *
+     * @param list<array<string, mixed>> $tools
+     * @param list<array<array-key, mixed>> $mensajes
+     * @param list<string> $usadas
+     */
+    private function cerrarSinHerramientas(
+        string $modelo,
+        array $tools,
+        array $mensajes,
+        ConversationRequest $peticion,
+        array $usadas,
+        string $motivo,
+    ): ConversationResponse {
+        $this->logger->warning(sprintf(
+            'Agent (deepseek): cierre forzado para %s (%s); se le pide la respuesta SIN herramientas.',
+            $peticion->actor->etiqueta(),
+            $motivo,
+        ));
+
+        $mensajes[] = ['role' => 'user', 'content' => ControlDeVueltas::ORDEN_DE_CIERRE];
+
+        try {
+            $leida = DeepSeekRespuesta::fromArray($this->deepseek->completar([
+                'model' => $modelo,
+                'messages' => $mensajes,
+                'tools' => $tools,
+                'tool_choice' => 'none',
+                'max_tokens' => $peticion->maxTokens,
+                'user_id' => DeepSeekClient::firmaDeCache(
+                    $peticion->actor->roles(),
+                    $peticion->actor->dominios(),
+                    conCatalogo: true,
+                    permiteEscritura: $peticion->permitirEscritura,
+                    modelo: $modelo,
+                ),
+            ]));
+        } catch (Throwable $e) {
+            $this->logger->error(sprintf('Agent (deepseek): el cierre forzado falló: %s', $e->getMessage()));
+
+            return ConversationResponse::vacia();
+        }
+
+        $texto = trim($leida->texto);
+
+        if ($texto === '') {
+            return ConversationResponse::vacia();
+        }
+
+        return $usadas === []
+            ? ConversationResponse::sinSkill($texto)
+            : ConversationResponse::ok($texto, array_values(array_unique($usadas)));
     }
 }

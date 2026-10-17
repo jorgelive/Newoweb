@@ -7,6 +7,7 @@ namespace App\Agent\Provider\Anthropic;
 use App\Agent\Access\GuardiaDeSkills;
 use Anthropic\Lib\Tools\BetaRunnableTool;
 use App\Agent\Access\ActorInterface;
+use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
@@ -44,9 +45,13 @@ final readonly class AnthropicSkillAdapter
      * @param list<string> $usadas Se rellena por referencia con los nombres invocados, para
      *                             poder decir después qué se consultó de verdad. Sin eso la
      *                             respuesta es una caja negra.
+     * @param ControlDeVueltas|null $control Las protecciones del bucle del turno: la llamada
+     *                              repetida se corta AQUÍ, dentro de la herramienta, porque el
+     *                              `toolRunner` del SDK ejecuta sin preguntar a nadie. Ver
+     *                              `AnthropicEngine::conversar()`.
      * @return list<BetaRunnableTool>
      */
-    public function traducir(array $skills, ActorInterface $actor, array &$usadas): array
+    public function traducir(array $skills, ActorInterface $actor, array &$usadas, ?ControlDeVueltas $control = null): array
     {
         $tools = [];
         $ultima = array_key_last($skills);
@@ -77,54 +82,81 @@ final readonly class AnthropicSkillAdapter
 
             $tools[] = new BetaRunnableTool(
                 definition: $definicion,
-                run: function (array $entrada) use ($skill, $actor, &$usadas): string {
-                    $usadas[] = $skill->nombre();
-
-                    $this->logger->info(sprintf(
-                        'Agent: %s usa la skill "%s" con %s.',
-                        $actor->etiqueta(),
-                        $skill->nombre(),
-                        RastroDeSkill::argumentos($entrada)
-                    ));
-
-                    // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto
-                    // dice qué se ejecuta. Ver GuardiaDeSkills.
-                    $bloqueo = $this->guardia->motivoDeBloqueo($skill, $actor);
-
-                    if ($bloqueo !== null) {
+                run: function (array $entrada) use ($skill, $actor, &$usadas, $control): string {
+                    /** @var array<string, mixed> $entrada */
+                    // La misma skill con los mismos argumentos no se vuelve a ejecutar: el
+                    // resultado ya está en el hilo, y si escribe, escribiría dos veces.
+                    if ($control?->yaServida($skill->nombre(), $entrada) === true) {
                         $this->logger->warning(sprintf(
-                            'Agent: BLOQUEADA la skill "%s" para %s: %s',
-                            $skill->nombre(),
+                            'Agent (anthropic): %s repite la llamada a "%s"; no se ejecuta.',
                             $actor->etiqueta(),
-                            $bloqueo
+                            $skill->nombre(),
                         ));
 
-                        return json_encode(['error' => $bloqueo], JSON_UNESCAPED_UNICODE)
-                            ?: '{"error":"No se pudo serializar la respuesta."}';
+                        return json_encode(ControlDeVueltas::respuestaRepetida(), JSON_UNESCAPED_UNICODE) ?: '{}';
                     }
 
-                    try {
-                        return $skill->ejecutar($entrada, $actor)->aJson();
-                    } catch (Throwable $e) {
-                        // Un fallo de infraestructura no debe romper el turno: se le cuenta al
-                        // modelo en su idioma y el detalle queda en el log.
-                        $this->logger->error(sprintf(
-                            'Agent: la skill "%s" falló para %s: %s',
-                            $skill->nombre(),
-                            $actor->etiqueta(),
-                            $e->getMessage()
-                        ));
+                    $respuesta = $this->ejecutarSkill($skill, $entrada, $actor, $usadas);
+                    $control?->registrarJson($respuesta);
 
-                        return json_encode(
-                            ['error' => 'La consulta no se pudo completar.'],
-                            JSON_UNESCAPED_UNICODE
-                        ) ?: '{"error":"La consulta no se pudo completar."}';
-                    }
+                    return $respuesta;
                 },
             );
         }
 
         return $tools;
+    }
+
+    /**
+     * Ejecuta una skill ya autorizada por el catálogo, con la guardia y sin dejar escapar fallos.
+     *
+     * @param array<string, mixed> $entrada
+     * @param list<string> $usadas
+     */
+    private function ejecutarSkill(SkillInterface $skill, array $entrada, ActorInterface $actor, array &$usadas): string
+    {
+        $usadas[] = $skill->nombre();
+
+        $this->logger->info(sprintf(
+            'Agent: %s usa la skill "%s" con %s.',
+            $actor->etiqueta(),
+            $skill->nombre(),
+            RastroDeSkill::argumentos($entrada)
+        ));
+
+        // El cierre, antes de tocar nada. El catálogo dice qué se ofrece; esto
+        // dice qué se ejecuta. Ver GuardiaDeSkills.
+        $bloqueo = $this->guardia->motivoDeBloqueo($skill, $actor);
+
+        if ($bloqueo !== null) {
+            $this->logger->warning(sprintf(
+                'Agent: BLOQUEADA la skill "%s" para %s: %s',
+                $skill->nombre(),
+                $actor->etiqueta(),
+                $bloqueo
+            ));
+
+            return json_encode(['error' => $bloqueo], JSON_UNESCAPED_UNICODE)
+                ?: '{"error":"No se pudo serializar la respuesta."}';
+        }
+
+        try {
+            return $skill->ejecutar($entrada, $actor)->aJson();
+        } catch (Throwable $e) {
+            // Un fallo de infraestructura no debe romper el turno: se le cuenta al
+            // modelo en su idioma y el detalle queda en el log.
+            $this->logger->error(sprintf(
+                'Agent: la skill "%s" falló para %s: %s',
+                $skill->nombre(),
+                $actor->etiqueta(),
+                $e->getMessage()
+            ));
+
+            return json_encode(
+                ['error' => 'La consulta no se pudo completar.'],
+                JSON_UNESCAPED_UNICODE
+            ) ?: '{"error":"La consulta no se pudo completar."}';
+        }
     }
 
     /**

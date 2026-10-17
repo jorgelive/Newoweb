@@ -6,6 +6,7 @@ namespace App\Cotizacion\Service\Agent;
 
 use App\Agent\Access\ActorInterface;
 use App\Agent\Contract\InstruccionesDeDominioInterface;
+use App\Agent\Contract\PresentacionDeNegocioInterface;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Contract\MapaDeHitos;
 use App\Cotizacion\Entity\CotizacionConversacionEnlace;
@@ -30,7 +31,7 @@ use App\Cotizacion\Entity\CotizacionConversacionEnlace;
  * El catálogo cambia desde `util` sin desplegar, y este texto va en el prefijo cacheado. Los
  * tours los trae `consultar_tours` en cada pregunta; aquí sólo va CUÁNDO llamarla y qué no decir.
  */
-final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDominioInterface
+final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDominioInterface, PresentacionDeNegocioInterface
 {
     public function supports(?string $contextType): bool
     {
@@ -60,6 +61,24 @@ final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDo
     }
 
     /**
+     * Al huésped de una casita, que somos también agencia (17/10/2026): el HECHO en positivo, que
+     * es lo que evita que niegue un tour. Sólo a él: al prospecto ya le llega `VENTA` entera, y a
+     * una consulta de OTA no se le ofrece nada fuera de la plataforma.
+     */
+    public function presentacion(PerfilConversacion $perfil): string
+    {
+        return $perfil === PerfilConversacion::Huesped ? self::PRESENTACION : '';
+    }
+
+    private const string PRESENTACION = <<<PROMPT
+        TAMBIÉN SOMOS AGENCIA DE VIAJES (OpenPeru Travel): tours, excursiones y traslados por todo el
+        Perú, y viajes al Caribe. Cuando pregunten por un tour, una excursión, un tren o cómo llegar
+        a un sitio turístico, la respuesta sale de «consultar_tours»: llámala y contesta con lo que
+        devuelva. Lo que no esté, en el Perú o el Caribe se arma a medida: anótalo con
+        «anotar_pedido_cotizacion».
+        PROMPT;
+
+    /**
      * Qué zona se vende (Jorge, 12/10/2026): **todo el Perú y el Caribe**. Fuera de ahí no se
      * niega —puede salir—, pero tampoco se promete: se anota y lo valora el equipo. Sin la zona
      * escrita, el modelo afirmaba «sí, organizamos» de cualquier destino que se le preguntara.
@@ -72,15 +91,15 @@ final readonly class CotizacionInstruccionesDominio implements InstruccionesDeDo
         Travel): tours, excursiones y traslados por TODO EL PERÚ —Cusco y alrededores, y el resto
         del país— y viajes al CARIBE con nuestra división Open World Travel. Si preguntan por un
         tour, una excursión, un viaje, cómo llegar a un sitio turístico, un tren, una entrada o «qué
-        se puede hacer», llama a «consultar_tours» ANTES de contestar. Nunca digas que no lo
-        organizamos sin haberla llamado.
+        se puede hacer», la respuesta sale de «consultar_tours»: llámala primero y contesta con lo
+        que devuelva.
 
         - Si está en el catálogo, cuéntalo: qué es, cuántos días, el precio «desde» y su «enlace».
           Si quieren saber qué incluye, vuelve a llamarla con «tour» para traer su itinerario.
         - Si NO está pero es en el Perú o en el Caribe, lo armamos a medida: pide fechas y cuántos
           son, y anótalo con «anotar_pedido_cotizacion» para que el equipo le prepare la propuesta.
-        - Si es OTRO destino, no lo prometas ni lo niegues: dile que lo consultas con el equipo y
-          anótalo igual con «anotar_pedido_cotizacion».
+        - Si es OTRO destino, dile que lo consultas con el equipo y anótalo igual con
+          «anotar_pedido_cotizacion».
         - Los precios del catálogo son «desde», por persona y referenciales. La fecha y el precio
           final los confirma el equipo: para reservar, anota el pedido.
         - Anotar el pedido YA avisa a Cotizaciones. Llama además a «escalar_al_equipo» sólo si es

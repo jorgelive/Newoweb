@@ -90,16 +90,19 @@ final readonly class ConsultarToursSkill implements SkillInterface, SkillDominio
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
+            // En POSITIVO (17/10/2026): «NUNCA digas que no lo organizamos» y «no digas que no» eran
+            // supresión, que el modelo incumple. Se le dice qué hacer y de dónde sale la respuesta.
             descripcion: 'Los TOURS, excursiones y viajes que vendemos (OpenPeru Travel), tal como '
                 . 'están publicados en openperu.pe: cada uno con sus días, su precio «desde» por '
-                . 'persona y su enlace. Llámala SIEMPRE que pregunten por un tour, una excursión, '
-                . 'cómo ir a un sitio turístico (Machu Picchu, Valle Sagrado, Montaña de Colores…), '
-                . 'un traslado o tren hasta allí, o «qué se puede hacer»: NUNCA digas que no lo '
-                . 'organizamos sin haberla llamado. Con «buscar» filtras por palabras; con «tour» '
-                . '(el id que devuelve) traes su itinerario hora a hora, que es lo que dice qué '
-                . 'incluye. Si lo que piden no está, no digas que no: en el Perú o el Caribe se '
-                . 'arma a medida, y cualquier otro destino lo valora el equipo; en los dos casos, '
-                . 'anotar_pedido_cotizacion. No es para las casitas.',
+                . 'persona y su enlace. Cuando pregunten por un tour, una excursión, cómo ir a un '
+                . 'sitio turístico (Machu Picchu, Valle Sagrado, Montaña de Colores…), un traslado '
+                . 'o tren hasta allí, o «qué se puede hacer», la respuesta sale de aquí: llámala '
+                . 'primero y contesta con lo que devuelva. Con «buscar» filtras por palabras; con '
+                . '«tour» (el id que devuelve) traes su itinerario hora a hora, que es lo que dice '
+                . 'qué incluye. Lo que no esté en el catálogo se arma a medida si es en el Perú o el '
+                . 'Caribe, y cualquier otro destino lo valora el equipo: en los dos casos, anótalo '
+                . 'con anotar_pedido_cotizacion. Es de tours y viajes; las casitas tienen sus '
+                . 'propias herramientas.',
             parametros: [
                 SkillParameter::texto('buscar', 'Palabras de lo que pide, como lo dijo: «machu '
                     . 'picchu», «montaña de colores», «tren». Vacío = el catálogo entero.', false),

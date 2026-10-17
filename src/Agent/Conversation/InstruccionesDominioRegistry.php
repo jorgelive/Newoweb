@@ -7,6 +7,7 @@ namespace App\Agent\Conversation;
 use App\Agent\Access\ActorInterface;
 use App\Contract\MapaDeHitos;
 use App\Agent\Contract\InstruccionesDeDominioInterface;
+use App\Agent\Contract\PresentacionDeNegocioInterface;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 /**
@@ -56,7 +57,7 @@ final readonly class InstruccionesDominioRegistry
             $suyo = $propio->para($perfil);
 
             if ($suyo !== '') {
-                return $suyo;
+                return implode("\n\n", [$suyo, ...$this->presentacionesDeOtros($propio, $perfil)]);
             }
         }
 
@@ -80,6 +81,31 @@ final readonly class InstruccionesDominioRegistry
      * valor en el chat, pero el actor de un prospecto nace sin contexto a propósito y aquí lo
      * que se pregunta es de qué negocio va el hilo, no a qué está atado quien escribe.
      */
+    /**
+     * Lo que los OTROS negocios dicen de sí mismos a este perfil: ver
+     * {@see PresentacionDeNegocioInterface}. Al huésped de una casita, que somos también agencia.
+     *
+     * @return list<string>
+     */
+    private function presentacionesDeOtros(InstruccionesDeDominioInterface $propio, PerfilConversacion $perfil): array
+    {
+        $frases = [];
+
+        foreach ($this->dominios as $dominio) {
+            if ($dominio === $propio || !$dominio instanceof PresentacionDeNegocioInterface) {
+                continue;
+            }
+
+            $frase = $dominio->presentacion($perfil);
+
+            if ($frase !== '') {
+                $frases[] = $frase;
+            }
+        }
+
+        return $frases;
+    }
+
     public function contextoVolatil(?string $contextoTipo, ActorInterface $actor, MapaDeHitos $hitos): string
     {
         return $this->resolver($contextoTipo)?->contextoVolatil($actor, $hitos) ?? '';

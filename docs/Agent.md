@@ -566,12 +566,24 @@ así que contarlos infla cualquier respuesta sobre cuánta gente va.
 
 ## 5.5 El bucle de herramientas: cómo se corta y cómo se diagnostica (25/08/2026)
 
-> 🔥 **Anthropic y DeepSeek, 16/10/2026:** guardaban el texto que acompaña a una llamada a
-> herramienta —«un momento, reviso tu reserva…»— y, si la vuelta siguiente fallaba o se agotaba el
-> tope, lo entregaban como respuesta final, marcada `ia`. Ahora sólo cuenta el texto de una vuelta
-> **sin** herramientas; si no lo hay, `noDisponible()`/`vacia()` y el canal decide. Y Anthropic no
-> tenía tope (`toolRunner` sin `maxIterations` gira sin límite): ahora 8, como DeepSeek. Siguen sin
-> el corte por llamadas repetidas ni el cierre sin herramientas de Google; producción usa Google.
+> 🔒 **Las protecciones son de los TRES motores desde el 17/10/2026: `ControlDeVueltas`.** Vivían
+> sólo en Google; Anthropic y DeepSeek no tenían ninguna. Lo que es del bucle —la llamada repetida
+> que no se ejecuta, la racha de `MAX_FALLOS_SEGUIDOS` vueltas fallidas, el tope de `MAX_VUELTAS`,
+> la orden de cierre— está en la clase compartida y con tests; lo que es del formato de cada API se
+> queda en cada motor:
+>
+> | Motor | Repetida | Racha y tope | Cierre sin herramientas |
+> |---|---|---|---|
+> | Google | en su bucle | en su bucle | `functionCallingConfig.mode: NONE` |
+> | DeepSeek | en su bucle | en su bucle | `tool_choice: none` (probado contra la API) |
+> | Anthropic | **dentro de cada herramienta** (`AnthropicSkillAdapter`) | se deja de pedirle mensajes al runner | `setMessagesParams()` con `toolChoice: none` |
+>
+> **Anthropic conserva el `toolRunner` del SDK.** La palanca es `setMessagesParams()` durante la
+> iteración: el runner entiende que llevamos el historial a mano, no añade el mensaje en curso ni
+> ejecuta sus herramientas, y la siguiente vuelta es la petición del cierre. El precio: con la racha
+> se tira una petición ya hecha, porque el runner ejecuta las herramientas al pedirle el siguiente
+> mensaje; sólo se paga cuando el turno ya iba mal. Y sólo cuenta el texto de un mensaje SIN
+> herramientas: el que acompaña a una llamada es un preámbulo («un momento, reviso…»).
 
 Un turno del panel gastó **208 000 tokens de entrada en ocho vueltas y no contestó nada**. Así se
 ve, y conviene reconocer la firma porque es siempre la misma:
@@ -889,6 +901,15 @@ la venta (`VENTA`) y ningún contexto volátil. Con el equipo Turismo no dice na
 `InstruccionesDominioRegistry::para()` tiene la regla que lo hace posible: **si el dominio propio
 no tiene nada que decirle a ese perfil, cede el turno al resto** (el compañero conserva su bloque
 de siempre).
+
+**Al huésped de una casita, el hecho en positivo (17/10/2026):** «también somos agencia: tours por
+todo el Perú y el Caribe, la respuesta sale de `consultar_tours`». Le habla sólo el alojamiento, y
+lo que tenía de tours era una negación en la descripción de la herramienta —«nunca digas que no lo
+organizamos»—, que el modelo incumple. Lo trae `PresentacionDeNegocioInterface`: un negocio puede
+presentarse en conversaciones de OTRO, y el registro pone su frase detrás del bloque del dominio
+propio. Turismo se presenta sólo al `Huesped` —al prospecto ya le llega `VENTA` y a una consulta de
+OTA no se le ofrece nada fuera de la plataforma—. Y las negaciones de `consultar_tours` y de `VENTA`
+se reescribieron en positivo: qué hacer y de dónde sale la respuesta.
 
 **La regla de cuándo escalar viaja con la herramienta (17/10/2026):** «anotar ya avisa; escalar
 sólo si es para hoy o mañana» vivía sólo en el bloque `VENTA`, que el huésped de una casita no

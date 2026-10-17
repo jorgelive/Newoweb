@@ -7,6 +7,7 @@ namespace App\Agent\Provider\Google;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
@@ -39,28 +40,9 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
     /** Turnos de ida y vuelta que se conservan. Acota el coste de un hilo largo. */
     private const int MAX_TURNOS = 12;
 
-    /**
-     * Vueltas de herramientas antes de rendirse.
-     *
-     * Es el tope que en Anthropic pone el SDK. Sin él, un modelo que insista en llamar a la
-     * misma skill deja el turno girando y quemando dinero hasta el timeout de PHP.
-     */
-    private const int MAX_VUELTAS = 8;
-
-    /**
-     * Vueltas seguidas de FALLO antes de cortar por lo sano.
-     *
-     * ⚠️ Nace de un turno real: 24/08/2026, ocho vueltas a `consultar_padron`, 208 000 tokens de
-     * entrada, cero respuesta. El modelo no estaba atascado en un eco —los argumentos cambiaban
-     * en cada vuelta—: estaba **probando variantes** de algo que la skill no sabía contestar, y
-     * cada «no existe, aquí tienes las opciones» le invitaba a otra. Sin este tope, la única
-     * frontera era `MAX_VUELTAS`, y ocho vueltas con 20 000 tokens de catálogo detrás son un
-     * turno de 200 000 que además termina en silencio.
-     *
-     * Tres, no dos: la segunda llamada con otro nombre es corrección legítima —así se diseñó la
-     * respuesta con opciones— y cortarla estropearía el caso que sí funciona.
-     */
-    private const int MAX_FALLOS_SEGUIDOS = 3;
+    // Los topes del bucle (vueltas, fallos seguidos) y la orden de cierre viven en
+    // `ControlDeVueltas` desde el 17/10/2026: los comparten los tres motores. Allí está su porqué
+    // —el turno del 24/08/2026, ocho vueltas a `consultar_padron` y 208 000 tokens sin respuesta—.
 
     /** Desenlaces en los que Gemini corta por sus propios filtros, no por falta de respuesta. */
     private const array FIN_RECHAZADO = ['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII'];
@@ -140,12 +122,11 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             'generationConfig' => $generacion,
         ];
 
-        // Vueltas seguidas en las que TODO lo que se ejecutó devolvió un fallo, y las llamadas
-        // ya servidas (`skill + argumentos`) para no pagar dos veces por la misma pregunta.
-        $fallosSeguidos = 0;
-        $servidas = [];
+        // Las protecciones del bucle, por turno: llamadas ya servidas y racha de fallos. Ver
+        // `ControlDeVueltas`, que comparten los tres motores.
+        $control = new ControlDeVueltas();
 
-        for ($vuelta = 0; $vuelta < self::MAX_VUELTAS; $vuelta++) {
+        for ($vuelta = 0; $vuelta < ControlDeVueltas::MAX_VUELTAS; $vuelta++) {
             $cronometro = microtime(true);
             $datos = $this->google->generarContenido($modelo, [...$base, 'contents' => $contenidos]);
 
@@ -208,14 +189,14 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
             // ⚠️ En la ÚLTIMA vuelta no se ejecuta nada, igual que en DeepSeek: ejecutar sin
             // poder volver a llamar significa que una skill de escritura escribe y su resultado
             // se tira, porque ya no hay quien lo lea. Se cierra con lo acumulado.
-            if ($vuelta === self::MAX_VUELTAS - 1) {
+            if (ControlDeVueltas::esLaUltima($vuelta)) {
                 return $this->cerrarSinHerramientas(
                     $modelo,
                     $base,
                     $contenidos,
                     $peticion,
                     $usadas,
-                    sprintf('tope de %d vueltas de herramientas', self::MAX_VUELTAS)
+                    ControlDeVueltas::motivoDelTope()
                 );
             }
 
@@ -224,18 +205,16 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
             // (2) Los resultados, en el mismo orden. Gemini puede pedir varias skills a la vez.
             $resultados = [];
-            $todasFallaron = true;
 
             foreach ($leida->llamadas as $llamada) {
                 $nombre = $llamada->nombre;
                 $argumentos = $llamada->argumentos;
-                $huella = $nombre.'|'.RastroDeSkill::argumentos($argumentos);
 
                 // La MISMA skill con los MISMOS argumentos no se vuelve a ejecutar. El resultado
                 // sería idéntico —ya está en el hilo, unas líneas más arriba— y si la skill
                 // escribe, repetirla escribe dos veces. Se le dice que ya está contestado, que
                 // es lo único que puede sacarle del bucle.
-                if (isset($servidas[$huella])) {
+                if ($control->yaServida($nombre, $argumentos)) {
                     $this->logger->warning(sprintf(
                         'Agent (google): %s repite la llamada a "%s" con %s; no se ejecuta.',
                         $peticion->actor->etiqueta(),
@@ -245,15 +224,11 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
                     $resultados[] = ['functionResponse' => [
                         'name' => $nombre,
-                        'response' => ['error_repetida' => 'Ya llamaste a esta herramienta con '
-                            .'estos mismos datos y su respuesta está más arriba. No la repitas: '
-                            .'contesta con lo que tienes o pregúntale al operador qué falta.'],
+                        'response' => ControlDeVueltas::respuestaRepetida(),
                     ]];
 
                     continue;
                 }
-
-                $servidas[$huella] = true;
 
                 $respuesta = $this->adaptador->ejecutar(
                     $skills,
@@ -263,7 +238,7 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
                     $usadas
                 );
 
-                $todasFallaron = $todasFallaron && RastroDeSkill::fueFallo($respuesta);
+                $control->registrar($respuesta);
                 $resultados[] = ['functionResponse' => ['name' => $nombre, 'response' => $respuesta]];
             }
 
@@ -271,16 +246,16 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
 
             // Una vuelta en la que algo salió bien reinicia la cuenta: lo que se persigue es la
             // RACHA de fallos, no el fallo suelto, que es normal y se corrige solo.
-            $fallosSeguidos = $todasFallaron ? $fallosSeguidos + 1 : 0;
+            $motivo = $control->finDeVuelta();
 
-            if ($fallosSeguidos >= self::MAX_FALLOS_SEGUIDOS) {
+            if ($motivo !== null) {
                 return $this->cerrarSinHerramientas(
                     $modelo,
                     $base,
                     $contenidos,
                     $peticion,
                     $usadas,
-                    sprintf('%d vueltas seguidas sin que ninguna herramienta contestara', $fallosSeguidos)
+                    $motivo
                 );
             }
         }
@@ -289,14 +264,6 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         // cambia el tope y el `for` vuelve a poder agotarse.
         return ConversationResponse::vacia();
     }
-
-    /**
-     * Lo que se le dice al modelo cuando ya no puede consultar nada más. Ver
-     * {@see self::cerrarSinHerramientas()}.
-     */
-    private const string ORDEN_DE_CIERRE = 'Ya no puedes usar más herramientas. Contesta AHORA, en '
-        . 'texto y en el idioma de la conversación, con lo que hayas averiguado. Si te falta un '
-        . 'dato, dilo con naturalidad y que se lo confirma el equipo; no inventes.';
 
     /**
      * Le pide al modelo la respuesta final PROHIBIÉNDOLE llamar a nada más.
@@ -343,7 +310,7 @@ final readonly class GoogleAIEngine implements AgentEngineInterface
         $ultimo = array_key_last($contenidos);
         if ($ultimo !== null && ($contenidos[$ultimo]['role'] ?? null) === 'user') {
             $partes = $contenidos[$ultimo]['parts'] ?? [];
-            $contenidos[$ultimo]['parts'] = [...(is_array($partes) ? $partes : []), ['text' => self::ORDEN_DE_CIERRE]];
+            $contenidos[$ultimo]['parts'] = [...(is_array($partes) ? $partes : []), ['text' => ControlDeVueltas::ORDEN_DE_CIERRE]];
         }
 
         try {
