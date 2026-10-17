@@ -6032,6 +6032,27 @@ invariante en vez de confiarlo a que nadie vuelva a interpolar algo ahí.
 
 La primera llamada de un prefijo nuevo siempre sale a 0: es la que lo escribe.
 
+#### 🔥 Y aun ordenado, el huésped NO cachea: el mínimo real son 16k (17/10/2026)
+
+Medido sobre 32 días de producción (15/09–17/10): **16 % de la entrada salió de caché**, y en las
+conversaciones de huéspedes prácticamente nada, ni siquiera la segunda vuelta de un turno, dos
+segundos después y con el prefijo idéntico. El panel sí cachea (88–90 %). La diferencia es el
+TAMAÑO, no el orden:
+
+| Prompt repetido 3 veces seguidas (`gemini-3.8-flash`) | Cacheado |
+|---|---|
+| hasta 15 874 tokens | **0** en las tres |
+| 16 809 tokens | 0 · **14 763** · **14 763** (88 %) |
+
+El umbral práctico de la caché implícita es **~16 384 tokens**, no los 4 096 de la documentación.
+El huésped manda ~9 500 por llamada (prefijo de 8 700), así que no cachea nunca; el panel, con
+~21 000, sí. La medición del 10/09 que dio el 82 % era con un prompt de ~19 800: por eso acertó.
+
+**Qué vale:** muy poco en dinero. A este volumen (~7 turnos al día) el agente cuesta ~$4/mes con
+Gemini, y una caché perfecta ahorraría ~$2–3. Rellenar el prompt hasta 16k para que cachee o pasar
+a caché explícita (con coste de almacenamiento por hora) no compensa. Si algún día hace falta, la
+caché de Anthropic es explícita y su mínimo es menor (Sonnet 1 024, Haiku 4 096).
+
 #### `app:agent:prefijo`
 
 `AgentPrefijoCommand` mide el prefijo y **falla** si se vuelve a partir. Imprime el `sha1` de las

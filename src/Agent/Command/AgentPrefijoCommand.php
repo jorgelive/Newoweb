@@ -56,8 +56,13 @@ final class AgentPrefijoCommand extends Command
      *
      * ⚠️ Es un umbral, no una tarifa: por debajo no se cachea **nada**, y no lo dice. Un prompt
      * de 4 000 tokens repetido mil veces se paga mil veces entero.
+     *
+     * 🔥 **16 384, MEDIDO, no los 4 096 que dice la documentación** (17/10/2026, `gemini-3.8-flash`):
+     * tres peticiones idénticas seguidas cachean 0 hasta 15 874 tokens, y el 88 % desde 16 809.
+     * Con 4 096 aquí, el comando daba por buenos prefijos de ~9 000 tokens que en producción no
+     * cachearon nunca. Ver docs/Mensajeria.md §13.5 ter.
      */
-    private const MINIMO_CACHE_GEMINI = 4096;
+    private const MINIMO_CACHE_GEMINI = 16384;
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -109,7 +114,7 @@ final class AgentPrefijoCommand extends Command
         }
 
         $io->table(
-            ['actor', 'sha1(reglas)', 'reglas', 'herramientas', 'prefijo', '≥ 4096'],
+            ['actor', 'sha1(reglas)', 'reglas', 'herramientas', 'prefijo', '≥ ' . self::MINIMO_CACHE_GEMINI],
             $filas
         );
 
