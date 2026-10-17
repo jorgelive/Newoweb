@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent\Command;
 
 use App\Agent\Access\AgentActorFactory;
+use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\PotenciaRequerida;
 use App\Agent\Conversation\SelectorDePotencia;
@@ -14,6 +15,8 @@ use App\Agent\Triage\Triaje;
 use App\Entity\User;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use InvalidArgumentException;
 use App\Pms\Entity\PmsReserva;
 use Doctrine\ORM\EntityManagerInterface;
 use ReflectionClass;
@@ -54,6 +57,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Las dos sobreviven al filtro de `permitirEscritura: false` porque son `NivelRiesgo::Interna`,
  * que es justo el matiz que las deja llegar al chat del huésped ({@see NivelRiesgo}).
  *
+ * ### Comparar motores: `--motor`, `--modelo`, `--salida` (17/10/2026)
+ *
+ * Para decidir con conversaciones reales si otro proveedor contesta mejor que el actual. Con
+ * `--motor` TODAS las respuestas las redacta ese motor: el triaje sigue clasificando —con el motor
+ * de siempre, para que la pista y el tema sean los mismos—, pero su atajo de charla se salta, o la
+ * mitad de las respuestas de la comparación serían del motor por defecto. `--salida` deja cada
+ * turno (respuesta, latencia, herramientas, motivo) en un JSON para ponerlos lado a lado.
+ *
+ *   php bin/console app:agent:replay <reserva> --motor=anthropic --modelo=claude-sonnet-5-5 --salida=var/replay-sonnet.json
+ *
  * ⚠️ La primera versión de este comando sólo vigilaba la primera. Probando el flujo de la
  * reserva V4JE5Q contra una copia de producción, el modelo llamó a la segunda ante «¿ofreces
  * tours?» y se creó un mensaje real con su cola de Beds24 apuntando a una huésped de verdad. No
@@ -78,6 +91,8 @@ final class AgentReplayCommand extends Command
         private readonly Triaje $triaje,
         private readonly SelectorDePotencia $potencias,
         private readonly AgentActorFactory $actores,
+        private readonly AgentEngineRegistry $motores,
+        private readonly EnlacesDeConversacion $enlaces,
     ) {
         parent::__construct();
     }
@@ -90,7 +105,29 @@ final class AgentReplayCommand extends Command
         ?string $guion = null,
         #[Option('Seguir aunque haya gente de guardia con móvil: una escalada les llegará de verdad.')]
         bool $conGuardia = false,
+        #[Option('Proveedor que redacta TODAS las respuestas (google, deepseek, anthropic). Sin él, el tramo de potencia de siempre.')]
+        ?string $motor = null,
+        #[Option('Modelo dentro de ese proveedor. Sin él, el suyo por defecto.')]
+        ?string $modelo = null,
+        #[Option('Archivo JSON donde dejar cada turno, para comparar motores lado a lado.')]
+        ?string $salida = null,
     ): int {
+        // El motor fijo se resuelve ANTES de nada: descubrir que no tiene clave a mitad de la
+        // conversación es haber gastado el triaje de los turnos anteriores para nada.
+        $fijo = null;
+        $modeloFijo = null;
+
+        if ($motor !== null) {
+            try {
+                $fijo = $this->motores->elegir($motor);
+                $modeloFijo = $fijo !== null ? $this->motores->validarModelo($fijo, $modelo) : null;
+            } catch (InvalidArgumentException $e) {
+                $io->error($e->getMessage());
+
+                return Command::INVALID;
+            }
+        }
+
 
         $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
 
@@ -99,8 +136,11 @@ final class AgentReplayCommand extends Command
             return Command::INVALID;
         }
 
-        $conversacion = $this->em->getRepository(MessageConversation::class)
-            ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => $reservaId]);
+        // El hilo TITULAR de la reserva, con la cabecera de respaldo: desde la fusión por contacto
+        // la pareja (contextType, contextId) no es única. Ver docs/Agent.md §2.0.
+        $conversacion = $this->enlaces->hiloTitularDe('pms_reserva', $reservaId)
+            ?? $this->em->getRepository(MessageConversation::class)
+                ->findOneBy(['contextType' => 'pms_reserva', 'contextId' => $reservaId]);
 
         if ($conversacion === null) {
             $io->error('Esa reserva no tiene conversación, y el agente del huésped se acota por ella.');
@@ -126,6 +166,8 @@ final class AgentReplayCommand extends Command
 
         $actor = $this->actores->huesped('beds24', 'pms_reserva', $reservaId);
         $historial = [];
+        /** @var list<array<string, mixed>> $turnos */
+        $turnos = [];
 
         $io->title(sprintf(
             '%s · %s',
@@ -152,7 +194,12 @@ final class AgentReplayCommand extends Command
                 $decision->skill !== null ? " → {$decision->skill}" : ''
             ));
 
-            if ($decision->tipo === TipoDeMensaje::Conversacion && $decision->respuesta !== null) {
+            $segundos = 0.0;
+            $herramientas = [];
+            $motivo = 'triaje';
+            $usado = 'triaje';
+
+            if ($fijo === null && $decision->tipo === TipoDeMensaje::Conversacion && $decision->respuesta !== null) {
                 $respuesta = $decision->respuesta;
                 $io->writeln('     <comment>(resuelto en el triaje, sin herramientas)</comment>');
             } else {
@@ -160,14 +207,25 @@ final class AgentReplayCommand extends Command
                     ? PotenciaRequerida::Alta
                     : PotenciaRequerida::Media;
 
-                $elegido = $this->potencias->elegir($tramo);
+                if ($fijo !== null) {
+                    $quien = $fijo;
+                    $conModelo = $modeloFijo;
+                } else {
+                    $elegido = $this->potencias->elegir($tramo);
 
-                if ($elegido === null) {
-                    $io->error(sprintf('Sin proveedor con credenciales para el tramo %s.', $tramo->value));
-                    return Command::FAILURE;
+                    if ($elegido === null) {
+                        $io->error(sprintf('Sin proveedor con credenciales para el tramo %s.', $tramo->value));
+                        return Command::FAILURE;
+                    }
+
+                    $quien = $elegido->motor;
+                    $conModelo = $elegido->modelo;
                 }
 
-                $salida = $elegido->motor->conversar(new ConversationRequest(
+                $usado = $quien->nombre() . ':' . ($conModelo ?? $quien->modeloPorDefecto());
+                $cronometro = microtime(true);
+
+                $respuestaMotor = $quien->conversar(new ConversationRequest(
                     actor: $actor,
                     systemPrompt: $this->porNombre($reglas, ['actor' => $actor]),
                     mensaje: $mensaje,
@@ -177,7 +235,7 @@ final class AgentReplayCommand extends Command
                     // —un ensayo no escribe— y no como una copia que se quedó atrás.
                     permitirEscritura: false,
                     maxTokens: 1024,
-                    modelo: $elegido->modelo,
+                    modelo: $conModelo,
                     contexto: $this->porNombre($contextoDe, [
                         'conversacion' => $conversacion,
                         'actor' => $actor,
@@ -185,9 +243,29 @@ final class AgentReplayCommand extends Command
                     ]),
                 ));
 
-                $respuesta = $salida->tieneTexto() ? (string) $salida->texto : sprintf('(sin texto: %s)', $salida->motivo);
-                $io->writeln(sprintf('     <comment>modelo: %s · motivo: %s</comment>', (string) $elegido->modelo, (string) $salida->motivo));
+                $segundos = microtime(true) - $cronometro;
+                $herramientas = $respuestaMotor->skillsUsadas;
+                $motivo = $respuestaMotor->motivo;
+                $respuesta = $respuestaMotor->tieneTexto() ? (string) $respuestaMotor->texto : sprintf('(sin texto: %s)', $respuestaMotor->motivo);
+                $io->writeln(sprintf(
+                    '     <comment>%s · %.1f s · motivo: %s · herramientas: %s</comment>',
+                    $usado,
+                    $segundos,
+                    $motivo,
+                    $herramientas === [] ? '—' : implode(', ', $herramientas),
+                ));
             }
+
+            $turnos[] = [
+                'n' => $i + 1,
+                'huesped' => $mensaje,
+                'triaje' => $decision->tipo->value . ($decision->skill !== null ? ' → ' . $decision->skill : ''),
+                'motor' => $usado,
+                'segundos' => round($segundos, 1),
+                'herramientas' => $herramientas,
+                'motivo' => $motivo,
+                'respuesta' => trim((string) $respuesta),
+            ];
 
             $io->writeln(sprintf("    <fg=green>🤖 %s</>", str_replace("\n", "\n       ", trim((string) $respuesta))));
 
@@ -196,7 +274,36 @@ final class AgentReplayCommand extends Command
         }
 
         $io->newLine();
-        $io->success('Nada de esto se ha guardado: el historial vivió en memoria.');
+
+        $conMotor = array_values(array_filter($turnos, static fn (array $t): bool => $t['motor'] !== 'triaje'));
+        if ($conMotor !== []) {
+            $io->writeln(sprintf(
+                '<info>%d turno(s) con motor · %.1f s de media · %d llamada(s) a herramientas.</info>',
+                \count($conMotor),
+                array_sum(array_column($conMotor, 'segundos')) / \count($conMotor),
+                array_sum(array_map(static fn (array $t): int => \is_array($t['herramientas']) ? \count($t['herramientas']) : 0, $conMotor)),
+            ));
+        }
+
+        if ($salida !== null) {
+            $json = json_encode([
+                'reserva' => $reservaId,
+                'localizador' => $reserva->getLocalizador(),
+                'motor' => $fijo !== null ? $fijo->nombre() . ':' . ($modeloFijo ?? $fijo->modeloPorDefecto()) : 'el de siempre (tramos de potencia)',
+                'fecha' => date(DATE_ATOM),
+                'turnos' => $turnos,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+            if ($json === false || file_put_contents($salida, $json) === false) {
+                $io->error(sprintf('No se pudo escribir %s.', $salida));
+
+                return Command::FAILURE;
+            }
+
+            $io->writeln(sprintf('<info>Turnos guardados en %s.</info>', $salida));
+        }
+
+        $io->success('Nada de esto se ha guardado en la base: el historial vivió en memoria.');
 
         return Command::SUCCESS;
     }

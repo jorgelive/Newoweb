@@ -605,6 +605,17 @@ existiera `persona`). Y cada «no existe, aquí tienes las opciones» le invitab
 estuviera forzado harían bucle **todos** los turnos, y los de esa misma tarde contestaron a la
 primera. Vale la pena descartarlo con el log antes que con la intuición.
 
+### ⚖️ Comparar motores con conversaciones reales (17/10/2026)
+
+`app:agent:replay <reserva> --motor=… --modelo=… --salida=archivo.json` reproduce una conversación
+(o un `--guion`, que es la RUTA de un JSON con los mensajes del huésped) y **todas** las respuestas
+las redacta ese motor: el triaje sigue clasificando con el de siempre, para que la pista y el tema
+sean los mismos, pero su atajo de charla se salta. Cada turno queda con su respuesta, latencia,
+herramientas y motivo. ⚠️ Las skills `Interna` (`escalar_al_equipo`, `enviarme_plantilla`) se
+ejecutan de verdad contra la base a la que apuntes: en local, sin workers ni `exchange:run`, el
+aviso se queda en la base sin salir. Ya en la primera prueba, DeepSeek escaló al equipo una
+pregunta de tours que sólo había que anotar.
+
 ### 🩺 La vigilancia del motor no espera a un huésped (17/10/2026)
 
 `VigilanteDelMotor::motorCaido()` avisa a soporte cuando un turno falla, o sea **cuando un huésped
@@ -949,6 +960,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
+| Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
 | Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
 | Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |
