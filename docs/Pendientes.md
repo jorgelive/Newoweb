@@ -130,17 +130,6 @@ del 21/09, que es cuando se movió el veto de canal al momento del envío.
 **Lo que queda es la basura**: ~1 500 filas `cancelled` que entran solas en el barrido de arriba.
 Antes de borrarlas, si se quiere saber la causa exacta, el rastro está en esas filas.
 
-## Mejorar redacción de Agua Caliente en la Guía / Conocimiento
-
-**Observación:** Durante la auditoría del Agente de IA, se notó que la duda de los huéspedes sobre si el agua caliente "alcanza para 5 personas" se puede responder de forma mucho más directa y elegante mejorando el texto de la base de conocimientos.
-
-**Acción requerida:** Actualizar los textos en `pms_guia_item` y `agent_conocimiento` para aclarar que los calentadores son de paso continuo. 
-
-*Texto sugerido a incorporar:* 
-> "Contamos con calentadores a gas instantáneos (no de acumulación / no son termas con límite de litros). Por lo tanto, mientras haya gas, tendrán agua caliente ilimitada y continua, sin importar si se bañan 5 o más personas seguidas."
-
-Con esto, el LLM tendrá material contundente para dar una respuesta técnica y tranquilizadora sin tener que deducirlo solo por la 'capacidad de la casa'.
-
 ## Un país por defecto no se distingue de uno confirmado
 
 **Residuo de la corrección del país de Airbnb (19/08/2026), que ya está hecha y por eso se

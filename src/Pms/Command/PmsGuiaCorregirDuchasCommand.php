@@ -46,6 +46,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * {@see PmsGuiaCrearTelevisorCommand}.
  *
  * Es idempotente: escribe siempre lo mismo, así que se puede relanzar.
+ *
+ * ⛔ **Pero ya NO se debe relanzar** (17/10/2026). Reescribe los textos enteros, y la base ya no
+ * coincide con lo de aquí: después pasaron `PmsGuiaTildesCommand` (este archivo escribe «todavia»
+ * sin tilde) y `PmsGuiaAguaCalienteContinuaCommand` (el párrafo de que el agua caliente no se
+ * acaba). Relanzarlo desharía las dos cosas. Un cambio nuevo en las duchas se AÑADE sobre lo que
+ * hay, como hace este último.
  */
 #[AsCommand(
     name: 'app:pms:guia:corregir-duchas',

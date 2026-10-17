@@ -1760,6 +1760,28 @@ en los seis idiomas. El español es de Jorge y no se toca para complacer al trad
 Para ver qué casitas tienen ya cada medio, «Medios de las casitas» filtra por **casita y por tipo**
 (`PmsUnidadMediaCrudController::configureFilters()`).
 
+## 7 quinquies. Las duchas dicen que el agua caliente no se acaba (17/10/2026)
+
+Las siete «Ducha (casa N)» explicaban cómo regularla, pero no lo que pregunta quien viene en grupo:
+«¿cuentan con agua caliente suficiente para 5 personas?» (18/08/2026). Las siete casitas tienen
+**calentador de paso a gas**, sin depósito (confirmado por Jorge), así que la respuesta es sí.
+
+`app:pms:guia:agua-caliente-continua` (archivado, idempotente) añade a las tres superficies:
+
+| Superficie | Qué se añade |
+|---|---|
+| `agente_contenido` | Que son instantáneos, no tienen depósito y el agua no se acaba aunque se bañen varios seguidos; y que si preguntan si alcanza, la respuesta es sí |
+| `descripcion` (app, 7 idiomas) | El mismo párrafo, ♨️ |
+| `agente_terminos` | «alcanza el agua caliente», «cuantas personas», «se acaba el agua caliente», «enough hot water»… |
+
+Va en el peldaño 0 porque es una buena noticia. Que el balón se vacía ya está en el segundo paso,
+**sólo en las casitas que lo comparten con la cocina (2, 3, 4 y 7)**: la 1, la 5 y la 6 tienen el gas
+independiente y no lo llevan **a propósito** (Jorge, 17/10/2026). No es un olvido que corregir.
+
+⚠️ **Se AÑADE sobre el texto actual; no se reescribe.** `app:pms:guia:corregir-duchas` reescribía
+los textos enteros y la base ya no coincide con él —pasó después `PmsGuiaTildesCommand`—:
+relanzarlo desharía las tildes y este párrafo. Lleva un aviso de no relanzar.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
