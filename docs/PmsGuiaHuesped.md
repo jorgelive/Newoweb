@@ -1782,6 +1782,22 @@ independiente y no lo llevan **a propósito** (Jorge, 17/10/2026). No es un olvi
 los textos enteros y la base ya no coincide con él —pasó después `PmsGuiaTildesCommand`—:
 relanzarlo desharía las tildes y este párrafo. Lleva un aviso de no relanzar.
 
+### «Ábrela por completo… y si sale caliente, ábrela todavía más» (17/10/2026)
+
+Las siete duchas decían eso, en la app y en el asistente: imposible de seguir —abierta del todo no
+se abre más— (lo vio Jorge). Lo que quería decir es lo contrario del instinto: si sale muy
+caliente **no se cierra la caliente** —con menos chorro estos calentadores calientan MÁS, y pasados
+80 grados se apagan— sino que **se añade fría**: un poco la manija fría (casas 1–5 y el baño de
+manijas de la 7) o la palanca un poco hacia el lado frío (la 6 y el baño de palanca de la 7).
+
+`app:pms:guia:duchas-regular-con-fria` (archivado) hace **reemplazos exactos** de esos tramos: si
+el texto no está tal cual, no toca esa ducha y avisa. De paso, la app de la 6 gana el aviso de no
+cerrar el agua que ya tenía su asistente, y el asistente de la 6 y la 7 sus tildes.
+
+⚠️ **Al cambiar el español se retraducen los seis idiomas**, y las correcciones del párrafo ♨️ en
+`CorreccionesDeTraduccion` sólo casan si Google repite la misma frase. Tras lanzarlo se revisan
+las traducciones nuevas y `app:traduccion:corregir --dry-run` lista las huérfanas.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
