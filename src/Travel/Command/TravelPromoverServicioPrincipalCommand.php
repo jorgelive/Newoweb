@@ -61,6 +61,25 @@ final class TravelPromoverServicioPrincipalCommand extends Command
         'Full Day Valle Vip privada' => 'Transporte Super Valle',
     ];
 
+    /**
+     * Plantilla de VARIOS días → [día → componente que ES ese día].
+     *
+     * ⚠️ **Con el día, siempre.** Un principal sin día vale para TODOS los días de la plantilla
+     * (así lo lee `TravelSegmentoComponentePromocionUnicaListener`): marcar la caminata del
+     * Camino Inca sin día le daba sus horas, 07:30–15:00, también al día de Machu Picchu.
+     *
+     * Y un día sólo entra aquí si de verdad hay un servicio que lo abarque —el paquete de un
+     * proveedor externo—. Un día de tren + bus + ingreso + guía se queda sin principal a
+     * propósito: cada componente saca sus puntos de su propio segmento.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private const array PROMOCIONES_POR_DIA = [
+        // Día 1: la caminata del km 104, que es el paquete del operador del Camino. El día 2 es
+        // Machu Picchu clásico y no lleva principal. Comprobado el 17/10/2026.
+        'Two Day Camino inca' => [1 => 'Pool Camino Inca 2d'],
+    ];
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -136,6 +155,8 @@ final class TravelPromoverServicioPrincipalCommand extends Command
             ));
         }
 
+        $creadas += $this->promoverPorDia($io, $seco);
+
         if (!$seco) {
             $this->em->flush();
         }
@@ -144,10 +165,130 @@ final class TravelPromoverServicioPrincipalCommand extends Command
         $io->success(sprintf(
             '%d %s. La fila global se queda como estaba: la inyección no cambia.',
             $creadas,
-            $seco ? 'filas se crearían' : 'filas creadas'
+            $seco ? 'promociones se harían' : 'promociones hechas'
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Las promociones de {@see self::PROMOCIONES_POR_DIA}.
+     *
+     * Distinto del caso de un día en una cosa: **si la plantilla ya tiene su fila, se marca ésa**
+     * en vez de saltarla. En las de varios días es lo normal —la fila propia existe para llevar las
+     * horas de ESA plantilla— y saltarla dejaba el día sin principal para siempre, con el comando
+     * diciendo que no había nada que hacer. Sólo si no la tiene se clona la global, como arriba.
+     *
+     * Idempotente: una fila ya marcada con ese día no se toca.
+     */
+    private function promoverPorDia(SymfonyStyle $io, bool $seco): int
+    {
+        $cambios = 0;
+
+        foreach (self::PROMOCIONES_POR_DIA as $nombrePlantilla => $porDia) {
+            $itinerario = $this->em->getRepository(TravelItinerario::class)
+                ->findOneBy(['nombreInterno' => $nombrePlantilla]);
+
+            if ($itinerario === null) {
+                $io->writeln(sprintf('  <error>✗</error> no encuentro la plantilla «%s»', $nombrePlantilla));
+                continue;
+            }
+
+            $diasDeSegmento = $this->diasDeSegmentos($itinerario);
+
+            foreach ($porDia as $dia => $nombreComponente) {
+                $io->section(sprintf('%s · día %d → %s', $nombrePlantilla, $dia, $nombreComponente));
+
+                $componente = $this->em->getRepository(TravelComponente::class)
+                    ->findOneBy(['nombreInterno' => $nombreComponente]);
+
+                if ($componente === null) {
+                    $io->writeln('  <error>✗</error> no encuentro el componente');
+                    continue;
+                }
+
+                $propia = null;
+                $global = null;
+
+                foreach ($this->em->getRepository(TravelSegmentoComponente::class)->findBy(['componente' => $componente]) as $fila) {
+                    $segmentoId = $fila->getSegmento()?->getId()?->toRfc4122();
+
+                    // Sólo los segmentos que en ESTA plantilla caen ese día.
+                    if ($segmentoId === null || !\in_array($dia, $diasDeSegmento[$segmentoId] ?? [], true)) {
+                        continue;
+                    }
+
+                    if ($fila->getItinerarioContexto()?->getId()?->toRfc4122() === $itinerario->getId()?->toRfc4122()) {
+                        $propia = $fila;
+                    } elseif ($fila->getItinerarioContexto() === null) {
+                        $global = $fila;
+                    }
+                }
+
+                if ($propia !== null && $propia->isHoraServicioCompleto() && $propia->getDia() === $dia) {
+                    $io->writeln('  <comment>·</comment> ya es el principal de ese día — sin tocar');
+                    continue;
+                }
+
+                if ($propia === null && $global === null) {
+                    $io->writeln('  <error>✗</error> ese componente no está en ningún segmento de ese día de la plantilla');
+                    continue;
+                }
+
+                // Llegados aquí, sin fila propia hay global (el «ninguna de las dos» salió arriba).
+                if ($propia === null) {
+                    $propia = clone $global;
+                    $propia->setSegmento($global->getSegmento());
+                    $propia->setItinerarioContexto($itinerario);
+
+                    if (!$seco) {
+                        $this->em->persist($propia);
+                    }
+                }
+
+                $propia->setDia($dia);
+                $propia->setHoraServicioCompleto(true);
+
+                ++$cambios;
+                $io->writeln(sprintf(
+                    '  <info>+</info> «%s», día %d, %s–%s, marcada como principal',
+                    mb_substr((string) $propia->getSegmento()?->getNombreInterno(), 0, 45),
+                    $dia,
+                    $propia->getHora()?->format('H:i') ?? '—',
+                    $propia->getHoraFin()?->format('H:i') ?? '—',
+                ));
+            }
+        }
+
+        return $cambios;
+    }
+
+    /**
+     * En qué días cae cada segmento de una plantilla (un segmento puede repetirse).
+     *
+     * @return array<string, list<int>>
+     */
+    private function diasDeSegmentos(TravelItinerario $itinerario): array
+    {
+        /** @var list<TravelItinerarioSegmentoRel> $rels */
+        $rels = $this->em->getRepository(TravelItinerarioSegmentoRel::class)
+            ->createQueryBuilder('r')
+            ->andWhere('r.itinerario = :i')
+            ->setParameter('i', $itinerario->getId(), UuidType::NAME)
+            ->getQuery()
+            ->getResult();
+
+        $dias = [];
+
+        foreach ($rels as $rel) {
+            $id = $rel->getSegmento()?->getId()?->toRfc4122();
+
+            if ($id !== null) {
+                $dias[$id][] = $rel->getDia();
+            }
+        }
+
+        return $dias;
     }
 
     /**

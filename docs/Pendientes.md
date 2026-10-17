@@ -450,6 +450,15 @@ declararlos como `TravelPunto` (Wayllabamba, Pacaymayo, Wiñay Wayna) y usar mod
 
 ### 3. El componente por día de los paquetes de varios días
 
+> **Revisado el 17/10/2026** (detalle en `docs/Travel.md`, «Plantillas de varios días»). De las
+> seis que lista el comando: **Camino Inca hecho** (día 1, `PROMOCIONES_POR_DIA`); las dos de
+> **Two Day MAPI** se quedan sin principal a propósito; quedan **Skylodge, Starlodge y Vertical
+> Sky**. Y dos cosas de dato encontradas al revisarlas:
+> - 🔴 **Vertical Sky, día 2:** el segmento «Circuito Completo de Aventura» **no tiene ningún
+>   componente** — la actividad que se vende no está en la plantilla.
+> - ⚠️ **Alojamiento de la cápsula:** Skylodge usa «Alojamiento en Skylodge Starlodge», pero
+>   Starlodge y Vertical Sky usan «Alojamiento en Ollantaytambo». En Starlodge parece un error.
+
 Las cinco plantillas de varios días no tienen principal **por día**, y el mecanismo ya lo admite:
 la unicidad es `(plantilla, día)`, así que un Camino Inca de 4 días acepta cuatro marcados.
 

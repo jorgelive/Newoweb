@@ -1793,6 +1793,37 @@ privado al hotel.
 día» es decisión de producto: una regla automática acertaría casi siempre, que es la peor
 frecuencia — nadie revisa lo que casi siempre funciona.
 
+### Plantillas de varios días: el principal va POR DÍA, y se marca la fila propia (17/10/2026)
+
+`PROMOCIONES_POR_DIA` (plantilla → día → componente), en el mismo comando. Dos diferencias con
+el caso de un día, las dos pagadas:
+
+- ⚠️ **Siempre con día.** Un principal sin día vale para **todos** los días de la plantilla
+  (`TravelSegmentoComponentePromocionUnicaListener`): marcar la caminata del Camino Inca sin día
+  le habría dado sus horas, 07:30–15:00, también al día de Machu Picchu.
+- ⚠️ **Si la plantilla ya tiene su fila, se marca ésa.** En las de varios días es lo normal —la
+  fila propia existe para llevar las horas de esa plantilla—, y la rama de un día la saltaba
+  («ya tiene fila ligada — sin tocar»): el día se habría quedado sin principal para siempre con
+  el comando diciendo que no había nada que hacer. Sólo sin fila propia se clona la global.
+
+El `dia` en una fila con plantilla además filtra la inyección («sólo cuando el segmento cae ese
+día en esta plantilla», §4): por eso se marca sólo el segmento que cae en ese día.
+
+| Plantilla | Día | Componente | |
+|---|---|---|---|
+| Two Day Camino inca | 1 | Pool Camino Inca 2d (07:30–15:00, la caminata del km 104) | hecho el 17/10/2026 |
+
+Revisadas el mismo día las seis plantillas de varios días que lista `app:travel:proponer-puntos`:
+
+- **Two Day MAPI (bimodal) y Two Day MAPI (traslado directo)**: sin principal **a propósito**.
+  Tren + bus + ingreso + guía, ningún servicio abarca el día. El comando las seguirá listando.
+- **Camino Inca, día 2**: Machu Picchu clásico, tampoco lleva.
+- **Skylodge, Starlodge y Vertical Sky**: paquete de proveedor; pendientes de montar el
+  componente por día (`docs/Pendientes.md`, «Origen y fin de servicio»).
+
+La plantilla del Camino Inca decía además «Duración: 1 día» con dos días: corregida por migración
+(`Version20261017120000`), era la única con `duracion_dias` distinto del `MAX(dia)` de sus segmentos.
+
 ### 🚫 Lo que NO era basura: «Recojo en el Hotel (Servicio Privado)» del Valle
 
 Hay **dos segmentos con ese nombre**, y el que no aparece en ninguna plantilla parecía sobrar. No
@@ -2656,6 +2687,7 @@ es un error de formato para nadie, es una cotización con un álbum de un dólar
 | Marcar el servicio principal de un día (paquetes, multi-día) | `src/Travel/Controller/Crud/TravelSegmentoComponenteCrudController.php` | «Servicio principal del día» — uno por (plantilla, día); **ojo con la Categoría Operativa** |
 | Limpiar promociones sin plantilla | `src/Travel/Command/TravelLimpiarPromocionesHuerfanasCommand.php` | `--dry-run`; **no toca `itinerarioContexto` ni las cotizaciones** |
 | Dar servicio principal a una plantilla | `src/Travel/Command/TravelPromoverServicioPrincipalCommand.php` | `PROMOCIONES` — **añade fila, no modifica la global** |
+| Dar servicio principal a UN DÍA de una plantilla de varios días | idem | `PROMOCIONES_POR_DIA` — con día siempre; marca la fila propia si existe |
 | Montar la plantilla privada del Valle que faltaba | `src/Travel/Command/TravelCrearValleSagradoPrivadoCommand.php` | clona la privada existente y cambia el recojo; **desambigua por componente, no por nombre** |
 | Renombrar una plantilla con título traducido | `src/Travel/Command/TravelRenombrarValleVipPrivadaCommand.php` | **`setSobreescribirTraduccion(true)` antes de tocar el título**, y verificar después |
 | Afinar los textos del contacto (7 idiomas) | `src/Travel/Command/TravelAjustarTextosContactoCommand.php` | activa `sobreescribirTraduccion` y **compara contra lo anterior**, no contra una palabra testigo |
