@@ -917,7 +917,8 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
             . 'dígame cuál y le pido al equipo la excepción». Cuando diga qué casita quiere, ésa '
             . 'es su respuesta: llama a escalar_al_equipo con el motivo «pide %d %s en <casita>, '
             . 'por debajo del mínimo de %d: ¿se hace una excepción?» y dile que lo estás '
-            . 'consultando, sin darlo por aceptado. Si quien pregunta es alguien del equipo, basta '
+            . 'consultando y que el equipo le dará la respuesta por aquí, si pueden hacer la '
+            . 'excepción o no, sin ponerle plazo. Si quien pregunta es alguien del equipo, basta '
             . 'con decirle el mínimo.',
             $noches,
             $noches === 1 ? 'noche' : 'noches',

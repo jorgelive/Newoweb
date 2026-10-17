@@ -6940,7 +6940,9 @@ pedidas no llegan al mínimo, la casita lleva además `bajo_estancia_minima`
 y luego, con un «pero», decir que la estancia mínima es otra y **cerrar invitándole a elegir**:
 «si alguna le interesa, dígame cuál y le pido al equipo la excepción». Cuando elige, se escala con
 un motivo que ya dice «por debajo del mínimo de N: ¿se hace una excepción?», y se le dice que se
-está consultando, sin darlo por aceptado. Quien sólo miraba precios no elige nada y no genera aviso.
+está consultando y que **el equipo le dará la respuesta** —si se hace la excepción o no—, sin plazo.
+Sin eso decía «l'équipe reviendra vers vous à ce sujet»: que le escribirán, no que lo que viene es
+la decisión. Quien sólo miraba precios no elige nada y no genera aviso.
 
 ⚠️ **La primera versión preguntaba «¿quiere que se lo consulte al equipo?», y la pregunta quedaba
 de adorno.** En la simulación el huésped contestó «ok, la casita 7» —eligió en vez de decir que sí—
@@ -10838,7 +10840,19 @@ debajo de la estancia mínima—.
 
 Ahora la instrucción da el hecho en positivo: si lo pedido hay que **concederlo** (una noche, una
 reserva, cambiar fechas u horario, un servicio), queda pendiente de que el equipo lo confirme, y se
-le dice como petición en curso —«he pasado tu petición al equipo y te confirmarán por aquí»—.
+le dice como petición en curso —«he pasado tu petición al equipo y te darán la respuesta por aquí»—.
+
+⚠️ La primera versión de esa frase decía «**te confirmarán** por aquí», y «confirmar» vuelve a dar
+el sí por hecho: simulado, el modelo escribió «pour confirmer la réservation» y «pour finaliser la
+réservation». Lo que viene del equipo es una **respuesta**, que puede ser que no. Las palabras de
+la frase de ejemplo se copian casi literales: hay que elegirlas como si fueran el mensaje.
+
+⚠️ **Y va en las TRES ramas que le hablan al huésped** (`EscalarAlEquipoSkill::PETICION_PENDIENTE`):
+aviso enviado, aviso que no salió y nadie de guardia. Estaba sólo en la primera, y las otras dos
+seguían diciendo «queda anotada» — de ahí salía «c'est bien noté… pour finaliser la réservation».
+Se vio porque en local los avisos no se encolan (la plantilla no tiene ID de Meta) y la simulación
+con `app:agent:replay` pasaba por la rama del aviso fallido: **una simulación local no recorre la
+misma rama que producción**, y conviene saber cuál recorrió antes de dar el resultado por bueno.
 Para una avería no cambia nada: ahí no hay nada que conceder.
 
 Y el **motivo** del aviso va en español aunque el huésped escriba en otro idioma: en una simulación

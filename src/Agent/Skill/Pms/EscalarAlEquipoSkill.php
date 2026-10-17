@@ -128,6 +128,24 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         return 'escalar_al_equipo';
     }
 
+    /**
+     * El ESTADO en que queda lo pedido, para todas las ramas que le hablan al huésped.
+     *
+     * ⚠️ Estaba sólo en la rama del aviso enviado, y las otras dos —el aviso no salió, no hay
+     * guardia— seguían diciendo «queda anotada»: el modelo lo convertía en «c'est bien noté pour
+     * la Casita 7… pour finaliser la réservation». Esas ramas también pasan en producción.
+     *
+     * ⚠️ Y la frase de ejemplo decía «te confirmarán», que vuelve a dar el sí por hecho
+     * (simulado: «pour confirmer la réservation»). Lo que viene del equipo es una RESPUESTA, que
+     * puede ser que no. Las palabras del ejemplo se copian casi literales: se eligen como si
+     * fueran el mensaje.
+     */
+    private const string PETICION_PENDIENTE = 'Si lo que pide es algo que hay que conceder —una '
+        . 'noche, una reserva, cambiar fechas u horario, un servicio—, todavía NO está concedido: '
+        . 'el equipo decide, y puede ser que sí o que no. Díselo así, como petición en curso: «he '
+        . 'pasado tu petición al equipo y te darán la respuesta por aquí». No hables de confirmar '
+        . 'ni de finalizar la reserva: eso es lo que el equipo tiene que decidir.';
+
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
@@ -340,8 +358,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 'advertencia' => 'He dejado la conversación marcada como pendiente, pero NO he '
                     . 'podido avisar a nadie: no hay ningún operador con el rol de atención al '
                     . 'cliente y un móvil registrado. Dile al huésped que su consulta queda '
-                    . 'anotada, sin prometerle cuándo. Esto lo tiene que arreglar un '
-                    . 'administrador en el panel de usuarios.',
+                    . 'pendiente del equipo, sin prometerle cuándo. ' . self::PETICION_PENDIENTE
+                    . ' Esto lo tiene que arreglar un administrador en el panel de usuarios.',
             ]);
         }
 
@@ -367,7 +385,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     {
         if (!$avisado) {
             return 'La conversación queda marcada como pendiente aunque el aviso no salió. Dile '
-                . 'al huésped que queda anotada, sin prometer cuándo.';
+                . 'al huésped que queda pendiente del equipo, sin prometer cuándo. '
+                . self::PETICION_PENDIENTE;
         }
 
         if ($silencioso) {
@@ -378,16 +397,10 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
         // ⚠️ **«Anotado» suena a hecho.** El 16/10/2026 una huésped pidió Casita 7 para el
         // domingo y el modelo contestó «c'est bien noté pour la Casita 7… l'équipe mettra à jour
-        // votre réservation»: para ella, reservado. No lo estaba —nadie lo creó, y esa noche
-        // estaba además por debajo de la estancia mínima—. La instrucción decía con quién y por
-        // dónde, pero no EN QUÉ ESTADO queda lo que pidió, y el hueco lo rellenó el modelo con
-        // la versión optimista. Se le da el hecho, en positivo, y la frase que sí es verdad.
+        // votre réservation»: para ella, reservado. No lo estaba. Ver PETICION_PENDIENTE.
         return 'Ya está avisado el equipo. Dile al huésped que le escribirán POR AQUÍ; no le des '
-            . 'un plazo concreto, que no lo sabes, y no digas que alguien acudirá a verle. Si lo '
-            . 'que pide es algo que hay que conceder —una noche, una reserva, cambiar fechas u '
-            . 'horario, un servicio—, todavía NO está concedido: queda pendiente de que el '
-            . 'equipo lo confirme. Díselo así, como petición en curso («he pasado tu petición '
-            . 'al equipo y te confirmarán por aquí»), no como algo ya anotado o reservado.';
+            . 'un plazo concreto, que no lo sabes, y no digas que alguien acudirá a verle. '
+            . self::PETICION_PENDIENTE;
     }
 
     /**

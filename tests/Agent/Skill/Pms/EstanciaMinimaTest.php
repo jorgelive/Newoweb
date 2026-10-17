@@ -30,6 +30,7 @@ final class EstanciaMinimaTest extends TestCase
         self::assertStringContainsString('excepción', $aviso);
         self::assertStringContainsString('escalar_al_equipo', $aviso);
         self::assertStringContainsString('por debajo del mínimo de 2', $aviso, 'El motivo que lee el equipo');
+        self::assertStringContainsString('el equipo le dará la respuesta', $aviso, 'Que sepa que la respuesta viene del equipo');
     }
 
     public function testEnElPluralTambien(): void
