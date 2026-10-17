@@ -10,7 +10,7 @@ final readonly class MedioWeb
     public function __construct(
         /** `foto` o `video`. */
         public string $tipo,
-        /** Ruta de la foto para Liip (`/carga/front/experiencias/…`); null en un vídeo. */
+        /** URL de la foto sin el tamaño (`/experiencias/foto/{id}`, se le añade `/miniatura` o `/grande`); null en un vídeo. */
         public ?string $ruta,
         public ?string $pie,
         public ?VideoExterno $video,

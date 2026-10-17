@@ -16,7 +16,7 @@ final readonly class AlbumWeb
         public ?string $texto,
         public ?string $destino,
         public ?DateTimeImmutable $fecha,
-        /** Ruta de la foto de portada para Liip; null si el álbum no tiene fotos. */
+        /** URL de la foto de portada sin el tamaño (ver `MedioWeb::$ruta`); null si el álbum no tiene fotos. */
         public ?string $portada,
         public array $medios,
     ) {

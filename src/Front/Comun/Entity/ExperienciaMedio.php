@@ -29,9 +29,10 @@ use Vich\UploaderBundle\Mapping\Annotation as Vich;
 /**
  * Una foto o un vídeo de un `ExperienciaAlbum`.
  *
- * - **Foto**: subida por multipart (campo `imagen`, `ExperienciaMedioProcessor`), en una carpeta
- *   pública (`front.path.experiencias`); `VichWebpConversionListener` la pasa a WebP y la web la
- *   sirve por Liip (`travel_galeria` en la rejilla, `travel_cliente` al abrirla).
+ * - **Foto**: subida por multipart (campo `imagen`, `ExperienciaMedioProcessor`), guardada FUERA
+ *   de `public/` (`var/documentos/experiencias/`); `VichWebpConversionListener` la pasa a WebP y
+ *   la entrega `ExperienciaFotoController`, que comprueba el permiso en cada petición (desde el
+ *   17/10/2026; antes vivía en `public/` y la URL era la llave). Ver docs/WebPublica.md §2.1.a.
  * - **Vídeo**: sólo el enlace de YouTube o Vimeo, validado por `VideoExterno::desdeUrl()`.
  *
  * Se lee siempre a través de su álbum (grupo `experiencia:read`); por eso no tiene `Get` propio.
@@ -132,10 +133,6 @@ class ExperienciaMedio
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $imageSize = null;
 
-    /** Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-    #[Groups(['experiencia:read'])]
-    private ?string $imageUrl = null;
-
     public function __construct()
     {
         $this->initializeId();
@@ -173,10 +170,19 @@ class ExperienciaMedio
         return $this->tipo === ExperienciaMedioTipoEnum::VIDEO ? VideoExterno::desdeUrl($this->videoUrl) : null;
     }
 
-    /** La ruta guardada, para Liip: `/carga/front/experiencias/xxx.webp`. */
-    public function rutaDeLaFoto(): ?string
+    /**
+     * La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+     * `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+     *
+     * Relativa a propósito: la misma ruta vive en el host del front y en el de `util`, y cada uno
+     * la resuelve con su sesión. `null` si no hay foto.
+     */
+    #[Groups(['experiencia:read'])]
+    public function getImageUrl(): ?string
     {
-        return $this->imageUrl;
+        return $this->esFoto() && $this->imageName !== null && $this->imageName !== '' && $this->id !== null
+            ? '/experiencias/foto/' . $this->id->toRfc4122()
+            : null;
     }
 
     public function getAlbum(): ?ExperienciaAlbum { return $this->album; }
@@ -214,6 +220,4 @@ class ExperienciaMedio
     public function getImageSize(): ?int { return $this->imageSize; }
     public function setImageSize(?int $imageSize): self { $this->imageSize = $imageSize; return $this; }
 
-    public function getImageUrl(): ?string { return $this->imageUrl; }
-    public function setImageUrl(?string $imageUrl): self { $this->imageUrl = $imageUrl; return $this; }
 }

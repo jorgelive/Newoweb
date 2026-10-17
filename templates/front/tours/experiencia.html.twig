@@ -2,7 +2,7 @@
 
 {% block titulo %}{{ album.titulo }} · {{ 'exp.titulo'|trans({}, 'front_tours') }} · {{ front.marca }}{% endblock %}
 {% block descripcion %}{{ (album.texto ?? 'exp.meta_descripcion'|trans({}, 'front_tours'))|front_recorte }}{% endblock %}
-{% block imagen_social %}{% if album.portada %}{{ album.portada|trim('/', 'left')|imagine_filter('travel_cliente') }}{% elseif album.miniaturaDeVideo %}{{ album.miniaturaDeVideo }}{% endif %}{% endblock %}
+{% block imagen_social %}{% if album.portada %}{{ absolute_url(album.portada ~ '/grande') }}{% elseif album.miniaturaDeVideo %}{{ album.miniaturaDeVideo }}{% endif %}{% endblock %}
 
 {% block cuerpo %}
 <div class="envoltura">
@@ -33,7 +33,7 @@
             <h2 style="margin-top:28px">{{ 'exp.fotos_titulo'|trans({}, 'front_tours') }}</h2>
             <div class="galeria">
                 {% for m in album.fotos %}
-                    {% include 'front/tours/_foto_galeria.html.twig' with {'img': m.ruta, 'n': loop.index, 'alt': m.pie ?? (album.titulo ~ ' — ' ~ loop.index)} %}
+                    {% include 'front/tours/_foto_galeria.html.twig' with {'img': m.ruta, 'img_miniatura': m.ruta ~ '/miniatura', 'img_grande': m.ruta ~ '/grande', 'n': loop.index, 'alt': m.pie ?? (album.titulo ~ ' — ' ~ loop.index)} %}
                 {% endfor %}
             </div>
         {% endif %}

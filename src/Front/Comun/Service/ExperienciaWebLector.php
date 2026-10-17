@@ -58,12 +58,12 @@ final class ExperienciaWebLector
         $medios = [];
         foreach ($album->getMedios() as $medio) {
             $video = $medio->video();
-            if ($medio->esFoto() ? $medio->rutaDeLaFoto() === null : $video === null) {
+            if ($medio->esFoto() ? $medio->getImageUrl() === null : $video === null) {
                 continue; // una foto sin archivo o un enlace que ya no se sabe leer no se pintan
             }
             $medios[] = new MedioWeb(
                 tipo: $medio->esFoto() ? 'foto' : 'video',
-                ruta: $medio->rutaDeLaFoto(),
+                ruta: $medio->getImageUrl(),
                 pie: TextoI18n::en($medio->getPie(), $idioma),
                 video: $video,
             );
@@ -75,7 +75,7 @@ final class ExperienciaWebLector
             texto: TextoI18n::en($album->getTexto(), $idioma),
             destino: $album->getDestino(),
             fecha: $album->getFecha(),
-            portada: $album->portada()?->rutaDeLaFoto(),
+            portada: $album->portada()?->getImageUrl(),
             medios: $medios,
         );
     }

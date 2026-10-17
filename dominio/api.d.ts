@@ -21324,10 +21324,13 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         "ExperienciaMedio-experiencia.read_timestamp.read": {
             /**
@@ -21345,14 +21348,17 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
         "ExperienciaMedio-experiencia_medio.patch.jsonMergePatch": {
@@ -21403,10 +21409,13 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         "ExperienciaMedio.html-experiencia.read_timestamp.read": {
             /**
@@ -21424,14 +21433,17 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
         "ExperienciaMedio.jsonld-experiencia.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -21450,10 +21462,13 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
         "ExperienciaMedio.jsonld-experiencia.read_timestamp.read": components["schemas"]["HydraItemBaseSchema"] & {
@@ -21472,14 +21487,17 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         /** @description Una foto o un vídeo de un `ExperienciaAlbum`. */
         "ExperienciaMedio.multipart-experiencia.read": {
@@ -21498,10 +21516,13 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         "ExperienciaMedio.multipart-experiencia.read_timestamp.read": {
             /**
@@ -21519,14 +21540,17 @@ export interface components {
             /** @description Sólo en los vídeos: el enlace de YouTube o Vimeo tal como lo pegó el operador. */
             videoUrl?: string | null;
             imageName?: string | null;
-            /** @description Virtual: la URL pública, la pone `ExperienciaMedioAssetListener` al cargar. */
-            imageUrl?: string | null;
             /** Format: uuid */
             readonly id?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /**
+             * @description La URL de la foto, sin el tamaño: `/experiencias/foto/{id}`. Se le añade `/miniatura`,
+             *     `/grande` o `/panel` ({@see \App\Front\Comun\Service\FotosDeExperiencia::TAMANOS}).
+             */
+            readonly imageUrl?: string | null;
         };
         "HallazgoCoherencia-coherencia.read": {
             clave?: string;

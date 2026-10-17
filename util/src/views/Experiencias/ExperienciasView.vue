@@ -11,7 +11,6 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import AppSwitcher from '@/components/common/AppSwitcher.vue';
 import { useExperienciaStore } from '@/stores/front/experienciaStore';
-import { thumbUrl } from '@/services/imageThumb';
 import { acotarSiEsFotoGrande } from '@/utils/imagenParaSubir';
 import { getUrls } from '@/services/apiClient';
 import type { ExperienciaAlbum, ExperienciaMedio } from '@/types/experienciaModel';
@@ -111,10 +110,15 @@ const estado = (a: ExperienciaAlbum): { texto: string; clase: string } => {
   return { texto: 'Sin autorizar', clase: 'bg-slate-100 text-slate-500' };
 };
 
+// Las fotos de álbumes NO pasan por Liip: viven fuera de `public/` y las entrega
+// `ExperienciaFotoController`, que comprueba el permiso. `imageUrl` es la URL sin el tamaño
+// (`/experiencias/foto/{id}`), y aquí se pide la miniatura del panel. Ver docs/WebPublica.md §2.1.a.
+const miniaturaDe = (imageUrl: string): string => `${imageUrl}/panel`;
+
 const portadaDe = (a: ExperienciaAlbum): string | null => {
   const fotos = (a.medios ?? []).filter((m) => m.tipo === 'foto' && m.imageUrl);
   const p = fotos.find((m) => m.esPortada) ?? fotos[0];
-  return p?.imageUrl ? thumbUrl(p.imageUrl, 'travel_thumb_admin') : null;
+  return p?.imageUrl ? miniaturaDe(p.imageUrl) : null;
 };
 
 // ── Fotos y vídeos ───────────────────────────────────────────────────────────
@@ -310,7 +314,7 @@ onMounted(async () => {
             <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
               <div v-for="(m, idx) in medios" :key="m.id" class="overflow-hidden rounded-2xl border border-slate-200">
                 <div class="relative aspect-video bg-slate-100">
-                  <img v-if="m.tipo === 'foto' && m.imageUrl" :src="thumbUrl(m.imageUrl, 'travel_thumb_admin')" alt="" class="h-full w-full object-cover" />
+                  <img v-if="m.tipo === 'foto' && m.imageUrl" :src="miniaturaDe(m.imageUrl)" alt="" class="h-full w-full object-cover" />
                   <img v-else-if="miniaturaYoutube(m.videoUrl)" :src="miniaturaYoutube(m.videoUrl) ?? ''" alt="" class="h-full w-full object-cover" />
                   <span v-if="m.tipo === 'video'" class="absolute inset-0 flex items-center justify-center text-white"><i class="fas fa-circle-play text-3xl drop-shadow"></i></span>
                   <span v-if="m.esPortada" class="absolute left-1.5 top-1.5 rounded bg-amber-400 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-950">Portada</span>

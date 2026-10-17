@@ -1,5 +1,6 @@
 {# Tarjeta de un álbum de experiencias. Recibe `album` (AlbumWeb). #}
-{% set imagen = album.portada ? album.portada|trim('/', 'left')|imagine_filter('travel_galeria') : album.miniaturaDeVideo %}
+{# Las fotos de álbumes no pasan por Liip: las entrega ExperienciaFotoController (docs/WebPublica.md §2.1.a). #}
+{% set imagen = album.portada ? album.portada ~ '/miniatura' : album.miniaturaDeVideo %}
 <a class="tarjeta" href="{{ path('front_experiencia', {'album': album.slug}) }}">
     <div class="tarjeta-foto{{ imagen ? '' : ' sin-foto' }}">
         {% if imagen %}<img src="{{ imagen }}" alt="{{ album.titulo }}" loading="lazy" width="480" height="360">{% endif %}

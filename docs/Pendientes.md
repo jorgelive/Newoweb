@@ -51,10 +51,9 @@ reservado: `docs/Mensajeria.md`, `docs/Autotraduccion.md` §9). Los dos que qued
 
 Y de la misma tanda de trabajo, menores:
 
-- **Fotos de experiencias tras revocar la autorización.** Retirar un álbum ya borra las miniaturas
-  de Liip, pero el original sigue respondiendo en `public/carga/front/experiencias/` (protegido sólo
-  por el token del nombre). Cerrarlo es servirlas por controlador con `X-Accel-Redirect`. Decisión
-  de Jorge, ver `docs/WebPublica.md` §2.1.a. Hoy hay 0 álbumes: es el momento barato.
+- ~~**Fotos de experiencias tras revocar la autorización.**~~ **Hecho el 17/10/2026**: fuera de
+  `public/`, servidas por `ExperienciaFotoController` como los documentos privados. Ver
+  `docs/WebPublica.md` §2.1.a.
 - ~~**Cotizador: `cantidad = 0` da `NaN`.**~~ Arreglado el 17/10/2026 (`porCabeza()`).
 
 ---

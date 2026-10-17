@@ -165,6 +165,15 @@ cotizacion_archivo_privado_util:
     host: '%app.host.util%'
     name_prefix: util_
 
+# ⚠️ **Las fotos de los álbumes de experiencias, también en el host del operador.** Mismo motivo que
+# el de arriba: `util` las pinta con URL relativa y su sesión no cruza al host del front. El permiso
+# lo decide el propio controlador (operador con sesión, o álbum publicado y autorizado).
+front_experiencia_foto_util:
+    resource: ../src/Front/Comun/Controller/ExperienciaFotoController.php
+    type: attribute
+    host: '%app.host.util%'
+    name_prefix: util_
+
 # Panel (Easyadmin)
 panel_controllers:
     resource: ../src/Panel/Controller/

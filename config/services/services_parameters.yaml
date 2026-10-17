@@ -101,5 +101,3 @@ parameters:
     cotizacion.path.file_archivos: '/carga/cotizacion/archivos'
     travel.path.proveedor_galeria: '/carga/travel/proveedor/galeria'
     travel.path.proveedor_servicio_galeria: '/carga/travel/proveedor_servicio/galeria'
-    # Fotos de los álbumes de experiencias de la web (ExperienciaMedio). Públicas: las sirve la web.
-    front.path.experiencias: '/carga/front/experiencias'

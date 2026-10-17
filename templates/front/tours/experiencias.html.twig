@@ -2,7 +2,7 @@
 
 {% block titulo %}{{ 'exp.titulo'|trans({}, 'front_tours') }} · {{ front.marca }}{% endblock %}
 {% block descripcion %}{{ 'exp.meta_descripcion'|trans({}, 'front_tours') }}{% endblock %}
-{% block imagen_social %}{% set primero = albumes|first %}{% if primero and primero.portada %}{{ primero.portada|trim('/', 'left')|imagine_filter('travel_cliente') }}{% endif %}{% endblock %}
+{% block imagen_social %}{% set primero = albumes|first %}{% if primero and primero.portada %}{{ absolute_url(primero.portada ~ '/grande') }}{% endif %}{% endblock %}
 
 {% block cuerpo %}
 <div class="envoltura">

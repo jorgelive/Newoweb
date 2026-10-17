@@ -116,11 +116,15 @@ util /experiencias (ExperienciasView.vue + experienciaStore.ts)
    │  POST/PATCH /platform/front/experiencia_albums      ExperienciaAlbum
    │  POST multipart (campo «imagen») / JSON (vídeo)      ExperienciaMedio ── ExperienciaMedioProcessor
    ▼
-front_experiencia_album / front_experiencia_medio   (fotos: public/carga/front/experiencias, WebP)
+front_experiencia_album / front_experiencia_medio   (fotos: var/documentos/experiencias, WebP — PRIVADAS)
    │
    ▼  ExperienciaWebLector  (SÓLO publicado + autorizado + slug)
 openperu.pe/experiencias · /experiencias/{slug} · /en/experiences/…   (ExperienciaController)
 menú «Experiencias» (front_hay_experiencias()) · sitemap
+
+/experiencias/foto/{id}/{miniatura|grande|panel}   (ExperienciaFotoController, hosts front y util)
+   └─ ¿publicado y autorizado, u operador con sesión? → X-Accel-Redirect /_privado/experiencias/…
+                                                        si no → 404
 ```
 
 - **Va aparte del cotizador y de los expedientes** (Jorge, 07/10/2026). Las entidades viven en
@@ -131,9 +135,11 @@ menú «Experiencias» (front_hay_experiencias()) · sitemap
   `ExperienciaWebLector` (un álbum forzado por SQL tampoco sale: probado) y util, que deshabilita
   «publicado» y despublica al quitar «autorizado».
 - **Fotos**: subidas de una en una (progreso en pantalla), recortadas antes en el navegador
-  (`acotarSiEsFotoGrande`) y pasadas a WebP por `VichWebpConversionListener`; en la web, miniatura
-  `travel_galeria` y grande `travel_cliente`. Borrar un medio o un álbum borra el archivo
-  (`delete_on_remove`, cascada).
+  (`acotarSiEsFotoGrande`) y pasadas a WebP por `VichWebpConversionListener`; viven **fuera de
+  `public/`** y las entrega `ExperienciaFotoController` en tres tamaños —`miniatura` y `grande` para
+  la web, `panel` para util— con los mismos filtros de Liip que el resto (`travel_galeria`,
+  `travel_cliente`, `travel_thumb_admin`). Borrar un medio o un álbum borra el original
+  (`delete_on_remove`, cascada) y sus tamaños (`ExperienciaMedioTamanosListener`).
 - **Vídeos por ENLACE** de YouTube o Vimeo, nunca MP4 propios: `VideoExterno::desdeUrl()` es a la
   vez el validador y el que sabe reproducirlos. La web **no incrusta al cargar**: miniatura y botón,
   y el reproductor —`youtube-nocookie.com`, sin cookies hasta pulsar— sólo al pulsar
@@ -168,24 +174,45 @@ Lo que había antes dejaba pasar cualquier cosa, y las tres piezas se tapaban en
 | `VichWebpConversionListener` | **se aparta** si el MIME no es `image/*`, si es `image/svg+xml`, o si Imagick falla (su `catch` es silencioso a propósito): el original sigue intacto |
 | `MediaTokenNamer` | conserva la extensión adivinada del contenido, así que un SVG se guarda `.svg` |
 
-⚠️ **Y el destino está en `public/`, que comparten TODOS los hosts** (`openperu.pe`, `util.`, `pax.`,
-`panel.`, `api.` tienen el mismo `root`). Un SVG con `<script>` colgado ahí es XSS almacenado en el
-mismo origen que la sesión del operador. Ejecutar PHP no se puede —nginx sólo encamina `index.php`,
-comprobado en producción el 16/10/2026—, pero eso lo defiende la configuración del servidor, no la
-aplicación.
+⚠️ **Y el destino estaba en `public/`, que comparten TODOS los hosts** (`openperu.pe`, `util.`,
+`pax.`, `panel.`, `api.` tienen el mismo `root`). Un SVG con `<script>` colgado ahí era XSS
+almacenado en el mismo origen que la sesión del operador. Desde el 17/10/2026 las fotos de álbumes
+viven fuera (abajo), pero la galería de organizaciones sigue en `public/`: la comprobación por
+contenido es la que la protege.
 
-🔒 **Retirar un álbum borra las miniaturas de Liip** — `ExperienciaAlbumCacheListener` (al desmarcar
-«autorizado» o «publicado») y `ExperienciaMedioCacheListener` (al reemplazar o borrar una foto, que
-es el listener estándar que faltaba). Vich borra el original; las copias de `public/media/cache/…`
-las servía nginx sin pasar por PHP y no las tocaba nadie.
+~~🔒 **Retirar un álbum borra las miniaturas de Liip**~~ (16/10/2026) — `ExperienciaAlbumCacheListener`
+y `ExperienciaMedioCacheListener` borraban las copias de `public/media/cache/…`, que nginx servía sin
+pasar por PHP. Retirados el 17/10/2026: con las fotos fuera de `public/` ya no hay copias públicas.
 
-⚠️ **Lo que esto NO arregla, y es una decisión pendiente de Jorge:** el ORIGINAL sigue en
-`public/carga/front/experiencias/` y su URL responde mientras el archivo exista. Lo único que lo
-protege es el token aleatorio de 8 bytes del nombre (`MediaTrait::initializeToken()`): no se
-adivina, pero **un enlace ya repartido o indexado no se invalida al revocar la autorización**.
-Cerrarlo del todo es sacar estas fotos de `public/` y servirlas por controlador con
-`X-Accel-Redirect`, como `cotizacion_file_archivos`, y eso cambia también cómo las pinta la web
-(y cómo cachea Liip). Con menores de por medio, merece decidirse a conciencia, no de pasada.
+🔒 **Las fotos ya no están en `public/` (17/10/2026, decidido por Jorge).** Hasta entonces el ORIGINAL
+vivía en `public/carga/front/experiencias/` y su URL respondía mientras el archivo existiera: el token
+del nombre no se adivina, pero **un enlace ya repartido o indexado no se invalidaba al revocar la
+autorización**. Ahora se sirven como los documentos del expediente (`ArchivoPrivadoController`):
+
+- **Originales en `var/documentos/experiencias/`** (mapeo `front_experiencias`, sin `uri_prefix`), que
+  nginx sólo entrega por `X-Accel-Redirect` a `/_privado/` (`internal;`, la misma ruta que ya existía).
+- **`ExperienciaFotoController`** (`/experiencias/foto/{id}/{tamaño}`) mira el permiso en CADA
+  petición: álbum publicado y autorizado → cualquiera, con `Cache-Control: public, max-age=300`;
+  operador con sesión → todas, `private, no-cache`; el resto → 404, nunca 403. Registrado en el host
+  del front y en el de util (`front_experiencia_foto_util`), porque las sesiones no cruzan de host.
+- 🔥 **Los tamaños NO van por la caché de Liip, y es la mitad que importa.** Liip genera las
+  miniaturas bajo demanda desde una URL pública que no comprueba nada
+  (`/media/cache/resolve/{filtro}/{ruta}`) y las deja en `public/media/cache/`: quien conociera el
+  nombre podría volver a sacar una miniatura de un álbum retirado. Y si la carpeta privada fuese un
+  origen de datos de Liip, por esa misma URL saldría cualquier imagen de `var/documentos/`, escaneos
+  de pasaporte incluidos. Así que `FotosDeExperiencia` usa sus FILTROS pero guarda los tamaños junto
+  al original, en la carpeta privada, y los entrega el mismo controlador.
+- **Revocar corta todas las URLs en el acto**, como mucho con los 5 minutos que un navegador puede
+  tener guardada una foto publicada. Por eso desaparecieron `ExperienciaAlbumCacheListener` y
+  `ExperienciaMedioCacheListener`: ya no hay copias públicas que perseguir.
+- `imageUrl` (lo que lee util) es la URL **sin el tamaño**: `/experiencias/foto/{id}`. util le añade
+  `/panel`; la web, `/miniatura` o `/grande`. La imagen social de la página va con `absolute_url()`.
+
+Comprobado en local de punta a punta el día del cambio: el original cae en `var/documentos`, la web
+lo sirve en WebP por el controlador, la ruta pública vieja, `/_privado/` a pelo y Liip dan 404, y al
+despublicar el álbum las dos URLs pasan a 404 en el acto. Borrado, no queda ni el original ni sus
+tamaños. El caso del operador viendo un álbum sin publicar lo fija `ExperienciaFotoControllerTest`.
+Se hizo con **0 álbumes en producción**: no hubo nada que mudar.
 
 **El PATCH de un medio tiene su propio grupo** (`experiencia_medio:patch`: `orden`, `esPortada`,
 `pie`). Con el grupo de alta entero se podía cambiar `tipo` de `video` a `foto` —dejando una foto
@@ -491,7 +518,9 @@ La migración `Version20261007010000` (columnas web del catálogo + tabla del li
 | Qué enlaces de vídeo se aceptan y cómo se reproducen | `src/Front/Comun/Dto/VideoExterno.php` | `desdeUrl()`, `reproductor()`, `miniatura()` (espejo de la miniatura en `ExperienciasView.vue`) |
 | Subida de fotos de un álbum | `src/Front/Comun/ApiPlatform/State/ExperienciaMedioProcessor.php` · `util/src/stores/front/experienciaStore.ts` | `process()`, `subirFoto()` |
 | Qué formatos de imagen se aceptan (aquí y en Travel) | `src/Panel/Media/ImagenSubidaSegura.php` | `MIMES`, `verificar()` |
-| Limpiar las miniaturas al retirar o borrar | `src/Front/Comun/EventListener/ExperienciaAlbumCacheListener.php` · `ExperienciaMedioCacheListener.php` | `postUpdate()`, `getMapping()` |
+| Quién ve una foto de álbum, y cuánto la guarda el navegador | `src/Front/Comun/Controller/ExperienciaFotoController.php` | `esPublica()`, `SEGUNDOS_EN_CACHE` |
+| Tamaños de las fotos de álbum, y dónde viven | `src/Front/Comun/Service/FotosDeExperiencia.php` | `TAMANOS`, `CARPETA` (y el mapeo `front_experiencias` de Vich, que tiene que coincidir) |
+| Borrar los tamaños al borrar o reemplazar una foto | `src/Front/Comun/EventListener/ExperienciaMedioTamanosListener.php` | `preRemove()`, `preUpdate()` |
 | La pantalla de álbumes en util | `util/src/views/Experiencias/ExperienciasView.vue` | — |
 | Añadir una ruta de UN tramo a la web, o reservar una palabra | `CotizacionCatalogo::SLUGS_RESERVADOS` **y** `TourController::SLUG_CATALOGO` | lo vigila `SlugsDeCatalogoTest` |
 | Cuántas fotos de la galería se ven sin desplegar, o su miniatura | `templates/front/tours/tour.html.twig` (`visibles`) · `config/packages/liip_imagine.yaml` | `travel_galeria` |
