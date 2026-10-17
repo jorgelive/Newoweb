@@ -317,10 +317,6 @@ final class CorreccionesDeTraduccion
             // Ducha (casas)
             'Ouvrez-le <strong>complètement</strong>'
                 => 'Ouvrez <strong>complètement</strong>',
-            'ouvrez-le <strong>encore plus</strong>'
-                => 'ouvrez <strong>encore plus</strong>',
-            'ouvrez-le encore plus'
-                => 'ouvrez encore plus',
             // Pago (general)
             'après vérification.</p>'
                 => 'après vérification de :</p>',
@@ -521,15 +517,6 @@ final class CorreccionesDeTraduccion
             // Calefactor (general)
             '<strong>Operazione:</strong>'
                 => '<strong>Funzionamento:</strong>',
-            // Ducha (casas)
-            'Aprilo <strong>completamente</strong> e attendi qualche secondo. Se l&#39;acqua che esce è troppo calda, aprilo <strong>ancora di più</strong>'
-                => 'Aprila <strong>completamente</strong> e attendi qualche secondo. Se l&#39;acqua che esce è troppo calda, aprila <strong>ancora di più</strong>',
-            'Se necessario, utilizzare il rubinetto dell&#39;acqua fredda per regolare la temperatura.'
-                => 'Se necessario, regola la temperatura con il rubinetto dell&#39;acqua fredda.',
-            'tirarla a sinistra'
-                => 'spostala a sinistra',
-            'Aprilo <strong>completamente</strong> e attendi qualche secondo. Se esce troppo caldo, aprilo ancora di più: più acqua passa attraverso, meno caldo sarà.'
-                => 'Apri <strong>completamente</strong> e attendi qualche secondo. Se l&#39;acqua esce troppo calda, apri ancora di più: più acqua passa, meno calda esce.',
             // Pago (general)
             'L&#39;uso e la cura corretti del reparto.'
                 => 'L&#39;uso e la cura corretti dell&#39;appartamento.',
@@ -625,6 +612,10 @@ final class CorreccionesDeTraduccion
                 => 'viene offerto il trasferimento gratuito dall&#39;aeroporto',
         ],
         'de' => [
+            // Duchas, casa 7: el baño de dos manijas salió «Zweigriff- Badezimmerarmatur». (Las
+            // correcciones del texto viejo de las duchas se quitaron el 17/10/2026: su frase ya no existe.)
+            '<strong>Zweigriff-</strong> Badezimmerarmatur:'
+                => 'Badezimmer mit <strong>zwei Griffen</strong>:',
             // Duchas (17/10/2026): «un chorro fuerte» salió chorro de GAS en los seis idiomas — a un huésped
             // le suena a fuga. Es un chorro de AGUA: el calentador de paso sólo enciende con caudal.
             'Diese Gasheizgeräte benötigen einen starken Gasstrahl zum'
@@ -702,15 +693,6 @@ final class CorreccionesDeTraduccion
             // Calefactor (general)
             '<strong>Operation:</strong>'
                 => '<strong>Funktionsweise:</strong>',
-            // Ducha (casas)
-            'kühlt das Wasser umso weniger ab, je mehr Wasser durchfließt.'
-                => 'wird das Wasser umso weniger heiß, je mehr Wasser durchfließt.',
-            'Öffnen Sie den Deckel <strong>vollständig</strong>'
-                => 'Öffnen Sie den Wasserhahn <strong>vollständig</strong>',
-            'Ziehen Sie ihn nach links.'
-                => 'Bewegen Sie ihn nach links.',
-            '<strong>Zwei Griffe</strong> im Badezimmer:'
-                => 'Badezimmer mit <strong>zwei Griffen</strong>:',
             // Perdida llaves (general)
             'damit die Verriegelungsstifte aus Sicherheitsgründen ausgetauscht werden können'
                 => 'damit der Schließzylinder aus Sicherheitsgründen ausgetauscht werden kann',
