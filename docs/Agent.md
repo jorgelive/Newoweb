@@ -580,7 +580,10 @@ así que contarlos infla cualquier respuesta sobre cuánta gente va.
 >
 > **Anthropic conserva el `toolRunner` del SDK.** La palanca es `setMessagesParams()` durante la
 > iteración: el runner entiende que llevamos el historial a mano, no añade el mensaje en curso ni
-> ejecuta sus herramientas, y la siguiente vuelta es la petición del cierre. El precio: con la racha
+> ejecuta sus herramientas, y la siguiente vuelta es la petición del cierre. ⚠️ **El cierre sólo
+> AÑADE** (18/10/2026): el mensaje en curso tal cual, un `tool_result` de error por cada herramienta
+> que pidió y la orden detrás. Meter la orden en el último turno de usuario —ya enviado— es editar el
+> historial, y Sonnet 5.5 / Haiku 5.5 lo castigan invalidando el razonamiento o con un 400. El precio: con la racha
 > se tira una petición ya hecha, porque el runner ejecuta las herramientas al pedirle el siguiente
 > mensaje; sólo se paga cuando el turno ya iba mal. Y sólo cuenta el texto de un mensaje SIN
 > herramientas: el que acompaña a una llamada es un preámbulo («un momento, reviso…»).

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Anthropic;
 
+use Anthropic\Beta\Messages\BetaMessage;
 use Anthropic\Beta\Messages\BetaTextBlock;
+use Anthropic\Beta\Messages\BetaToolUseBlock;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
@@ -148,7 +150,7 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
                 // tira esta petición ya hecha: es el precio de no sustituir el runner, y sólo se
                 // paga cuando el turno ya iba mal.
                 if (!$cerrando && ($motivo !== null || ControlDeVueltas::esLaUltima($vueltas - 1))) {
-                    $this->forzarCierre($runner, $peticion, $motivo ?? ControlDeVueltas::motivoDelTope());
+                    $this->forzarCierre($runner, $mensaje, $peticion, $motivo ?? ControlDeVueltas::motivoDelTope());
                     $cerrando = true;
                 }
 
@@ -198,12 +200,18 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
      * herramientas, y la siguiente vuelta es una petición con lo que le damos. Así no hace falta
      * sustituir el `toolRunner` por un bucle propio.
      *
-     * La orden va en el último turno de usuario, detrás de los `tool_result` (dos turnos de usuario
-     * seguidos no son un hilo válido). Las herramientas siguen declaradas: el hilo ya lleva
-     * `tool_use`, y lo que se retira es el permiso, no la definición. `maxIterations: null` para
-     * que el tope del runner no se coma la petición del cierre.
+     * ⚠️ **Sólo AÑADE, nunca edita un turno ya enviado** (18/10/2026). La primera versión metía la
+     * orden en el último turno de usuario, que ya había viajado en la petición anterior: Sonnet 5.5
+     * y Haiku 5.5 tratan eso como edición del historial, invalidan el razonamiento y, en cuentas
+     * creadas desde el 31/08/2026, responden 400. Ahora se añade el mensaje en curso tal cual llegó
+     * (con sus bloques de razonamiento, sin tocar), un `tool_result` de error por cada herramienta
+     * que pidió —«no se ejecutó»— y la orden detrás, en el mismo turno de usuario.
+     *
+     * Las herramientas siguen declaradas: el hilo lleva `tool_use`, y lo que se retira es el
+     * permiso, no la definición. `maxIterations: null` para que el tope del runner no se coma la
+     * petición del cierre.
      */
-    private function forzarCierre(BetaToolRunner $runner, ConversationRequest $peticion, string $motivo): void
+    private function forzarCierre(BetaToolRunner $runner, BetaMessage $enCurso, ConversationRequest $peticion, string $motivo): void
     {
         $this->logger->warning(sprintf(
             'Agent (anthropic): cierre forzado para %s (%s); se le pide la respuesta SIN herramientas.',
@@ -211,18 +219,23 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
             $motivo,
         ));
 
-        $runner->setMessagesParams(static function (array $params): array {
+        $runner->setMessagesParams(static function (array $params) use ($enCurso): array {
             $mensajes = is_array($params['messages'] ?? null) ? array_values($params['messages']) : [];
-            $ultimo = array_key_last($mensajes);
-            $orden = ['type' => 'text', 'text' => ControlDeVueltas::ORDEN_DE_CIERRE];
+            $mensajes[] = ['role' => 'assistant', 'content' => $enCurso->content];
 
-            if ($ultimo !== null && is_array($mensajes[$ultimo]) && ($mensajes[$ultimo]['role'] ?? null) === 'user'
-                && is_array($mensajes[$ultimo]['content'] ?? null)
-            ) {
-                $mensajes[$ultimo]['content'][] = $orden;
-            } else {
-                $mensajes[] = ['role' => 'user', 'content' => [$orden]];
+            $respuesta = [];
+            foreach ($enCurso->content as $bloque) {
+                if ($bloque instanceof BetaToolUseBlock) {
+                    $respuesta[] = [
+                        'type' => 'tool_result',
+                        'tool_use_id' => $bloque->id,
+                        'content' => 'No se ejecutó: ya no puedes usar más herramientas.',
+                        'is_error' => true,
+                    ];
+                }
             }
+            $respuesta[] = ['type' => 'text', 'text' => ControlDeVueltas::ORDEN_DE_CIERRE];
+            $mensajes[] = ['role' => 'user', 'content' => $respuesta];
 
             return [
                 'messages' => $mensajes,

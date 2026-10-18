@@ -6165,7 +6165,8 @@ El huésped manda ~9 500 por llamada (prefijo de 8 700), así que no cachea nunc
 **Qué vale:** muy poco en dinero. A este volumen (~7 turnos al día) el agente cuesta ~$4/mes con
 Gemini, y una caché perfecta ahorraría ~$2–3. Rellenar el prompt hasta 16k para que cachee o pasar
 a caché explícita (con coste de almacenamiento por hora) no compensa. Si algún día hace falta, la
-caché de Anthropic es explícita y su mínimo es menor (Sonnet 1 024, Haiku 4 096).
+caché de Anthropic es explícita, acierta siempre que el prefijo no cambie, y su mínimo es de **512
+tokens** en Sonnet 5.5 y Haiku 5.5 (era 4 096 en Haiku 4.5).
 
 #### `app:agent:prefijo`
 
