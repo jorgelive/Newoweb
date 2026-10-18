@@ -257,10 +257,14 @@ final readonly class PeticionAlexa
         return $this->tipo === 'IntentRequest';
     }
 
-    /** Los intents con los que Alexa exige que cualquier skill sepa cerrar la sesión. */
+    /**
+     * Los intents con los que Alexa exige que cualquier skill sepa cerrar la sesión, y el nuestro
+     * de frases que SIEMPRE cierran («gracias», «eso es todo»). El «no» no está aquí: a veces es un
+     * dato, y eso lo decide el modelo ({@see \App\Agent\Service\RespuestaHablada}).
+     */
     public function pideSalir(): bool
     {
-        return in_array($this->intent, ['AMAZON.StopIntent', 'AMAZON.CancelIntent'], true);
+        return in_array($this->intent, ['AMAZON.StopIntent', 'AMAZON.CancelIntent', 'CierreIntent'], true);
     }
 
     public function pideAyuda(): bool

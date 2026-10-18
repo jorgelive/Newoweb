@@ -32,6 +32,22 @@
           "samples": []
         },
         {
+          "name": "CierreIntent",
+          "samples": [
+            "gracias",
+            "muchas gracias",
+            "eso es todo",
+            "eso sería todo",
+            "nada más",
+            "nada más gracias",
+            "eso es todo gracias",
+            "hasta luego",
+            "chao",
+            "adiós",
+            "ya terminé"
+          ]
+        },
+        {
           "name": "ConsultaIntent",
           "slots": [
             {

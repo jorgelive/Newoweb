@@ -186,4 +186,17 @@ final class PeticionAlexaTest extends TestCase
         sort($conTexto);
         self::assertSame($delMapa, $conTexto, 'cada intent del mapa tiene que estar en el modelo');
     }
+
+    /** «Gracias» o «eso es todo» cierran siempre; el «no» no, porque a veces es un dato. */
+    public function testLasFrasesDeCierreCierranYElNoNo(): void
+    {
+        $intent = static fn (string $nombre): PeticionAlexa => PeticionAlexa::fromArray([
+            'request' => ['type' => 'IntentRequest', 'intent' => ['name' => $nombre]],
+        ]);
+
+        self::assertTrue($intent('CierreIntent')->pideSalir());
+        self::assertTrue($intent('AMAZON.StopIntent')->pideSalir());
+        self::assertFalse($intent('AMAZON.NoIntent')->pideSalir());
+        self::assertSame('no', $intent('AMAZON.NoIntent')->consulta, 'el «no» va al modelo, que sabe qué preguntó');
+    }
 }

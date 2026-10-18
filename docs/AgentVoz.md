@@ -124,6 +124,26 @@ pregúntale a recepción…» en cada pregunta, que es lo que hace inútil un as
 conversacional. Cuando la sesión sigue abierta, el `reprompt` es **obligatorio** para
 certificar.
 
+### Cómo se cierra (18/10/2026)
+
+| Se dice | Quién decide | Por qué |
+|---|---|---|
+| «Alexa, para», «cancela», «salir» | Amazon (`Stop`/`Cancel`) | Obligatorio para certificar |
+| «gracias», «eso es todo», «nada más», «adiós» | El código (`CierreIntent` → `pideSalir()`) | Siempre significan cerrar |
+| «no», «no, gracias» | **El modelo** | Depende de la pregunta anterior |
+| Nada | Alexa, tras un reintento (`EXCEEDED_MAX_REPROMPTS`) | — |
+
+⚠️ **El «no» no lo puede decidir el código.** A «¿para dos personas?» es un dato y la
+conversación sigue; a «¿algo más?» es un cierre. La palabra es la misma y sólo distingue la
+pregunta anterior, que es del modelo. El prompt de `VoiceAssistant` le pide terminar con `[[FIN]]`
+cuando le dan la conversación por terminada; `RespuestaHablada::delModelo()` quita la marca
+—también `[FIN]` o `[[ fin ]]`, que si se colaran Alexa las leería en voz alta— y el controlador
+contesta con `despedida()`.
+
+Dejárselo al modelo es seguro porque equivocarse no cuesta: cerrar de más obliga a volver a
+abrir, y no cerrar deja la sesión abierta hasta el silencio. El canal es de solo lectura (§7).
+Por eso el prompt dice «ante la duda, sigue»: el error barato es el de no cerrar.
+
 **Gotcha**: `sessionAttributes` vacío se serializa `[]` en PHP y Alexa espera un objeto. Se
 fuerza a `{}` con un `stdClass`. Sólo ocurre en los turnos de bienvenida y de cierre, así que
 pasa las pruebas manuales y falla en producción.
@@ -446,6 +466,7 @@ archivo y se pega**; nunca al revés.
 | `AfirmacionIntent` / `AMAZON.YesIntent` | «sí», «sí, la del 12», «claro», «dale» | `sí` o `sí, la del 12` |
 | `NegacionIntent` / `AMAZON.NoIntent` | «no», «no, la casita 5», «mejor no» | `no` o `no, la casita 5` |
 | `CantidadIntent` | Un número suelto: «cuatro», «cuatro personas», «dos noches» | `4` / `4 personas` |
+| `CierreIntent` | «gracias», «eso es todo», «nada más», «adiós» | nada: cierra (§4) |
 | `Stop` / `Cancel` / `Help` / `Fallback` | Los que Amazon exige | cierre, ayuda, «¿me lo repites?» |
 
 #### Las respuestas sueltas (17/10/2026)
@@ -535,6 +556,8 @@ de la consola de desarrollo.
 | Cambiar qué se tacha del log (§5.1) | `AlexaController` | `sinSecretos()` |
 | Cambiar la prioridad persona → sitio → cuenta | `PeticionAlexa` | `identidades()` |
 | Cambiar qué dice al abrir o al no entender | `AlexaController` | `BIENVENIDA`, `REINTENTO`, `AYUDA` |
+| Qué frases cierran siempre la sesión | `tools/alexa/modelo-interaccion.json` + `PeticionAlexa` | `CierreIntent`, `pideSalir()` (§4) |
+| Cuándo cierra el modelo (un «no» a «¿algo más?») | `VoiceAssistant` + `RespuestaHablada` | el bloque «Cerrar la conversación» del prompt, `MARCA_DE_CIERRE` (§4) |
 | Cambiar cómo habla el asistente | `VoiceAssistant` | `systemPrompt()` |
 | Permitir escritura por voz (piénsalo dos veces, §7) | `VoiceAssistant::preguntar()` | `permitirEscritura` |
 | Acelerar las respuestas | `.env.local` + `VoiceAssistant` | `ALEXA_MODELO` / `MAX_TOKENS`, §6 |

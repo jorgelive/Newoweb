@@ -174,7 +174,7 @@ final class AlexaController extends AbstractController
             // El actor lleva los roles EFECTIVOS —con la jerarquía de security.yaml expandida—
             // y `origen: 'alexa'`, que es lo que verán las skills y el log. No hace falta un
             // constructor nuevo: `delEquipoPorChat()` ya recibe el origen como parámetro.
-            $texto = $this->asistente->preguntar(
+            $hablada = $this->asistente->preguntar(
                 $consulta,
                 $this->actores->delEquipoPorChat($usuario, 'alexa'),
                 $historial
@@ -189,7 +189,14 @@ final class AlexaController extends AbstractController
             );
         }
 
+        $texto = $hablada->texto;
         $this->registrar($usuario->getUserIdentifier(), $alexa, $consulta, $texto);
+
+        // El modelo dio la conversación por terminada (un «no» a su «¿algo más?»): se apaga el
+        // micrófono. Lo decide él porque sólo él sabe qué preguntó; ver RespuestaHablada.
+        if ($hablada->cierra) {
+            return RespuestaAlexa::despedida($texto);
+        }
 
         $historial[] = ['rol' => 'usuario', 'texto' => $consulta];
         $historial[] = ['rol' => 'asistente', 'texto' => $texto];

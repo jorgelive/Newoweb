@@ -63,19 +63,20 @@ final readonly class VoiceAssistant
 
     /**
      * @param list<array{rol: string, texto: string}> $historial
-     * @return string Siempre algo hablable: quien llama no tiene forma de improvisar un texto.
+     * Siempre algo hablable: quien llama no tiene forma de improvisar un texto. Y si el modelo da
+     * la conversación por terminada, `cierra` ({@see RespuestaHablada}).
      */
-    public function preguntar(string $pregunta, ActorInterface $actor, array $historial = []): string
+    public function preguntar(string $pregunta, ActorInterface $actor, array $historial = []): RespuestaHablada
     {
         $pregunta = trim($pregunta);
 
         if ($pregunta === '') {
-            return 'No te he entendido. ¿Me lo repites?';
+            return new RespuestaHablada('No te he entendido. ¿Me lo repites?');
         }
 
         $motor = $this->motores->elegir($this->proveedor);
         if ($motor === null) {
-            return 'El asistente no está configurado.';
+            return new RespuestaHablada('El asistente no está configurado.');
         }
 
         $respuesta = $motor->conversar(new ConversationRequest(
@@ -88,7 +89,7 @@ final readonly class VoiceAssistant
             modelo: $this->motores->validarModelo($motor, $this->modelo),
         ));
 
-        return $this->texto($respuesta);
+        return RespuestaHablada::delModelo($this->texto($respuesta));
     }
 
     /**
@@ -160,6 +161,14 @@ final readonly class VoiceAssistant
         - Si una skill devuelve varias coincidencias, no elijas: di cuántas hay y el dato que
           las distingue, y pregunta cuál.
         - Responde en español.
+
+        Cerrar la conversación:
+        - Si el compañero da la conversación por terminada —contesta «no» o «no, gracias» a tu
+          «¿algo más?», o se despide—, despídete en pocas palabras y termina tu respuesta con
+          [[FIN]]. Así se apaga el micrófono.
+        - Si el «no» contesta a OTRA pregunta tuya —«¿para dos personas?», «¿te las digo una a
+          una?»—, es un dato: sigue la conversación, sin [[FIN]].
+        - Ante la duda, sigue sin [[FIN]]: si nadie habla, la sesión se cierra sola.
         PROMPT;
     }
 }
