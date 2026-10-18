@@ -50,9 +50,11 @@ interface SkillInterface
      * enseñarle el cambio a **quien lo pidió** y esperar su «sí» —mismo usuario, dos turnos—,
      * no pedirle permiso a un tercero: {@see NivelRiesgo::Escritura} lo explica entero.
      *
-     * Hoy ese paso no lo fuerza el servidor, sólo la descripción que lee el modelo, así que
-     * omitirlo no rompe nada visible: aplica a la primera y nadie se entera hasta que el dato
-     * está mal.
+     * Desde el 17/10/2026 ese paso lo fuerza el servidor: {@see \App\Agent\Access\GuardiaDeSkills::ejecutar()}
+     * sólo aplica un `confirmado: true` si la previsualización de AHORA es la misma que se le
+     * enseñó al operador. De ahí dos obligaciones: la previsualización no tiene efectos, y es
+     * **determinista** —sin la hora actual, tokens ni textos que cambien de una llamada a otra—,
+     * o no casaría nunca y el operador tendría que confirmar dos veces.
      */
     public function nivelRiesgo(): NivelRiesgo;
 }

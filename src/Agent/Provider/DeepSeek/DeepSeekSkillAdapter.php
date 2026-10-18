@@ -127,7 +127,8 @@ final readonly class DeepSeekSkillAdapter
         }
 
         try {
-            return $skill->ejecutar($argumentos, $actor)->aJson();
+            // Por el guardia y no directo: si escribe, sólo lo que el operador vio y aprobó.
+            return $this->guardia->ejecutar($skill, $argumentos, $actor)->aJson();
         } catch (Throwable $e) {
             $this->logger->error(sprintf(
                 'Agent: la skill "%s" falló para %s: %s',

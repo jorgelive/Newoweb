@@ -3589,7 +3589,7 @@ con qué responder, así que pedírsela a él sería confiar en lo que acaba de 
 **Marcar y cobrar son skills distintas** porque son decisiones distintas: hay late check-outs
 de cortesía. El modelo encadena las dos sólo si el operador lo pide.
 
-### ⚠️ La confirmación la decide el modelo: hoy NO hay freno en el código
+### 🔒 La confirmación la ata el código a lo que se enseñó (desde el 17/10/2026)
 
 Las skills de escritura llevan un parámetro `confirmado`. Con `false` devuelven la
 previsualización y **no tocan nada**:
@@ -3604,15 +3604,43 @@ previsualización y **no tocan nada**:
 Lo que sí es del código es **el contenido** de esa previsualización: sale de los datos reales
 —incluida la conversión de moneda ya hecha—, no de lo que el modelo cree que va a pasar.
 
-**Pero el paso previo no está forzado.** `confirmado` es un parámetro más que el modelo rellena:
-`nivelRiesgo()` sólo se usa en `SkillRegistry::paraActor()` para incluir o excluir la skill del
-catálogo, y ninguna parte del servidor recuerda si hubo previsualización. Una sola llamada con
-`confirmado: true` registra el cargo o manda el WhatsApp. Lo único que lo evita es que la
-descripción de la skill se lo pida al modelo.
+**Hasta el 17/10/2026 el paso previo no estaba forzado**: `confirmado` era un parámetro más que el
+modelo rellenaba, nada recordaba si hubo previsualización, y la seguridad de las escrituras
+dependía de la capacidad del modelo. Y falló: Jorge aprobó «Casita 4 de 35,40 a 24,00 en 2
+noches» (ajuste `-11.40`), ese turno se perdió por el tope de tokens, y en el siguiente el modelo
+ejecutó por su cuenta OTRA cosa —`"24"`, que entonces era +24, y sólo las noches libres— con
+`confirmado: true`. No se aplicó sólo porque esas noches estaban vendidas.
 
-Consecuencia directa: **la seguridad de las escrituras depende hoy de la capacidad del modelo**,
-que es justo de lo que no debería depender. Ver §11.1 para qué modelo aguanta eso y para los dos
-niveles de freno real que quedan por implementar.
+Ahora toda ejecución pasa por `GuardiaDeSkills::ejecutar()` —los tres adaptadores (Google,
+Anthropic, DeepSeek) y `app:agent:skill`—, y para las de `NivelRiesgo::Escritura`:
+
+```
+confirmado=false → la skill previsualiza; se guarda la HUELLA de lo que devolvió,
+                   por conversación (o usuario+canal) y skill, 30 min (cache.app)
+confirmado=true  → ¿se previsualizó en ESTE turno? → NO se aplica (`sin_aprobar_todavia`):
+                     el operador aún no lo ha visto
+                   si no, se previsualiza otra vez con los mismos datos y se compara:
+                     igual    → se aplica, y la huella se gasta: un sí, una escritura
+                     distinta → NO se aplica; se devuelve la previsualización de ahora con
+                                `motivo: confirmacion_no_coincide` para enseñarla y pedir el sí
+```
+
+- **No en el mismo turno** (`PrevisualizacionesDelTurno`, que el worker vacía tras cada mensaje):
+  sin esto el modelo podía previsualizar y confirmar en dos vueltas seguidas del bucle sin que
+  ningún humano hubiera visto nada. Entre enseñar y aplicar tiene que haber un mensaje del operador.
+
+- **Se compara lo que la skill ENSEÑA, no los parámetros.** «Casita 3» y «3» son la misma
+  previsualización y se aplican; `-11.40` y `"24"` son dos distintas y no. Comparar la entrada
+  habría obligado a reconfirmar por un cambio de forma —pasó ese mismo día, con «Casita 3»
+  previsualizada y «3» confirmada—.
+- **Por eso una previsualización tiene que ser determinista y sin efectos** (ya lo pedía
+  `SkillInterface::nivelRiesgo()`): con la hora o un token aleatorio no casaría nunca. Revisadas
+  las doce el 17/10/2026: sólo dependen de los datos de la petición.
+- **Un despliegue vacía la caché**: una previsualización pendiente se pierde y hay que confirmar
+  otra vez. Es el lado seguro.
+- Tests: `ConfirmacionAtadaTest`. Comprobado contra la base local con `ajustar_tarifas` real: en el
+  mismo turno → rechazada; otra cosa en el turno siguiente → rechazada sin crear nada; «Casita 6»
+  previsualizada y «6» confirmada → aplicada; un segundo sí sin volver a enseñar → rechazado.
 
 #### 🔎 Revisión de las skills del PMS (16/10/2026)
 
@@ -3652,19 +3680,21 @@ skill responde «no existe», que es un error visible y barato.
 
 La escritura no falla ruidosamente, y ahí el modelo es hoy el único guardia.
 
-#### Los dos frenos que faltan, por orden de valor
+#### Los frenos: lo que ya hay y lo que falta
 
-1. **Token de confirmación ligado al payload.** La primera llamada devuelve la previsualización y
-   un token HMAC del payload normalizado; sólo ejecuta una llamada que traiga ese token y cuyos
-   parámetros produzcan el mismo hash. Sin estado que guardar. El modelo deja de poder ejecutar
-   sin haber previsualizado **exactamente esos** parámetros, y cambiar el importe entre los dos
-   pasos invalida el token.
-2. **Aprobación fuera del bucle.** El token evita el salto, pero no garantiza que un humano lo
-   viera: el modelo puede previsualizar y confirmar en el mismo turno. Para eso la escritura
-   tiene que suspenderse y volver al panel como acción pendiente que alguien pulsa.
+1. ✅ **Confirmación ligada a lo que se enseñó** (17/10/2026). Se hizo con estado —la huella de la
+   previsualización en `cache.app`— en vez del token HMAC que se había pensado: así se compara lo
+   que la skill ENSEÑA y no los parámetros, y «Casita 3»/«3» no obligan a reconfirmar. Ver
+   «La confirmación la ata el código a lo que se enseñó».
+2. ✅ **No en el mismo turno** (17/10/2026): entre previsualizar y aplicar tiene que llegar un
+   mensaje del operador.
+3. ⏳ **Aprobación fuera del bucle.** Lo anterior garantiza que hubo un mensaje del operador después
+   de enseñar, pero no que ese mensaje fuera un «sí»: el modelo decide qué cuenta como aprobación.
+   Para eso la escritura tendría que suspenderse y volver como acción pendiente que alguien pulsa
+   (un botón de WhatsApp, por ejemplo).
 
-Sólo el segundo es **independiente del modelo**. Con él, la elección de modelo vuelve a ser una
-cuestión de calidad de respuesta y de coste — no de seguridad.
+Sólo el tercero es **del todo independiente del modelo**. Con los dos primeros, lo que el modelo ya
+no puede hacer es aplicar algo distinto de lo enseñado, ni aplicarlo sin que nadie lo haya visto.
 
 > **Regla:** no se compra un modelo más caro para cubrir un `if` que falta. Mientras el freno no
 > exista, el modelo es parte del perímetro de seguridad, y eso hay que decirlo en voz alta.
@@ -6963,9 +6993,8 @@ final ahí —`"24"` queriendo dejar la noche EN 24, y ya `confirmado`— y para
 
 Tests: `AjusteOPrecioTest`. El precio fijo y el aviso, comprobados contra la base local.
 
-⚠️ **Lo que sigue abierto**: nada comprueba que el `confirmado: true` coincida con la
-previsualización que el operador aprobó (ver el docblock de `GuardiaDeSkills`). Ese mismo día el
-modelo confirmó con otros datos —`"24"` y `solo_libres`— que los de la previsualización (`-11.40`).
+Y desde el mismo día un `confirmado: true` sólo se aplica si coincide con la previsualización
+que vio el operador: ver «La confirmación la ata el código a lo que se enseñó».
 
 ##### ✂️ Las noches vendidas parten el ajuste en varios rangos
 

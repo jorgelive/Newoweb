@@ -91,7 +91,7 @@ final class GuardiaDeSkillsTest extends TestCase
     #[Test]
     public function deja_pasar_una_lectura_sin_roles(): void
     {
-        $guardia = new GuardiaDeSkills();
+        $guardia = new GuardiaDeSkills(new \Symfony\Component\Cache\Adapter\ArrayAdapter(), new \App\Agent\Access\PrevisualizacionesDelTurno());
 
         self::assertNull($guardia->motivoDeBloqueo($this->skill(), $this->actor()));
     }
@@ -99,7 +99,7 @@ final class GuardiaDeSkillsTest extends TestCase
     #[Test]
     public function deja_pasar_una_escritura_a_quien_tiene_el_rol(): void
     {
-        $guardia = new GuardiaDeSkills();
+        $guardia = new GuardiaDeSkills(new \Symfony\Component\Cache\Adapter\ArrayAdapter(), new \App\Agent\Access\PrevisualizacionesDelTurno());
 
         self::assertNull($guardia->motivoDeBloqueo(
             $this->skill([Roles::RESERVAS_WRITE], NivelRiesgo::Escritura),
@@ -110,7 +110,7 @@ final class GuardiaDeSkillsTest extends TestCase
     #[Test]
     public function bloquea_a_quien_no_tiene_el_rol_y_dice_cual_falta(): void
     {
-        $guardia = new GuardiaDeSkills();
+        $guardia = new GuardiaDeSkills(new \Symfony\Component\Cache\Adapter\ArrayAdapter(), new \App\Agent\Access\PrevisualizacionesDelTurno());
 
         $motivo = $guardia->motivoDeBloqueo(
             $this->skill([Roles::RESERVAS_WRITE], NivelRiesgo::Escritura),

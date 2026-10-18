@@ -128,7 +128,9 @@ final class AgentSkillCommand extends Command
         $inicio = microtime(true);
 
         try {
-            $resultado = $skill->ejecutar($entrada, $actor);
+            // También por el guardia: una escritura confirmada desde la consola tiene que haberse
+            // previsualizado antes con los mismos datos, igual que en el chat.
+            $resultado = $this->guardia->ejecutar($skill, $entrada, $actor);
         } catch (Throwable $e) {
             $io->error($e->getMessage());
             return Command::FAILURE;

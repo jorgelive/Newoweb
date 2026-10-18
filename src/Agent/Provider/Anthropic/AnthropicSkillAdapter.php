@@ -141,7 +141,8 @@ final readonly class AnthropicSkillAdapter
         }
 
         try {
-            return $skill->ejecutar($entrada, $actor)->aJson();
+            // Por el guardia y no directo: si escribe, sólo lo que el operador vio y aprobó.
+            return $this->guardia->ejecutar($skill, $entrada, $actor)->aJson();
         } catch (Throwable $e) {
             // Un fallo de infraestructura no debe romper el turno: se le cuenta al
             // modelo en su idioma y el detalle queda en el log.

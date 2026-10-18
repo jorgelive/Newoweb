@@ -120,7 +120,8 @@ final readonly class GoogleAISkillAdapter
         }
 
         try {
-            $resultado = $skill->ejecutar($entrada, $actor);
+            // Por el guardia y no directo: si escribe, sólo lo que el operador vio y aprobó.
+            $resultado = $this->guardia->ejecutar($skill, $entrada, $actor);
         } catch (Throwable $e) {
             // Un fallo de infraestructura no debe romper el turno: se le cuenta al modelo en su
             // idioma y el detalle queda en el log.

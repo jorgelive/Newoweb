@@ -188,7 +188,7 @@ final class LineasDeConsumoTest extends TestCase
         return new DeepSeekEngine(
             new DeepSeekClient($this->http($respuestas), 'clave-de-prueba', 'deepseek-v4-flash'),
             $this->registro(),
-            new DeepSeekSkillAdapter($this->logger(), new GuardiaDeSkills()),
+            new DeepSeekSkillAdapter($this->logger(), new GuardiaDeSkills(new \Symfony\Component\Cache\Adapter\ArrayAdapter(), new \App\Agent\Access\PrevisualizacionesDelTurno())),
             $this->logger(),
         );
     }
@@ -199,7 +199,7 @@ final class LineasDeConsumoTest extends TestCase
         return new GoogleAIEngine(
             new GoogleAIClient($this->http($respuestas), 'clave-de-prueba', 'gemini-3-flash'),
             $this->registro(),
-            new GoogleAISkillAdapter($this->logger(), new GuardiaDeSkills()),
+            new GoogleAISkillAdapter($this->logger(), new GuardiaDeSkills(new \Symfony\Component\Cache\Adapter\ArrayAdapter(), new \App\Agent\Access\PrevisualizacionesDelTurno())),
             $this->logger(),
         );
     }
