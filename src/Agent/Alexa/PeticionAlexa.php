@@ -22,18 +22,50 @@ use App\Dto\Lee;
 final readonly class PeticionAlexa
 {
     /**
-     * Intents cuya respuesta va en el NOMBRE, no en el slot: el «sí» o el «no» que contesta una
-     * repregunta («¿lo aplico?», «¿algo más?»).
+     * Intents que llevan una palabra CON SENTIDO en el nombre: aquí se le devuelve al texto.
      *
-     * ⚠️ No pueden ser palabras portadoras de `ConsultaIntent`: Alexa se come la portadora y
-     * «no, la casita 5» llegaría como «la casita 5» —lo contrario de lo dicho—. Por eso tienen
-     * intent propio y aquí se les devuelve la palabra delante. Ver docs/AgentVoz.md §9.
+     * Alexa sólo enruta un `AMAZON.SearchQuery` si va detrás de una palabra portadora, y esa
+     * palabra **se la come**: con «quién» de portadora, «quién está en la casa 1» llega como «está
+     * en la casa 1»; con «no», «no, la casita 5» llega como «la casita 5» —lo contrario—. Por eso
+     * cada palabra que cambia el sentido tiene su propio intent (con `{palabra} {consulta}` de
+     * única frase) y la recupera aquí. En `ConsultaIntent` sólo quedan las de relleno («dime»,
+     * «oye», «para»), que no importa perder.
+     *
+     * ⚠️ **Es la mitad del modelo de `tools/alexa/modelo-interaccion.json`**: una palabra nueva va
+     * en los dos sitios, y `PeticionAlexaTest` comprueba que coinciden. Ver docs/AgentVoz.md §9.
      */
-    private const array POLARIDAD = [
+    public const array PALABRA_DEL_INTENT = [
         'AMAZON.YesIntent' => 'sí',
         'AfirmacionIntent' => 'sí',
         'AMAZON.NoIntent' => 'no',
         'NegacionIntent' => 'no',
+        'QuienIntent' => 'quién',
+        'QuienesIntent' => 'quiénes',
+        'QueIntent' => 'qué',
+        'CuantoIntent' => 'cuánto',
+        'CuantaIntent' => 'cuánta',
+        'CuantosIntent' => 'cuántos',
+        'CuantasIntent' => 'cuántas',
+        'CualIntent' => 'cuál',
+        'CualEsIntent' => 'cuál es',
+        'CualesIntent' => 'cuáles',
+        'CuandoIntent' => 'cuándo',
+        'DondeIntent' => 'dónde',
+        'ComoIntent' => 'cómo',
+        'AQueHoraIntent' => 'a qué hora',
+        'HayIntent' => 'hay',
+        'EstaIntent' => 'está',
+        'EstanIntent' => 'están',
+        'SaleIntent' => 'sale',
+        'SalenIntent' => 'salen',
+        'LlegaIntent' => 'llega',
+        'LleganIntent' => 'llegan',
+        'EntraIntent' => 'entra',
+        'EntranIntent' => 'entran',
+        'TengoIntent' => 'tengo',
+        'TenemosIntent' => 'tenemos',
+        'SoloIntent' => 'solo',
+        'YSiIntent' => 'y si',
     ];
 
     /**
@@ -110,13 +142,28 @@ final readonly class PeticionAlexa
     private static function consulta(?string $nombre, array $intent): ?string
     {
         $texto = self::slot($intent);
-        $polaridad = self::POLARIDAD[$nombre ?? ''] ?? null;
+        $palabra = self::PALABRA_DEL_INTENT[$nombre ?? ''] ?? null;
 
-        if ($polaridad === null) {
+        if ($palabra === null) {
+            return $texto;
+        }
+        if ($texto === null) {
+            return $palabra;
+        }
+
+        // A veces Alexa SÍ deja la palabra dentro del slot (el 17/10 llegó «quiénes salen mañana»
+        // entero): no se duplica. Se compara sin tildes porque el reconocedor no siempre las pone.
+        if (str_starts_with(self::sinTildes($texto) . ' ', self::sinTildes($palabra) . ' ')) {
             return $texto;
         }
 
-        return $texto === null ? $polaridad : $polaridad . ', ' . $texto;
+        // El «sí»/«no» se separa con coma: «no, la casita 5» y no «no la casita 5».
+        return $palabra . (in_array($palabra, ['sí', 'no'], true) ? ', ' : ' ') . $texto;
+    }
+
+    private static function sinTildes(string $texto): string
+    {
+        return strtr(mb_strtolower($texto), ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u']);
     }
 
     /**

@@ -128,4 +128,62 @@ final class PeticionAlexaTest extends TestCase
         ]]]]);
         self::assertSame('4 personas', $cantidad->consulta, 'los dos slots, no sólo el número');
     }
+
+    /**
+     * Como habla quien la usa (Jorge, 18/10/2026). Alexa se come la palabra portadora del slot;
+     * cada una tiene su intent y vuelve delante — si no, «quién está en la casa 1» llegaría
+     * como «está en la casa 1».
+     */
+    public function testLaPalabraDeLaPreguntaNoSePierde(): void
+    {
+        $dicho = static fn (string $nombre, string $slot): ?string => PeticionAlexa::fromArray([
+            'request' => ['type' => 'IntentRequest', 'intent' => ['name' => $nombre, 'slots' => [
+                'consulta' => ['name' => 'consulta', 'value' => $slot],
+            ]]],
+        ])->consulta;
+
+        self::assertSame('quiénes sale mañana', $dicho('QuienesIntent', 'sale mañana'));
+        self::assertSame('cuánto cuesta la casa 1', $dicho('CuantoIntent', 'cuesta la casa 1'));
+        self::assertSame('quién está en la casa 1', $dicho('QuienIntent', 'está en la casa 1'));
+        self::assertSame('cómo se usa la ducha del 6', $dicho('ComoIntent', 'se usa la ducha del 6'));
+        self::assertSame('cuál es la clave de la caja fuerte', $dicho('CualEsIntent', 'la clave de la caja fuerte'));
+
+        // A veces Alexa deja la palabra dentro (así llegó el 17/10): no se duplica, con o sin tilde.
+        self::assertSame('quiénes salen mañana', $dicho('QuienesIntent', 'quiénes salen mañana'));
+        self::assertSame('quienes salen mañana', $dicho('QuienesIntent', 'quienes salen mañana'));
+        // Pero «quién» no es el principio de «quiénes»: se compara palabra entera.
+        self::assertSame('quién quiénes', $dicho('QuienIntent', 'quiénes'));
+    }
+
+    /**
+     * El modelo de la consola y {@see PeticionAlexa::PALABRA_DEL_INTENT} son dos mitades de lo
+     * mismo. Un intent con slot de texto que no esté en el mapa perdería su palabra sin avisar.
+     */
+    public function testElModeloYElMapaCoinciden(): void
+    {
+        $json = file_get_contents(__DIR__ . '/../../../tools/alexa/modelo-interaccion.json');
+        self::assertIsString($json);
+        /** @var array{interactionModel: array{languageModel: array{intents: list<array{name: string, samples: list<string>, slots?: list<array{type: string}>}>}}} $modelo */
+        $modelo = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        $conTexto = [];
+        foreach ($modelo['interactionModel']['languageModel']['intents'] as $intent) {
+            $esTexto = in_array('AMAZON.SearchQuery', array_column($intent['slots'] ?? [], 'type'), true);
+            if (!$esTexto || $intent['name'] === 'ConsultaIntent') {
+                continue;
+            }
+            $conTexto[] = $intent['name'];
+            $palabra = PeticionAlexa::PALABRA_DEL_INTENT[$intent['name']] ?? null;
+            self::assertNotNull($palabra, $intent['name'] . ' no está en PALABRA_DEL_INTENT');
+            self::assertContains($palabra . ' {consulta}', $intent['samples'], $intent['name']);
+        }
+
+        $delMapa = array_values(array_filter(
+            array_keys(PeticionAlexa::PALABRA_DEL_INTENT),
+            static fn (string $n): bool => !str_starts_with($n, 'AMAZON.')
+        ));
+        sort($delMapa);
+        sort($conTexto);
+        self::assertSame($delMapa, $conTexto, 'cada intent del mapa tiene que estar en el modelo');
+    }
 }

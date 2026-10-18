@@ -40,11 +40,10 @@
             }
           ],
           "samples": [
-            "que {consulta}",
-            "qué {consulta}",
             "dime {consulta}",
             "dime que {consulta}",
             "pregunta {consulta}",
+            "pregúntale {consulta}",
             "sobre {consulta}",
             "necesito saber {consulta}",
             "quiero saber {consulta}",
@@ -52,20 +51,16 @@
             "revisa {consulta}",
             "busca {consulta}",
             "consulta {consulta}",
-            "cuántas {consulta}",
-            "cuántos {consulta}",
-            "cuánto {consulta}",
-            "cuánta {consulta}",
-            "cuál es {consulta}",
-            "cuál {consulta}",
-            "cuáles {consulta}",
-            "cuándo {consulta}",
-            "a qué hora {consulta}",
-            "quién {consulta}",
-            "quiénes {consulta}",
-            "dónde {consulta}",
-            "cómo {consulta}",
-            "hay {consulta}",
+            "a ver {consulta}",
+            "oye {consulta}",
+            "ok {consulta}",
+            "entonces {consulta}",
+            "y {consulta}",
+            "o {consulta}",
+            "pero {consulta}",
+            "mejor {consulta}",
+            "ahora {consulta}",
+            "también {consulta}",
             "para {consulta}",
             "son {consulta}",
             "somos {consulta}",
@@ -78,38 +73,13 @@
             "las {consulta}",
             "de {consulta}",
             "del {consulta}",
-            "con {consulta}",
             "en {consulta}",
-            "y {consulta}",
-            "o {consulta}",
-            "pero {consulta}",
-            "mejor {consulta}",
-            "ahora {consulta}",
-            "también {consulta}",
-            "entonces {consulta}",
-            "a ver {consulta}",
-            "y si {consulta}",
-            "y la {consulta}",
-            "y el {consulta}",
-            "ok {consulta}",
-            "solo {consulta}",
-            "sólo {consulta}",
-            "tengo {consulta}",
-            "tenemos {consulta}",
-            "está {consulta}",
-            "están {consulta}",
-            "llega {consulta}",
-            "llegan {consulta}",
-            "sale {consulta}",
-            "salen {consulta}",
-            "entra {consulta}",
-            "entran {consulta}",
+            "con {consulta}",
             "lista {consulta}",
             "dame {consulta}",
             "muéstrame {consulta}",
             "léeme {consulta}",
-            "repite {consulta}",
-            "otra vez {consulta}"
+            "repite {consulta}"
           ]
         },
         {
@@ -145,6 +115,332 @@
             "mejor no {consulta}",
             "tampoco {consulta}",
             "no no {consulta}"
+          ]
+        },
+        {
+          "name": "QuienIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "quién {consulta}"
+          ]
+        },
+        {
+          "name": "QuienesIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "quiénes {consulta}"
+          ]
+        },
+        {
+          "name": "QueIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "qué {consulta}",
+            "que {consulta}"
+          ]
+        },
+        {
+          "name": "CuantoIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuánto {consulta}"
+          ]
+        },
+        {
+          "name": "CuantaIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuánta {consulta}"
+          ]
+        },
+        {
+          "name": "CuantosIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuántos {consulta}"
+          ]
+        },
+        {
+          "name": "CuantasIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuántas {consulta}"
+          ]
+        },
+        {
+          "name": "CualIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuál {consulta}"
+          ]
+        },
+        {
+          "name": "CualEsIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuál es {consulta}"
+          ]
+        },
+        {
+          "name": "CualesIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuáles {consulta}"
+          ]
+        },
+        {
+          "name": "CuandoIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cuándo {consulta}"
+          ]
+        },
+        {
+          "name": "DondeIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "dónde {consulta}"
+          ]
+        },
+        {
+          "name": "ComoIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "cómo {consulta}"
+          ]
+        },
+        {
+          "name": "AQueHoraIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "a qué hora {consulta}"
+          ]
+        },
+        {
+          "name": "HayIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "hay {consulta}"
+          ]
+        },
+        {
+          "name": "EstaIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "está {consulta}"
+          ]
+        },
+        {
+          "name": "EstanIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "están {consulta}"
+          ]
+        },
+        {
+          "name": "SaleIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "sale {consulta}"
+          ]
+        },
+        {
+          "name": "SalenIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "salen {consulta}"
+          ]
+        },
+        {
+          "name": "LlegaIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "llega {consulta}"
+          ]
+        },
+        {
+          "name": "LleganIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "llegan {consulta}"
+          ]
+        },
+        {
+          "name": "EntraIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "entra {consulta}"
+          ]
+        },
+        {
+          "name": "EntranIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "entran {consulta}"
+          ]
+        },
+        {
+          "name": "TengoIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "tengo {consulta}"
+          ]
+        },
+        {
+          "name": "TenemosIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "tenemos {consulta}"
+          ]
+        },
+        {
+          "name": "SoloIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "solo {consulta}",
+            "sólo {consulta}"
+          ]
+        },
+        {
+          "name": "YSiIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "y si {consulta}"
           ]
         },
         {

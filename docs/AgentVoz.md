@@ -441,7 +441,8 @@ archivo y se pega**; nunca al revés.
 
 | Intent | Para qué | Qué llega al modelo |
 |---|---|---|
-| `ConsultaIntent` | Todo lo que empieza por una de las ~70 portadoras | el slot, sin la portadora |
+| `ConsultaIntent` | Lo que empieza por **relleno**: «dime», «oye», «a ver», «para», artículos | el slot, sin el relleno |
+| `QuienIntent`, `CuantoIntent`, `ComoIntent`, `CualEsIntent`, `SalenIntent`… (uno por palabra) | Lo que empieza por una palabra **con sentido**: «quién está en la casa 1», «cómo se usa la ducha del 6» | la frase entera: la palabra vuelve delante |
 | `AfirmacionIntent` / `AMAZON.YesIntent` | «sí», «sí, la del 12», «claro», «dale» | `sí` o `sí, la del 12` |
 | `NegacionIntent` / `AMAZON.NoIntent` | «no», «no, la casita 5», «mejor no» | `no` o `no, la casita 5` |
 | `CantidadIntent` | Un número suelto: «cuatro», «cuatro personas», «dos noches» | `4` / `4 personas` |
@@ -455,12 +456,17 @@ eso no empieza nunca por «dime» ni por «cuántas»: es «para dos», «cuatro
 dos repreguntas seguidas de silencio y la sesión acaba en `EXCEEDED_MAX_REPROMPTS`, sin un solo
 `FallbackIntent` — Amazon ni siquiera nos avisó de que había oído algo.
 
-- **«Para», «son», «somos», «serían», artículos y conectores** pasan a ser portadoras: «para dos
-  personas» llega como «dos personas», que con el historial se entiende igual.
-- ⚠️ **«Sí» y «no» NO pueden ser portadoras.** Alexa se come la portadora: «no, la casita 5»
-  llegaría como «la casita 5», justo lo contrario. Tienen intent propio y
-  `PeticionAlexa::POLARIDAD` les devuelve la palabra delante. Un `AMAZON.NoIntent` suelto,
-  además, llegaba sin consulta y se contestaba «no te he entendido».
+- **«Para», «son», «somos», «serían», artículos y conectores** pasan a ser portadoras de relleno:
+  «para dos personas» llega como «dos personas», que con el historial se entiende igual.
+- ⚠️ **Una palabra con sentido NO puede ser portadora de relleno**, porque Alexa se la come:
+  «no, la casita 5» llegaría como «la casita 5» —lo contrario—, «quién está en la casa 1» como
+  «está en la casa 1» y «salen mañana» como «mañana». Cada una tiene **su propio intent** y
+  `PeticionAlexa::PALABRA_DEL_INTENT` se la devuelve delante (sin duplicarla si Alexa ya la dejó
+  dentro, que a veces pasa). Un `AMAZON.NoIntent` suelto, además, llegaba sin consulta y se
+  contestaba «no te he entendido».
+- **El mapa y el JSON son dos mitades** y `PeticionAlexaTest::testElModeloYElMapaCoinciden()`
+  falla si un intent de texto está en uno y no en otro. Palabra nueva = una línea en el mapa, su
+  intent en el JSON, y pegarlo en la consola.
 - **El número suelto necesita intent propio**: `AMAZON.SearchQuery` exige portadora, pero
   `AMAZON.NUMBER` admite el slot a secas (`{cantidad}`). La unidad va en un segundo slot, y
   `PeticionAlexa::slot()` junta los dos.
@@ -480,12 +486,12 @@ forma en que habla cualquiera— era irrutable.
 Por eso la lista es larga y hay que ampliarla cuando aparezca una forma de preguntar que se
 quede fuera. Dos familias, con distinta consecuencia:
 
-- **Portadoras vacías** (`dime`, `pregunta`, `averigua`, `busca`…): Alexa se las come y el slot
-  llega íntegro. Son las buenas.
-- **Palabras de pregunta** (`cuántas`, `cuándo`, `dónde`…): también funcionan, pero **la
-  portadora se pierde**: «cuántas casitas hay libres mañana» llega al modelo como «casitas hay
-  libres mañana». El sentido se sostiene y el modelo responde bien, pero conviene saber que el
-  texto que ve no es el que se dijo.
+- **Relleno** (`dime`, `pregunta`, `oye`, `para`…): Alexa se lo come y no importa. Va en
+  `ConsultaIntent`.
+- **Palabras con sentido** (`quién`, `cuánto`, `cómo`, `salen`, `sí`, `no`…): hasta el 18/10/2026
+  eran portadoras de `ConsultaIntent` y **se perdían** —«cuántas casitas hay libres» llegaba como
+  «casitas hay libres»—; se daba por bueno porque el modelo solía entenderlo, hasta que la lista
+  creció con «no» y «salen», donde perderla cambia el sentido. Ahora tienen intent propio (arriba).
 
 Diagnóstico rápido cuando «no contesta»: mira si hay petición en nginx
 (`grep " /alexa " access.log`). **Sin petición, el problema es el modelo de interacción, no el
@@ -536,5 +542,5 @@ de la consola de desarrollo.
 | Ajustar la ventana anti-repetición | `AlexaFirma` | `TOLERANCIA_SEGUNDOS` |
 | Añadir un intent de Alexa | `PeticionAlexa` + `AlexaController::resolver()` | `pideAyuda()`, `pideSalir()` |
 | Que una forma de hablar llegue al servidor (portadoras, respuestas sueltas) | `tools/alexa/modelo-interaccion.json` → pegarlo en la consola y *Build Model*, en cada idioma | §9 «Modelo de interacción» |
-| Que otra palabra de respuesta («quizá», «depende») llegue delante del texto | `PeticionAlexa` | `POLARIDAD` + su intent en el modelo |
+| Que una palabra con sentido («quizá», «falta») no se pierda al principio de la frase | `PeticionAlexa` + `tools/alexa/modelo-interaccion.json` | `PALABRA_DEL_INTENT` + su intent; el test exige los dos |
 | Añadir una capacidad al agente | — | Crear la skill; **Alexa no se toca** (§1) |
