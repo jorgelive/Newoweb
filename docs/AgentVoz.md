@@ -433,41 +433,39 @@ que es lo que hace utilizable el canal. `AMAZON.StopIntent` («Alexa, para») ci
 
 ### Modelo de interacción
 
-```json
-{
-  "intents": [
-    { "name": "AMAZON.HelpIntent",     "samples": [] },
-    { "name": "AMAZON.StopIntent",     "samples": [] },
-    { "name": "AMAZON.CancelIntent",   "samples": [] },
-    { "name": "AMAZON.FallbackIntent", "samples": [] },
-    {
-      "name": "ConsultaIntent",
-      "slots": [{ "name": "consulta", "type": "AMAZON.SearchQuery" }],
-      "samples": [
-        "que {consulta}",
-        "dime {consulta}",
-        "dime que {consulta}",
-        "pregunta {consulta}",
-        "sobre {consulta}",
-        "necesito saber {consulta}",
-        "quiero saber {consulta}",
-        "averigua {consulta}",
-        "revisa {consulta}",
-        "busca {consulta}",
-        "consulta {consulta}",
-        "cuántas {consulta}",
-        "cuántos {consulta}",
-        "cuál es {consulta}",
-        "cuándo {consulta}",
-        "a qué hora {consulta}",
-        "quién {consulta}",
-        "dónde {consulta}",
-        "hay {consulta}"
-      ]
-    }
-  ]
-}
-```
+**El modelo vive en `tools/alexa/modelo-interaccion.json`**, completo, para pegarlo tal cual en la
+consola (*Build → Interaction Model → JSON Editor*, en **cada** idioma del skill) y pulsar
+*Build Model*. Hasta el 17/10/2026 estaba copiado aquí a mano y ya no coincidía con la consola
+—el log traía consultas que empezaban por «cuánto», que no estaba en la lista—. **Se cambia el
+archivo y se pega**; nunca al revés.
+
+| Intent | Para qué | Qué llega al modelo |
+|---|---|---|
+| `ConsultaIntent` | Todo lo que empieza por una de las ~70 portadoras | el slot, sin la portadora |
+| `AfirmacionIntent` / `AMAZON.YesIntent` | «sí», «sí, la del 12», «claro», «dale» | `sí` o `sí, la del 12` |
+| `NegacionIntent` / `AMAZON.NoIntent` | «no», «no, la casita 5», «mejor no» | `no` o `no, la casita 5` |
+| `CantidadIntent` | Un número suelto: «cuatro», «cuatro personas», «dos noches» | `4` / `4 personas` |
+| `Stop` / `Cancel` / `Help` / `Fallback` | Los que Amazon exige | cierre, ayuda, «¿me lo repites?» |
+
+#### Las respuestas sueltas (17/10/2026)
+
+El asistente **repregunta** —«¿para cuántas personas sería?», «¿algo más?»— y lo que se contesta a
+eso no empieza nunca por «dime» ni por «cuántas»: es «para dos», «cuatro», «sí», «no». Con sólo
+`ConsultaIntent` esas respuestas **no llegaban al servidor**: en el log de Susan del 17/10 hay
+dos repreguntas seguidas de silencio y la sesión acaba en `EXCEEDED_MAX_REPROMPTS`, sin un solo
+`FallbackIntent` — Amazon ni siquiera nos avisó de que había oído algo.
+
+- **«Para», «son», «somos», «serían», artículos y conectores** pasan a ser portadoras: «para dos
+  personas» llega como «dos personas», que con el historial se entiende igual.
+- ⚠️ **«Sí» y «no» NO pueden ser portadoras.** Alexa se come la portadora: «no, la casita 5»
+  llegaría como «la casita 5», justo lo contrario. Tienen intent propio y
+  `PeticionAlexa::POLARIDAD` les devuelve la palabra delante. Un `AMAZON.NoIntent` suelto,
+  además, llegaba sin consulta y se contestaba «no te he entendido».
+- **El número suelto necesita intent propio**: `AMAZON.SearchQuery` exige portadora, pero
+  `AMAZON.NUMBER` admite el slot a secas (`{cantidad}`). La unidad va en un segundo slot, y
+  `PeticionAlexa::slot()` junta los dos.
+- **El voz sigue siendo de solo lectura** (§7). El «sí» no confirma escrituras —no las hay—;
+  contesta repreguntas como «¿te paso también las de mañana?».
 
 ⚠️ **Un `{consulta}` a secas NO es válido con `AMAZON.SearchQuery`**: Amazon exige al menos una
 palabra portadora delante del slot y rechaza el modelo al compilarlo.
@@ -493,7 +491,7 @@ Diagnóstico rápido cuando «no contesta»: mira si hay petición en nginx
 (`grep " /alexa " access.log`). **Sin petición, el problema es el modelo de interacción, no el
 código.** Con petición y sin línea `Agent (…)` detrás, el problema es de permisos o de motor.
 
-`PeticionAlexa::slot()` busca `consulta` y, si no está, coge el primer slot con valor:
+`PeticionAlexa::slot()` busca `consulta` y, si no está, junta los slots con valor en orden:
 renombrarlo en la consola no debería dejar el skill mudo sin ninguna pista de por qué.
 
 **Atajo que evita la certificación**: en *beta testing* el skill se distribuye a cuentas
@@ -537,4 +535,6 @@ de la consola de desarrollo.
 | Cuánta conversación se recuerda | `AlexaController` | `MAX_TURNOS_RECORDADOS` |
 | Ajustar la ventana anti-repetición | `AlexaFirma` | `TOLERANCIA_SEGUNDOS` |
 | Añadir un intent de Alexa | `PeticionAlexa` + `AlexaController::resolver()` | `pideAyuda()`, `pideSalir()` |
+| Que una forma de hablar llegue al servidor (portadoras, respuestas sueltas) | `tools/alexa/modelo-interaccion.json` → pegarlo en la consola y *Build Model*, en cada idioma | §9 «Modelo de interacción» |
+| Que otra palabra de respuesta («quizá», «depende») llegue delante del texto | `PeticionAlexa` | `POLARIDAD` + su intent en el modelo |
 | Añadir una capacidad al agente | — | Crear la skill; **Alexa no se toca** (§1) |

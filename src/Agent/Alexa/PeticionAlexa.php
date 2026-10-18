@@ -22,6 +22,21 @@ use App\Dto\Lee;
 final readonly class PeticionAlexa
 {
     /**
+     * Intents cuya respuesta va en el NOMBRE, no en el slot: el «sí» o el «no» que contesta una
+     * repregunta («¿lo aplico?», «¿algo más?»).
+     *
+     * ⚠️ No pueden ser palabras portadoras de `ConsultaIntent`: Alexa se come la portadora y
+     * «no, la casita 5» llegaría como «la casita 5» —lo contrario de lo dicho—. Por eso tienen
+     * intent propio y aquí se les devuelve la palabra delante. Ver docs/AgentVoz.md §9.
+     */
+    private const array POLARIDAD = [
+        'AMAZON.YesIntent' => 'sí',
+        'AfirmacionIntent' => 'sí',
+        'AMAZON.NoIntent' => 'no',
+        'NegacionIntent' => 'no',
+    ];
+
+    /**
      * @param string $tipo `LaunchRequest`, `IntentRequest` o `SessionEndedRequest`.
      * @param array<mixed> $atributos Lo que devolvimos en el turno anterior. Es donde
      *        viaja el historial: Alexa lo guarda por nosotros y lo reenvía en cada turno de la
@@ -64,11 +79,12 @@ final readonly class PeticionAlexa
         }
 
         $intent = self::sub($peticion, 'intent');
+        $nombre = Lee::texto($intent['name'] ?? null);
 
         return new self(
             tipo: Lee::texto($peticion['type'] ?? null) ?? '',
-            intent: Lee::texto($intent['name'] ?? null),
-            consulta: self::slot($intent),
+            intent: $nombre,
+            consulta: self::consulta($nombre, $intent),
             applicationId: Lee::texto($aplicacion['applicationId'] ?? null),
             usuarioAlexa: self::usuario($sistema, $sesion),
             dispositivo: self::id(self::sub($sistema, 'device'), 'deviceId'),
@@ -87,11 +103,28 @@ final readonly class PeticionAlexa
     }
 
     /**
+     * Lo que se le pasa al modelo: el slot y, en un «sí»/«no», la palabra delante.
+     *
+     * @param array<mixed> $intent
+     */
+    private static function consulta(?string $nombre, array $intent): ?string
+    {
+        $texto = self::slot($intent);
+        $polaridad = self::POLARIDAD[$nombre ?? ''] ?? null;
+
+        if ($polaridad === null) {
+            return $texto;
+        }
+
+        return $texto === null ? $polaridad : $polaridad . ', ' . $texto;
+    }
+
+    /**
      * El texto dictado por el operador.
      *
-     * Se busca `consulta` primero y, si no está, se coge el primer slot con valor: el modelo de
-     * interacción es de un solo slot `AMAZON.SearchQuery`, pero renombrarlo en la consola de
-     * Amazon no debería dejar el skill mudo sin ninguna pista de por qué.
+     * Se busca `consulta` primero y, si no está, se juntan los slots con valor: así una respuesta
+     * suelta con número (`CantidadIntent`) llega entera, y renombrar el slot en la consola de
+     * Amazon no deja el skill mudo sin ninguna pista de por qué.
      *
      * @param array<mixed> $intent
      */
@@ -104,13 +137,16 @@ final readonly class PeticionAlexa
             return trim($valor);
         }
 
+        // Sin `consulta`, todos los slots con valor, en orden: «cuatro personas» llega en dos
+        // (`CantidadIntent`: cantidad + unidad) y quedarse con el primero diría sólo «4».
+        $partes = [];
         foreach ($slots as $slot) {
             if (is_array($slot) && is_string($slot['value'] ?? null) && trim($slot['value']) !== '') {
-                return trim($slot['value']);
+                $partes[] = trim($slot['value']);
             }
         }
 
-        return null;
+        return $partes === [] ? null : implode(' ', $partes);
     }
 
     /**

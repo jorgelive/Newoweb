@@ -102,4 +102,30 @@ final class PeticionAlexaTest extends TestCase
         self::assertNull($p->apiEndpoint, 'vacío es no tenerlo');
         self::assertNull($p->apiToken);
     }
+
+    /**
+     * El «sí»/«no» que contesta una repregunta. Antes un `AMAZON.NoIntent` llegaba sin consulta y
+     * se contestaba «no te he entendido»; y como portadora de `ConsultaIntent`, «no, la casita 5»
+     * habría llegado como «la casita 5».
+     */
+    public function testUnSiOUnNoLleganComoTextoConLaPalabraDelante(): void
+    {
+        $intent = static fn (string $nombre, ?string $valor = null): PeticionAlexa => PeticionAlexa::fromArray([
+            'request' => ['type' => 'IntentRequest', 'intent' => ['name' => $nombre, 'slots' => $valor === null ? [] : [
+                'consulta' => ['name' => 'consulta', 'value' => $valor],
+            ]]],
+        ]);
+
+        self::assertSame('sí', $intent('AMAZON.YesIntent')->consulta);
+        self::assertSame('no', $intent('AMAZON.NoIntent')->consulta);
+        self::assertSame('no, la casita 5', $intent('NegacionIntent', 'la casita 5')->consulta);
+        self::assertSame('sí, para cuatro', $intent('AfirmacionIntent', 'para cuatro')->consulta);
+        self::assertSame('dos personas', $intent('ConsultaIntent', 'dos personas')->consulta, 'el resto, tal cual');
+
+        $cantidad = PeticionAlexa::fromArray(['request' => ['type' => 'IntentRequest', 'intent' => ['name' => 'CantidadIntent', 'slots' => [
+            'cantidad' => ['name' => 'cantidad', 'value' => '4'],
+            'unidad' => ['name' => 'unidad', 'value' => 'personas'],
+        ]]]]);
+        self::assertSame('4 personas', $cantidad->consulta, 'los dos slots, no sólo el número');
+    }
 }

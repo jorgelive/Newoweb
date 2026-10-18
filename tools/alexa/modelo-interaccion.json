@@ -1,0 +1,242 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "openperu",
+      "intents": [
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "ConsultaIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "que {consulta}",
+            "qué {consulta}",
+            "dime {consulta}",
+            "dime que {consulta}",
+            "pregunta {consulta}",
+            "sobre {consulta}",
+            "necesito saber {consulta}",
+            "quiero saber {consulta}",
+            "averigua {consulta}",
+            "revisa {consulta}",
+            "busca {consulta}",
+            "consulta {consulta}",
+            "cuántas {consulta}",
+            "cuántos {consulta}",
+            "cuánto {consulta}",
+            "cuánta {consulta}",
+            "cuál es {consulta}",
+            "cuál {consulta}",
+            "cuáles {consulta}",
+            "cuándo {consulta}",
+            "a qué hora {consulta}",
+            "quién {consulta}",
+            "quiénes {consulta}",
+            "dónde {consulta}",
+            "cómo {consulta}",
+            "hay {consulta}",
+            "para {consulta}",
+            "son {consulta}",
+            "somos {consulta}",
+            "serían {consulta}",
+            "sería {consulta}",
+            "es {consulta}",
+            "el {consulta}",
+            "la {consulta}",
+            "los {consulta}",
+            "las {consulta}",
+            "de {consulta}",
+            "del {consulta}",
+            "con {consulta}",
+            "en {consulta}",
+            "y {consulta}",
+            "o {consulta}",
+            "pero {consulta}",
+            "mejor {consulta}",
+            "ahora {consulta}",
+            "también {consulta}",
+            "entonces {consulta}",
+            "a ver {consulta}",
+            "y si {consulta}",
+            "y la {consulta}",
+            "y el {consulta}",
+            "ok {consulta}",
+            "solo {consulta}",
+            "sólo {consulta}",
+            "tengo {consulta}",
+            "tenemos {consulta}",
+            "está {consulta}",
+            "están {consulta}",
+            "llega {consulta}",
+            "llegan {consulta}",
+            "sale {consulta}",
+            "salen {consulta}",
+            "entra {consulta}",
+            "entran {consulta}",
+            "lista {consulta}",
+            "dame {consulta}",
+            "muéstrame {consulta}",
+            "léeme {consulta}",
+            "repite {consulta}",
+            "otra vez {consulta}"
+          ]
+        },
+        {
+          "name": "AfirmacionIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "sí {consulta}",
+            "si {consulta}",
+            "claro {consulta}",
+            "dale {consulta}",
+            "vale {consulta}",
+            "de acuerdo {consulta}",
+            "correcto {consulta}",
+            "exacto {consulta}",
+            "perfecto {consulta}"
+          ]
+        },
+        {
+          "name": "NegacionIntent",
+          "slots": [
+            {
+              "name": "consulta",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "no {consulta}",
+            "mejor no {consulta}",
+            "tampoco {consulta}",
+            "no no {consulta}"
+          ]
+        },
+        {
+          "name": "CantidadIntent",
+          "slots": [
+            {
+              "name": "cantidad",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "unidad",
+              "type": "UNIDAD"
+            }
+          ],
+          "samples": [
+            "{cantidad}",
+            "{cantidad} {unidad}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "UNIDAD",
+          "values": [
+            {
+              "name": {
+                "value": "personas"
+              }
+            },
+            {
+              "name": {
+                "value": "persona"
+              }
+            },
+            {
+              "name": {
+                "value": "adultos"
+              }
+            },
+            {
+              "name": {
+                "value": "adulto"
+              }
+            },
+            {
+              "name": {
+                "value": "niños"
+              }
+            },
+            {
+              "name": {
+                "value": "niño"
+              }
+            },
+            {
+              "name": {
+                "value": "huéspedes"
+              }
+            },
+            {
+              "name": {
+                "value": "noches"
+              }
+            },
+            {
+              "name": {
+                "value": "noche"
+              }
+            },
+            {
+              "name": {
+                "value": "días"
+              }
+            },
+            {
+              "name": {
+                "value": "día"
+              }
+            },
+            {
+              "name": {
+                "value": "casitas"
+              }
+            },
+            {
+              "name": {
+                "value": "casita"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
