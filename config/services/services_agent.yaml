@@ -116,3 +116,17 @@ services:
         arguments:
             $habilitado: '%env(bool:AGENT_IA_AUTORESPONDER)%'
 
+
+    # 🔒 Dónde se guarda lo que el agente ENSEÑÓ antes de escribir (`GuardiaDeSkills`).
+    #
+    # ⚠️ **No en `cache.app`**: vive en `var/cache/prod/pools/`, y cada despliegue la borra con
+    # `cache:clear`. El 17/10/2026 un despliegue cayó entre una previsualización y su «sí»: la
+    # guardia no encontró lo enseñado, no aplicó y volvió a enseñarlo — confirmar dos veces.
+    # En `var/estado/` sobrevive a los despliegues; las ACL por defecto de `var/` dejan escribir
+    # a `www-data` y a `ubuntu`. Una entrada por usuario (o conversación) y skill, que se pisa.
+    agente.previsualizaciones:
+        class: Symfony\Component\Cache\Adapter\FilesystemAdapter
+        arguments:
+            $namespace: 'previsualizaciones'
+            $defaultLifetime: 0
+            $directory: '%kernel.project_dir%/var/estado'

@@ -3616,14 +3616,31 @@ Anthropic, DeepSeek) y `app:agent:skill`—, y para las de `NivelRiesgo::Escritu
 
 ```
 confirmado=false → la skill previsualiza; se guarda la HUELLA de lo que devolvió,
-                   por conversación (o usuario+canal) y skill, 30 min (cache.app)
+                   por conversación (o usuario+canal) y skill, 30 min
+                   (`agente.previsualizaciones`, en var/estado/ — NO en cache.app)
 confirmado=true  → ¿se previsualizó en ESTE turno? → NO se aplica (`sin_aprobar_todavia`):
                      el operador aún no lo ha visto
                    si no, se previsualiza otra vez con los mismos datos y se compara:
                      igual    → se aplica, y la huella se gasta: un sí, una escritura
                      distinta → NO se aplica; se devuelve la previsualización de ahora con
                                 `motivo: confirmacion_no_coincide` para enseñarla y pedir el sí
+                     no hay   → igual, pero `motivo: previsualizacion_caducada`
 ```
+
+- ⚠️ **La huella no puede vivir en `cache.app`.** Ahí estuvo el primer día, y `cache.app` es
+  `var/cache/prod/pools/`: **cada despliegue la borra** con `cache:clear`. El 17/10/2026 un
+  despliegue cayó entre «pon la Casita 4 a 28» (21:49) y el «Si» (22:18): la guardia no encontró
+  nada, no aplicó y volvió a enseñarlo, y Jorge tuvo que confirmar dos veces. Por eso va en su
+  propio adaptador de archivos en `var/estado/` (`services_agent.yaml`), que el despliegue no toca.
+  Cualquier dato que tenga que sobrevivir de un mensaje al siguiente sigue esta regla.
+- **Sin huella se dice «caducada», no «no coincide».** Con el mensaje de «no coincide», el
+  modelo se inventó la causa —«fue un error mío por no haber previsualizado»— cuando sí lo había
+  hecho. Un motivo honesto deja al modelo contar lo que pasó.
+- ⚠️ **Lo que esto NO cierra: un «sí» que no es un sí.** En ese mismo hilo, tras la segunda
+  previsualización, Jorge preguntó «¿confirma dos veces?» y el modelo aplicó en ese turno: lo
+  enseñado coincidía y entre medias había un mensaje del operador, que es todo lo que la guardia
+  puede ver. Saber si ese mensaje APRUEBA es leerlo, y eso lo hace el modelo. Lo cierra el freno
+  3 de «Los frenos» (aprobación fuera del bucle), no esto.
 
 - **No en el mismo turno** (`PrevisualizacionesDelTurno`, que el worker vacía tras cada mensaje):
   sin esto el modelo podía previsualizar y confirmar en dos vueltas seguidas del bucle sin que

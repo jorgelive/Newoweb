@@ -9,6 +9,7 @@ use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillRegistry;
 use App\Agent\Skill\SkillResult;
 use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * El último filtro antes de ejecutar una skill. **Aquí se cierra, no se pide.**
@@ -47,6 +48,10 @@ use Psr\Cache\CacheItemPoolInterface;
  * operador conteste ({@see PrevisualizacionesDelTurno}). Sin eso, el modelo podía enseñar y
  * aplicar en dos vueltas seguidas del mismo bucle sin que nadie lo hubiera visto.
  *
+ * ⚠️ **La huella NO va en `cache.app`** (`agente.previsualizaciones`, en `services_agent.yaml`):
+ * `cache:clear` la borra en cada despliegue, y uno que cayera entre la previsualización y el «sí»
+ * obligaba a confirmar dos veces (17/10/2026).
+ *
  * Ver {@see NivelRiesgo::Escritura} y docs/Mensajeria.md §11.
  */
 final readonly class GuardiaDeSkills
@@ -55,6 +60,7 @@ final readonly class GuardiaDeSkills
     private const int VIGENCIA_SEGUNDOS = 1800;
 
     public function __construct(
+        #[Autowire(service: 'agente.previsualizaciones')]
         private CacheItemPoolInterface $cache,
         private PrevisualizacionesDelTurno $delTurno,
     ) {}
@@ -125,8 +131,23 @@ final readonly class GuardiaDeSkills
             return $skill->ejecutar($entrada, $actor);
         }
 
+        $habiaPrevia = $item->isHit();
         $this->guardar($clave, $huella);
         $this->delTurno->anotar($clave);
+
+        // Sin nada guardado no es que el modelo cambiara los datos: la previsualización caducó
+        // (media hora) o nunca se hizo. Se dice tal cual, para que el modelo no le cuente al
+        // operador que «se equivocó» ni invente otra causa.
+        if (!$habiaPrevia) {
+            return SkillResult::ok(array_merge($ahora->datos, [
+                'aplicado' => false,
+                'motivo' => 'previsualizacion_caducada',
+                'importante' => 'NO SE HA APLICADO NADA. La previsualización que vio el operador '
+                    . 'ya no vale (pasó más de media hora, o no llegó a hacerse). Estos son los '
+                    . 'datos de AHORA: díselo así, enséñaselos tal cual, pide su sí otra vez y '
+                    . 'vuelve a llamarme con los mismos datos y confirmado=true.',
+            ]));
+        }
 
         // `array_merge` y no `+`: la previsualización ya trae su propio `motivo` (`falta_confirmacion`)
         // y con `+` ganaba el suyo, así que el modelo no se enteraba de que no se aplicó.

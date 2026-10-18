@@ -17,6 +17,7 @@ use App\Entity\User;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 /**
  * Lo que se confirma es lo que se enseñó.
@@ -78,7 +79,7 @@ final class ConfirmacionAtadaTest extends TestCase
     {
         $r = $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-5', 'confirmado' => true]);
 
-        self::assertSame('confirmacion_no_coincide', $r->datos['motivo']);
+        self::assertSame('previsualizacion_caducada', $r->datos['motivo']);
         self::assertSame([], $this->registro->escrituras);
     }
 
@@ -99,7 +100,7 @@ final class ConfirmacionAtadaTest extends TestCase
         $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-5', 'confirmado' => true]);
         $r = $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-5', 'confirmado' => true]);
 
-        self::assertSame('confirmacion_no_coincide', $r->datos['motivo']);
+        self::assertSame('previsualizacion_caducada', $r->datos['motivo']);
         self::assertCount(1, $this->registro->escrituras);
     }
 
@@ -109,7 +110,28 @@ final class ConfirmacionAtadaTest extends TestCase
         $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-5', 'confirmado' => false], conversacion: 'A');
         $r = $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-5', 'confirmado' => true], conversacion: 'B');
 
-        self::assertSame('confirmacion_no_coincide', $r->datos['motivo']);
+        self::assertSame('previsualizacion_caducada', $r->datos['motivo']);
+    }
+
+    /**
+     * El caso del 17/10/2026: un despliegue entre la previsualización y el «sí». Con la huella en
+     * `cache.app`, `cache:clear` la borraba y había que confirmar dos veces. Un proceso nuevo —otra
+     * guardia, otro adaptador— sobre la misma carpeta tiene que encontrarla.
+     */
+    #[Test]
+    public function la_huella_sobrevive_a_un_proceso_nuevo(): void
+    {
+        $carpeta = sys_get_temp_dir() . '/guardia-' . bin2hex(random_bytes(4));
+        $antes = new GuardiaDeSkills(new FilesystemAdapter('previsualizaciones', 0, $carpeta), new PrevisualizacionesDelTurno());
+        $despues = new GuardiaDeSkills(new FilesystemAdapter('previsualizaciones', 0, $carpeta), new PrevisualizacionesDelTurno());
+        $skill = $this->skill(NivelRiesgo::Escritura);
+        $actor = $this->actor('A');
+
+        $antes->ejecutar($skill, ['casita' => 'Casita 4', 'ajuste' => '-4', 'confirmado' => false], $actor);
+        $r = $despues->ejecutar($skill, ['casita' => '4', 'ajuste' => '-4', 'confirmado' => true], $actor);
+
+        self::assertSame(true, $r->datos['aplicado']);
+        (new FilesystemAdapter('previsualizaciones', 0, $carpeta))->clear();
     }
 
     /** El modelo previsualiza y confirma en dos vueltas del MISMO turno: nadie lo ha visto. */
