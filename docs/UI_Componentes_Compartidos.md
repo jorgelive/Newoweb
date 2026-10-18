@@ -544,8 +544,8 @@ que el nodo guardado siga vivo se encarga `isConnected`.
 
 `components/common/AsistenteBar.vue`. Una barra donde el operador escribe —o **dicta**— una
 pregunta («¿qué casitas tengo libres del 12 al 15 de marzo?») y el backend la resuelve
-consultando el PMS de verdad. Hoy la monta `HomeView`; es autónoma y se puede poner en
-cualquier vista sin props.
+consultando el PMS de verdad. La monta `AsistenteFlotante` (§3.m), en toda la app; es autónoma
+y se puede poner en cualquier vista sin props.
 
 **No es el chat del huésped.** Aquí pregunta un compañero autenticado y la respuesta sólo se
 pinta en pantalla. El backend, los guardias y las herramientas están en `docs/Mensajeria.md`
@@ -561,8 +561,10 @@ No es una caja de pregunta-respuesta: mantiene la conversación, porque el asist
 `historial`. Consecuencias que conviene tener presentes:
 
 - El endpoint **no guarda estado**: no hay sesión de conversación que caducar ni limpiar.
-- **Se pierde al recargar la página.** Es deliberado: son consultas de operación, no un
-  historial que valga la pena persistir. Si algún día hace falta, se guarda en el store.
+- **Sobrevive una hora a un recargo** (`localStorage`, clave `asistente_hilo`), y el reloj se
+  reinicia en cada turno: lo que caduca es el hilo que lleva una hora sin tocarse. Más allá el
+  contexto ya no es el de quien pregunta, y arrastrarlo sólo hace que el modelo conteste sobre
+  una conversación que nadie recuerda.
 - **No hay que desconfiar de ese historial**: los permisos salen del `AgentActor` que el
   backend construye con la sesión, nunca de lo que mande el cliente. Manipular el propio
   hilo sólo confunde a quien lo manipula.
@@ -573,6 +575,43 @@ Dos detalles de la interacción que parecen menores y no lo son:
   si no, el operador se queda mirando una caja con su texto sin saber si se envió.
 - Si la petición **falla**, la pregunta se retira del hilo y vuelve al input. Dejarla
   mandaría al modelo, en la siguiente vuelta, un turno de usuario que nunca tuvo respuesta.
+
+### Buscador en reposo, chat al conversar (17/10/2026)
+
+Vacío es **una sola caja**, como un buscador. En cuanto hay conversación se lee como cualquier
+chat: lo más viejo arriba, lo último abajo, y **la caja de escribir debajo de todo**.
+
+```
+ sin hilo                      con hilo
+┌──────────────────────┐      ┌──────────────────────┐
+│ ✦ ¿Qué casitas…?  🎤 →│      │ ASISTENTE   EMPEZAR… │  ← fuera del scroll
+└──────────────────────┘      │ › pregunta 1         │
+                              │   respuesta 1        │  ← hilo: 40dvh móvil,
+                              │ › pregunta 2  (viva) │     60vh escritorio
+                              │   respuesta 2        │
+                              ├──────────────────────┤
+                              │ ✦ Responde o…     🎤 →│  ← la caja, abajo
+                              └──────────────────────┘
+```
+
+Hasta ese día iba **al revés** —intercambios del más nuevo al más viejo, con la caja arriba—, y
+en el móvil no se entendía: había que leer de abajo arriba entre bloques y de arriba abajo
+dentro de cada uno. **No hay dos maquetaciones:** la caja va siempre DESPUÉS del hilo en el DOM,
+así que sin hilo es lo único que se ve y con hilo queda abajo sola.
+
+- **Se baja al PRINCIPIO del último intercambio, no al fondo** (`bajarAlUltimo()`). Al fondo a
+  secas, una respuesta larga dejaría a la vista su final. Si cabe entera, es lo mismo.
+- **El alto del hilo va contra la pantalla (`dvh`), no en píxeles.** En el móvil el teclado se
+  come casi la mitad; si el hilo no cediera, la caja quedaría debajo del teclado.
+- **La caja es un `<textarea>` que crece hasta ~5 líneas** (`ALTO_MAXIMO_CAJA`) y luego hace
+  scroll por dentro. Era un `<input>` de una línea y una pregunta larga se escribía sin ver el
+  principio.
+- **Intro según el dispositivo.** Con teclado físico, Intro envía y Mayús+Intro salta de
+  línea. En pantalla táctil (`pointer: coarse`) Intro salta de línea y se envía con la flecha,
+  como en WhatsApp: un Intro que manda a medio pensar no se deshace. El Intro que cierra una
+  palabra del predictivo (`isComposing`) nunca envía.
+- **La caja no se deshabilita mientras consulta**: se puede ir escribiendo la siguiente; lo que
+  espera es el envío. Y `text-base` en el móvil: con menos de 16 px Safari hace zoom al enfocar.
 
 ### El dictado no tiene backend
 
@@ -1308,7 +1347,9 @@ para un dedo; perder una fila de alto cuesta menos que fallar el botón.
 | Que el gesto refresque datos en vez de recargar la página | `GestoDeRecarga.vue` | `alSoltar()` — es el único punto que cambia (§3.g) |
 | Impedir el gesto en una pantalla concreta | la raíz de ese overlay | atributo `data-sin-recarga`, que se hereda (§3.g) |
 | Que el asistente recuerde más (o menos) turnos | `PanelAssistant` | `MAX_TURNOS` — el hilo se recorta en el backend, no en el componente (§3.c) |
-| Persistir la conversación del asistente entre recargas | `AsistenteBar.vue` | `hilo` — hoy es estado local a propósito (§3.c) |
+| Cuánto sobrevive la conversación del asistente a un recargo | `AsistenteBar.vue` | `HILO_TTL_MS` — una hora sin tocarla (§3.c) |
+| El orden del hilo del asistente, o dónde va la caja de escribir | `AsistenteBar.vue` | `intercambios`, `bajarAlUltimo()` y el orden del template (§3.c «Buscador en reposo») |
+| Cuánto crece la caja del asistente, o qué hace Intro | `AsistenteBar.vue` | `ALTO_MAXIMO_CAJA`, `alPulsarIntro()` (§3.c) |
 |---|---|---|
 | Cambiar el formato visible de la fecha | `FechaHoraPicker.vue` | `aTextoVisible()` / `format` del `VueDatePicker` |
 | Cambiar el rango de años admitido al teclear | `FechaHoraPicker.vue` | bloque `Y` de la máscara (hoy 2024-2099) |

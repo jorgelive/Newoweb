@@ -9,6 +9,16 @@
  * El dictado usa la Web Speech API del navegador: la transcripción ocurre en el cliente y
  * al backend llega texto, así que no hay coste de audio ni endpoint que mantener. Donde no
  * exista (Firefox, navegadores viejos) el botón simplemente no se muestra.
+ *
+ * ── Buscador en reposo, chat al conversar (17/10/2026) ──────────────────────
+ * Vacía es una sola caja, como un buscador. En cuanto hay conversación se lee como cualquier
+ * chat: lo más viejo arriba, lo último abajo, y la caja de escribir DEBAJO de todo.
+ *
+ * Antes el hilo iba al revés —lo nuevo arriba, pegado a la caja— y en el móvil no se entendía:
+ * la última pregunta quedaba abajo del todo y la caja arriba, y había que leer de abajo a arriba
+ * dentro de cada bloque y de arriba a abajo entre bloques (Jorge, 17/10/2026). No hay dos
+ * maquetaciones: la caja va siempre DESPUÉS del hilo en el DOM, así que sin hilo es lo único que
+ * se ve y con hilo queda abajo sola.
  */
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { apiClient } from '@/services/apiClient';
@@ -101,11 +111,47 @@ const contenedorHilo = ref<HTMLElement | null>(null);
  * esto hay que volver a pinchar el campo cada vez. El `disabled` mientras carga es justo lo que
  * hace que el navegador suelte el foco, así que hay que reponerlo a mano.
  */
-const campoPregunta = ref<HTMLInputElement | null>(null);
+const campoPregunta = ref<HTMLTextAreaElement | null>(null);
 
 async function enfocarPregunta(): Promise<void> {
     await nextTick();
     campoPregunta.value?.focus();
+}
+
+/**
+ * Cuánto crece la caja antes de hacer scroll por dentro: unas cinco líneas.
+ *
+ * Era un `<input>` de una línea, y una pregunta larga —o una respuesta a una repregunta con
+ * fechas y nombres— se escribía sin ver el principio. Más de cinco líneas taparía el hilo que se
+ * está contestando, que en el móvil ya comparte la pantalla con el teclado.
+ */
+const ALTO_MAXIMO_CAJA = 128;
+
+/** Ajusta el alto de la caja a lo escrito. `auto` primero: si no, nunca encogería al borrar. */
+function ajustarAltura(): void {
+    const caja = campoPregunta.value;
+    if (!caja) return;
+    caja.style.height = 'auto';
+    caja.style.height = `${Math.min(caja.scrollHeight, ALTO_MAXIMO_CAJA)}px`;
+    caja.style.overflowY = caja.scrollHeight > ALTO_MAXIMO_CAJA ? 'auto' : 'hidden';
+}
+
+// También cuando cambia por código: al enviar se vacía y al dictar se llena de golpe.
+watch(pregunta, () => { void nextTick(ajustarAltura); });
+
+/**
+ * ¿El dedo manda? En una pantalla táctil el Intro del teclado hace salto de línea y se envía con
+ * la flecha, como en WhatsApp: un Intro que manda a medio pensar no se puede deshacer. Con
+ * teclado físico, Intro envía y Mayús+Intro salta de línea.
+ */
+const esTactil = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+
+function alPulsarIntro(evento: KeyboardEvent): void {
+    // `isComposing`: el Intro que cierra una palabra del teclado predictivo o de un IME no es
+    // un «enviar».
+    if (esTactil || evento.shiftKey || evento.isComposing) return;
+    evento.preventDefault();
+    void preguntar();
 }
 
 const HILO_STORAGE_KEY = 'asistente_hilo';
@@ -171,27 +217,32 @@ watch(hilo, (turnos) => {
     }
 }, { deep: true });
 
+/** El último intercambio pintado: hasta dónde hay que bajar. */
+const ultimoIntercambio = ref<HTMLElement | null>(null);
+
 /**
- * Lleva la vista al intercambio más reciente, que se pinta ARRIBA del todo.
+ * Lleva la vista al intercambio más reciente, que va ABAJO, junto a la caja.
  *
- * Al final del hilo está lo más viejo: quien pregunta escribe en la caja de arriba y espera la
- * respuesta ahí mismo, no seis turnos más abajo.
+ * ⚠️ No al fondo a secas: una respuesta larga dejaría a la vista su final y habría que subir a
+ * buscar dónde empieza. Se baja hasta el PRINCIPIO del último intercambio —su pregunta— y, si
+ * cabe entero, hasta el fondo, que es lo mismo.
  */
-async function subirAlUltimo(): Promise<void> {
+async function bajarAlUltimo(): Promise<void> {
     await nextTick();
     const caja = contenedorHilo.value;
-    if (caja) caja.scrollTop = 0;
+    if (!caja) return;
+    const fondo = caja.scrollHeight - caja.clientHeight;
+    // `offsetTop` es relativo a la caja porque la caja es `relative`.
+    const inicio = ultimoIntercambio.value?.offsetTop ?? fondo;
+    caja.scrollTop = Math.min(fondo, inicio);
 }
 
 /**
- * El hilo agrupado en intercambios y del más NUEVO al más viejo.
+ * El hilo agrupado en intercambios, en orden de chat: del más viejo al más nuevo.
  *
- * Se agrupa en pares en vez de invertir la lista pelada porque invertirla pondría cada
- * respuesta ENCIMA de su propia pregunta. Lo que se invierte es el orden de los intercambios;
- * dentro de cada uno se lee como siempre: primero lo que preguntó, debajo lo que contestó.
- *
- * Una pregunta sin respuesta —la que está en vuelo— es un intercambio con `respuesta` vacía,
- * y aparece arriba en cuanto se envía.
+ * Pregunta y respuesta van juntas para poder marcar el intercambio vivo y copiar su respuesta.
+ * Una pregunta sin respuesta —la que está en vuelo— es un intercambio con `respuesta` vacía, y
+ * aparece abajo en cuanto se envía.
  */
 const intercambios = computed<{ pregunta: Turno; respuesta?: Turno }[]>(() => {
     const pares: { pregunta: Turno; respuesta?: Turno }[] = [];
@@ -204,20 +255,20 @@ const intercambios = computed<{ pregunta: Turno; respuesta?: Turno }[]>(() => {
         }
     }
 
-    return pares.reverse();
+    return pares;
 });
 
 /**
  * ¿Es el intercambio que se está contestando ahora?
  *
- * El primero, porque el hilo va del más nuevo al más viejo. Con uno solo devuelve `false`: si
+ * El último, el de abajo. Con uno solo devuelve `false`: si
  * todo lo que hay es el turno actual, destacarlo no distingue nada de nada.
  *
  * Función y no tres condiciones repetidas en el template — que es como estaba y es como se
  * desincronizan: bastaría con tocar una y dejar las otras.
  */
 function esElVivo(indice: number): boolean {
-    return indice === 0 && intercambios.value.length > 1;
+    return indice === intercambios.value.length - 1 && intercambios.value.length > 1;
 }
 
 const motores = ref<Motor[]>([]);
@@ -244,7 +295,7 @@ onMounted(async () => {
     // El hilo se recupera antes de pedir el catálogo: no depende de la red y así el operador
     // ve lo que estaba haciendo sin esperar a que responda `/agent/motores`.
     hilo.value = restaurarHilo();
-    if (hilo.value.length) void subirAlUltimo();
+    if (hilo.value.length) void bajarAlUltimo();
 
     try {
         const r = await apiClient.get<{ motores: Motor[] }>('/agent/motores');
@@ -289,7 +340,7 @@ async function preguntar(): Promise<void> {
     const historial = hilo.value.map(({ rol, texto: t }) => ({ rol, texto: t }));
     hilo.value.push({ rol: 'usuario', texto });
     pregunta.value = '';
-    void subirAlUltimo();
+    void bajarAlUltimo();
 
     try {
         const r = await apiClient.post<RespuestaAsistente>('/agent/consulta', {
@@ -307,7 +358,7 @@ async function preguntar(): Promise<void> {
             herramientas: r.data.herramientas ?? [],
             firma: [etiqueta ?? r.data.proveedor, r.data.modelo].filter(Boolean).join(' · '),
         });
-        void subirAlUltimo();
+        void bajarAlUltimo();
 
         // Se avisa DESPUÉS de pintar la respuesta: el operador ve primero el «listo» y la
         // recarga ocurre detrás. Al revés, la vista se recargaría con el hilo aún sin el turno.
@@ -411,117 +462,45 @@ onBeforeUnmount(() => reconocimiento?.stop());
 
 <template>
   <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-    <div class="flex items-center gap-2 px-4 py-3">
-      <!-- El icono también avisa: mientras consulta late, para que se vea desde el rabillo
-           del ojo sin tener que leer nada. -->
-      <span
-        class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-        :class="cargando ? 'bg-[#376875] text-white animate-pulse' : 'bg-[#376875]/10 text-[#376875]'"
-      >
-        <i class="fas fa-wand-magic-sparkles text-sm" aria-hidden="true"></i>
+    <!-- Con conversación, una cabecera fina con lo único que se hace con el hilo entero:
+         vaciarlo. Arriba y FUERA del scroll: si viajara con los turnos, en un hilo largo habría
+         que desplazarse para encontrarlo, y abajo competiría con la caja de escribir. -->
+    <div v-if="hilo.length" class="border-b border-slate-100 px-4 py-2 flex items-center justify-between">
+      <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <i class="fas fa-wand-magic-sparkles text-[9px] mr-1" aria-hidden="true"></i> Asistente
       </span>
-
-      <input
-        ref="campoPregunta"
-        v-model="pregunta"
-        type="text"
-        :disabled="cargando"
-        :placeholder="cargando ? 'Consultando el PMS…' : '¿Qué casitas tengo libres del 12 al 15 de marzo?'"
-        class="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
-        @keydown.enter="preguntar"
-      />
-
-      <button
-        v-if="soportaDictado"
-        type="button"
-        :disabled="cargando"
-        :title="dictando ? 'Detener dictado' : 'Dictar la pregunta'"
-        class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors disabled:opacity-40"
-        :class="dictando ? 'bg-red-50 text-red-600' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'"
-        @click="alternarDictado"
-      >
-        <i class="fas" :class="dictando ? 'fa-stop' : 'fa-microphone'" aria-hidden="true"></i>
+      <button type="button" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700" @click="limpiar">
+        Empezar de nuevo
       </button>
-
-      <button
-        type="button"
-        :disabled="cargando || !pregunta.trim()"
-        class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 transition-opacity disabled:opacity-30"
-        title="Preguntar"
-        @click="preguntar"
-      >
-        <i class="fas" :class="cargando ? 'fa-circle-notch fa-spin' : 'fa-arrow-right'" aria-hidden="true"></i>
-      </button>
-    </div>
-
-    <div v-if="dictando" class="px-4 pb-3 text-[11px] font-bold uppercase tracking-widest text-red-500">
-      <i class="fas fa-circle text-[7px] animate-pulse mr-1" aria-hidden="true"></i> Escuchando…
-    </div>
-
-    <!-- Organizacion y modelo. Se elige por consulta, no por sesión: la gracia es preguntar lo
-         mismo dos veces seguidas y comparar quién responde mejor. -->
-    <div v-if="hayQueElegir" class="px-4 pb-3 flex items-center gap-2">
-      <i class="fas fa-microchip text-[10px] text-slate-300" aria-hidden="true"></i>
-
-      <select
-        v-if="motores.length > 1"
-        v-model="proveedor"
-        :disabled="cargando"
-        class="text-[11px] font-bold uppercase tracking-widest text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
-        title="Organizacion de IA"
-      >
-        <option
-          v-for="m in motores"
-          :key="m.proveedor"
-          :value="m.proveedor"
-          :disabled="!m.disponible"
-        >
-          {{ m.etiqueta }}{{ m.disponible ? '' : ' (sin clave)' }}
-        </option>
-      </select>
-
-      <select
-        v-if="(motorActual?.modelos.length ?? 0) > 1"
-        v-model="modelo"
-        :disabled="cargando"
-        class="text-[11px] font-medium text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
-        title="Modelo"
-      >
-        <option v-for="nombre in motorActual?.modelos ?? []" :key="nombre" :value="nombre">
-          {{ nombre }}
-        </option>
-      </select>
     </div>
 
     <!-- El hilo: sostiene el ir y venir cuando el asistente repregunta ("¿cuál de los dos
-         Carlos?").
+         Carlos?"). En orden de chat —lo último abajo, junto a la caja—; ver el computed
+         `intercambios`.
 
-         Va del intercambio MÁS NUEVO al más viejo, porque la caja de escribir está arriba: la
-         respuesta aparece justo debajo de lo que acabas de teclear, no al final de una lista
-         que se aleja un poco más en cada pregunta. Dentro de cada intercambio se lee en el
-         orden de siempre —pregunta y debajo su respuesta—; ver el computed `intercambios`.
+         El alto se mide contra la pantalla y no en píxeles fijos: en el móvil el teclado se come
+         casi la mitad, y si el hilo no cediera la caja de escribir quedaría debajo del teclado.
+         `relative` porque `bajarAlUltimo()` mide el `offsetTop` del último intercambio contra
+         esta caja.
 
-         Crece hasta `max-h-96` y a partir de ahí hace scroll, en vez de seguir empujando el
-         panel de llegadas y salidas fuera de la pantalla.
-
-         `divide-slate-200` y no `slate-50`: con los intercambios apilándose hacia arriba, una
-         línea casi invisible dejaba la duda de dónde acaba una consulta y empieza la anterior.
-         Es la única señal de que son cosas distintas. -->
+         `divide-slate-200` y no `slate-50`: una línea casi invisible dejaba la duda de dónde
+         acaba una consulta y empieza la siguiente. -->
     <div
       v-if="intercambios.length"
       ref="contenedorHilo"
-      class="border-t border-slate-100 divide-y divide-slate-200 max-h-96 overflow-y-auto"
+      class="relative divide-y divide-slate-200 max-h-[40dvh] sm:max-h-[60vh] overflow-y-auto overscroll-contain"
     >
-      <!-- El intercambio de arriba es el vivo: el que se está contestando. Se marca con una
+      <!-- El intercambio de abajo es el vivo: el que se está contestando. Se marca con una
            barra lateral y un fondo apenas visible, no con color de aviso — es orientación, no
            una alerta. Sólo cuando hay más de uno: con uno solo no hay nada que distinguir. -->
       <div
         v-for="(cambio, i) in intercambios"
         :key="i"
+        :ref="(el) => { if (i === intercambios.length - 1) ultimoIntercambio = el as HTMLElement | null; }"
         class="px-4 py-3.5 border-l-2 transition-colors"
         :class="esElVivo(i) ? 'border-[#376875]/40 bg-slate-50/60' : 'border-transparent'"
       >
-        <p class="text-sm font-bold" :class="esElVivo(i) ? 'text-slate-700' : 'text-slate-500'">
+        <p class="text-sm font-bold whitespace-pre-line" :class="esElVivo(i) || intercambios.length === 1 ? 'text-slate-700' : 'text-slate-500'">
           <i class="fas fa-angle-right mr-1" :class="esElVivo(i) ? 'text-[#376875]' : 'text-slate-300'" aria-hidden="true"></i>{{ cambio.pregunta.texto }}
         </p>
 
@@ -563,9 +542,9 @@ onBeforeUnmount(() => reconocimiento?.stop());
           </p>
         </template>
 
-        <!-- Sin respuesta todavía. Antes sólo giraba el icono del botón de enviar, en la otra
-             punta de la barra: el operador se quedaba mirando su propia pregunta sin señal de
-             que algo estuviera pasando. El aviso va DONDE va a aparecer la respuesta. -->
+        <!-- Sin respuesta todavía. El aviso va DONDE va a aparecer la respuesta: antes sólo
+             giraba el icono del botón de enviar y el operador se quedaba mirando su propia
+             pregunta sin señal de que algo estuviera pasando. -->
         <p v-else-if="cargando" class="mt-2 flex items-center gap-2 text-sm font-medium text-[#376875]">
           <i class="fas fa-circle-notch fa-spin text-xs" aria-hidden="true"></i>
           <span>Consultando el PMS</span>
@@ -574,16 +553,98 @@ onBeforeUnmount(() => reconocimiento?.stop());
       </div>
     </div>
 
-    <!-- FUERA del área con scroll: si viajara con los turnos, en un hilo largo habría que
-         desplazarse hasta el final para encontrar el botón de vaciarlo. -->
-    <div v-if="hilo.length" class="border-t border-slate-100 px-4 py-2 flex justify-end">
-      <button type="button" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700" @click="limpiar">
-        Empezar de nuevo
+    <div v-if="error" class="border-t border-slate-100 px-4 py-3 text-sm font-medium text-red-600">
+      {{ error }}
+    </div>
+
+    <!-- La caja de escribir. SIEMPRE después del hilo: sin hilo es lo único que hay —el
+         buscador—, con hilo queda abajo, como en cualquier chat. -->
+    <div class="flex items-end gap-2 px-4 py-3" :class="{ 'border-t border-slate-100': hilo.length || error }">
+      <!-- El icono también avisa: mientras consulta late, para que se vea desde el rabillo
+           del ojo sin tener que leer nada. -->
+      <span
+        class="w-8 h-8 mb-0.5 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+        :class="cargando ? 'bg-[#376875] text-white animate-pulse' : 'bg-[#376875]/10 text-[#376875]'"
+      >
+        <i class="fas fa-wand-magic-sparkles text-sm" aria-hidden="true"></i>
+      </span>
+
+      <!-- Crece con lo escrito hasta ~5 líneas ({@see ajustarAltura}). NO se deshabilita
+           mientras consulta: se puede ir escribiendo la siguiente; lo que espera es el envío.
+           `text-base` en el móvil: con menos de 16 px Safari hace zoom al enfocar. -->
+      <textarea
+        ref="campoPregunta"
+        v-model="pregunta"
+        rows="1"
+        :enterkeyhint="esTactil ? 'enter' : 'send'"
+        :placeholder="cargando
+          ? 'Consultando el PMS…'
+          : (hilo.length ? 'Responde o pregunta otra cosa…' : '¿Qué casitas tengo libres del 12 al 15 de marzo?')"
+        class="flex-1 min-w-0 resize-none overflow-hidden bg-transparent py-1.5 text-base sm:text-sm leading-6 font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none"
+        @input="ajustarAltura"
+        @keydown.enter="alPulsarIntro"
+      ></textarea>
+
+      <button
+        v-if="soportaDictado"
+        type="button"
+        :disabled="cargando"
+        :title="dictando ? 'Detener dictado' : 'Dictar la pregunta'"
+        class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors disabled:opacity-40"
+        :class="dictando ? 'bg-red-50 text-red-600' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'"
+        @click="alternarDictado"
+      >
+        <i class="fas" :class="dictando ? 'fa-stop' : 'fa-microphone'" aria-hidden="true"></i>
+      </button>
+
+      <button
+        type="button"
+        :disabled="cargando || !pregunta.trim()"
+        class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 transition-opacity disabled:opacity-30"
+        title="Preguntar"
+        @click="preguntar"
+      >
+        <i class="fas" :class="cargando ? 'fa-circle-notch fa-spin' : 'fa-arrow-right'" aria-hidden="true"></i>
       </button>
     </div>
 
-    <div v-if="error" class="border-t border-slate-100 px-4 py-3 text-sm font-medium text-red-600">
-      {{ error }}
+    <div v-if="dictando" class="px-4 pb-3 text-[11px] font-bold uppercase tracking-widest text-red-500">
+      <i class="fas fa-circle text-[7px] animate-pulse mr-1" aria-hidden="true"></i> Escuchando…
+    </div>
+
+    <!-- Organización y modelo. Se elige por consulta, no por sesión: la gracia es preguntar lo
+         mismo dos veces seguidas y comparar quién responde mejor. -->
+    <div v-if="hayQueElegir" class="px-4 pb-3 flex items-center gap-2">
+      <i class="fas fa-microchip text-[10px] text-slate-300" aria-hidden="true"></i>
+
+      <select
+        v-if="motores.length > 1"
+        v-model="proveedor"
+        :disabled="cargando"
+        class="text-[11px] font-bold uppercase tracking-widest text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
+        title="Organización de IA"
+      >
+        <option
+          v-for="m in motores"
+          :key="m.proveedor"
+          :value="m.proveedor"
+          :disabled="!m.disponible"
+        >
+          {{ m.etiqueta }}{{ m.disponible ? '' : ' (sin clave)' }}
+        </option>
+      </select>
+
+      <select
+        v-if="(motorActual?.modelos.length ?? 0) > 1"
+        v-model="modelo"
+        :disabled="cargando"
+        class="text-[11px] font-medium text-slate-500 bg-slate-50 rounded-lg px-2 py-1 focus:outline-none disabled:opacity-40"
+        title="Modelo"
+      >
+        <option v-for="nombre in motorActual?.modelos ?? []" :key="nombre" :value="nombre">
+          {{ nombre }}
+        </option>
+      </select>
     </div>
   </div>
 </template>
