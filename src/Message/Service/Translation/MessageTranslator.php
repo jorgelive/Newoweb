@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Service\Translation;
 
 use App\Entity\Maestro\MaestroIdioma;
+use App\Service\Idioma\IdiomaDeTrabajo;
 use App\Message\Entity\Message;
 use App\Service\Translate\GoogleTranslateService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,7 +31,8 @@ class MessageTranslator
         private readonly EntityManagerInterface $entityManager,
         #[Autowire('%app.default_language%')]
         private readonly string $baseLanguage,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly IdiomaDeTrabajo $idiomasDeTrabajo,
     ) {}
 
     /**
@@ -156,9 +158,14 @@ class MessageTranslator
                     // Ver el mismo aviso en `WhatsappMetaReceivePersister`: el checkbox «Fijado»
                     // es una decisión de persona y la detección automática no la pisa.
                     if ($idiomaEntity instanceof MaestroIdioma && !$message->getConversationOrFail()->isIdiomaFijado()) {
+                        // El MENSAJE se queda con el idioma en que está escrito; a la conversación
+                        // va el idioma en que se le contesta, que sólo es uno de los de trabajo.
                         $detectedLang = $idiomaEntity->getId() ?? $currentConvLang;
-                        $message->getConversationOrFail()->setIdioma($idiomaEntity);
-                        $this->logger->info("Language mismatch: Conversation updated to {$detectedLang}");
+                        $deTrabajo = $this->idiomasDeTrabajo->para($idiomaEntity);
+                        if ($deTrabajo->getId() !== $currentConvLang) {
+                            $message->getConversationOrFail()->setIdioma($deTrabajo);
+                            $this->logger->info("Language mismatch: Conversation updated to {$deTrabajo->getId()}");
+                        }
                     } else {
                         $detectedLang = $currentConvLang;
                     }

@@ -6,6 +6,7 @@ namespace App\Message\Service\Exchange\Tasks\WhatsappMetaReceive;
 
 use App\Dto\Lee;
 use App\Entity\Maestro\MaestroIdioma;
+use App\Service\Idioma\IdiomaDeTrabajo;
 use App\Exchange\Entity\MetaConfig;
 use App\Message\Entity\Message;
 use App\Message\Entity\WhatsappMetaSendQueue;
@@ -55,6 +56,7 @@ readonly class WhatsappMetaReceivePersister
         private ReservaPorLocalizador        $localizadores,
         private EnlacesDeConversacion        $enlaces,
         private MensajeEnEsperaDeVentana     $espera,
+        private IdiomaDeTrabajo              $idiomasDeTrabajo,
     ) {}
 
     /**
@@ -165,8 +167,12 @@ readonly class WhatsappMetaReceivePersister
                 if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
                     $nuevoIdioma = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
 
-                    if ($nuevoIdioma instanceof MaestroIdioma) {
-                        $conversation->setIdioma($nuevoIdioma);
+                    // Al hilo, el idioma en que se le contesta: sólo los de trabajo (ver
+                    // IdiomaDeTrabajo). El mensaje se queda abajo con el que está escrito.
+                    if ($nuevoIdioma instanceof MaestroIdioma
+                        && ($deTrabajo = $this->idiomasDeTrabajo->para($nuevoIdioma))->getId() !== $currentConversationLang
+                    ) {
+                        $conversation->setIdioma($deTrabajo);
                     }
                 }
             }

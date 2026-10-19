@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Service\Exchange\Tasks\Beds24Receive;
 
 use App\Entity\Maestro\MaestroIdioma;
+use App\Service\Idioma\IdiomaDeTrabajo;
 use App\Message\Dto\Beds24MessageDto;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageChannel;
@@ -39,7 +40,8 @@ readonly class Beds24ReceivePersister
         private LoggerInterface              $logger,
         private MessageJsonMerger            $merger,
         private GuestLanguageDetectorService $languageDetector,
-        private InboundMenuResolver          $menuResolver
+        private InboundMenuResolver          $menuResolver,
+        private IdiomaDeTrabajo              $idiomasDeTrabajo,
     ) {}
 
     /**
@@ -208,8 +210,11 @@ readonly class Beds24ReceivePersister
                     if ($detectedLangCode !== $currentConversationLang && !$conversation->isIdiomaFijado()) {
                         $nuevoIdioma = $this->em->getRepository(MaestroIdioma::class)->find($detectedLangCode);
 
-                        if ($nuevoIdioma instanceof MaestroIdioma) {
-                            $conversation->setIdioma($nuevoIdioma);
+                        // Al hilo, sólo un idioma de trabajo; ver el mismo bloque en WhatsApp.
+                        if ($nuevoIdioma instanceof MaestroIdioma
+                            && ($deTrabajo = $this->idiomasDeTrabajo->para($nuevoIdioma))->getId() !== $currentConversationLang
+                        ) {
+                            $conversation->setIdioma($deTrabajo);
                         }
                     }
                 }

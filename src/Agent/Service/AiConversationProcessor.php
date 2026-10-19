@@ -1239,7 +1239,9 @@ final readonly class AiConversationProcessor
         ActorInterface $actor,
         ?DecisionDeTriaje $decision = null
     ): string {
-        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
+        // El idioma en que se le CONTESTA, con la regla de IdiomaDeTrabajo: uno de los siete que
+        // trabajamos, y si no, inglés. La conversación ya se guarda así; esto cubre un dato viejo.
+        $idioma = $conversacion->getIdioma()->idiomaDePlantilla();
         $huesped = $conversacion->getGuestName() ?? 'el huésped';
 
         // 🏷️ Lo que hay que saber de este negocio ahora mismo: en alojamiento, en qué punto
@@ -1383,9 +1385,10 @@ final readonly class AiConversationProcessor
      */
     private function acuseDeRecibo(MessageConversation $conversacion): string
     {
-        $idioma = $conversacion->getIdioma()->getId() ?? 'es';
+        // Con la regla de IdiomaDeTrabajo: un hilo en hebreo caía aquí al acuse en ESPAÑOL.
+        $idioma = $conversacion->getIdioma()->idiomaDePlantilla();
 
-        return self::ACUSES[$idioma] ?? self::ACUSES['es'];
+        return self::ACUSES[$idioma] ?? self::ACUSES['en'];
     }
 
     /**
@@ -1574,7 +1577,7 @@ final readonly class AiConversationProcessor
         // operador lea el chat en su idioma. Rellenar los dos aquí hacía que el traductor se
         // saltara el mensaje y el panel mostrara la respuesta del asistente en inglés.
         $salida->setContentExternal($texto);
-        $salida->setLanguageCode($conversacion->getIdioma()->getId() ?? 'es');
+        $salida->setLanguageCode($conversacion->getIdioma()->idiomaDePlantilla());
         $salida->addMetadata('generado_por', 'ia');
 
         // Por WhatsApp, al número que escribió (ver `MessageConversation::telefonoParaResponderA()`).

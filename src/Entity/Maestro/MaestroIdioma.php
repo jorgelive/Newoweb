@@ -196,7 +196,17 @@ class MaestroIdioma
      */
     public function idiomaDePlantilla(): string
     {
-        return $this->getPrioridad() > 0 ? strtolower((string) $this->getId()) : 'en';
+        return $this->esDeTrabajo() ? strtolower((string) $this->getId()) : 'en';
+    }
+
+    /**
+     * ¿Le escribimos en este idioma? Sólo a los de prioridad > 0 —los siete que traducimos—; a los
+     * demás, en inglés. La regla de las plantillas y la del idioma de una conversación o reserva
+     * ({@see \App\Service\Idioma\IdiomaDeTrabajo}) son la misma, y por eso viven aquí.
+     */
+    public function esDeTrabajo(): bool
+    {
+        return $this->getPrioridad() > 0;
     }
 
     public function getPrioridad(): int

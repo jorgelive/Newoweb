@@ -1213,11 +1213,15 @@ final class BookingPullPersister implements ResetInterface
         // 3. Buscar el idioma en la base de datos
         $idioma = $this->em->find(MaestroIdioma::class, $code);
 
-        // 4. REGLA DE NEGOCIO: Si no existe en la base de datos -> Fallback a Inglés
-        // ELIMINADO: La restricción de prioridad ($idioma->getPrioridad() <= 0).
-        // MOTIVO TÉCNICO: Permitir que idiomas "exóticos" (prioridad 0) se guarden en la reserva y
-        // conversación para que Google Translate funcione correctamente con texto libre.
-        if (!$idioma) {
+        // 4. REGLA DE NEGOCIO: si no existe en la base de datos, inglés. Y si existe pero no es de
+        // los que trabajamos (prioridad 0), también inglés: la regla de App\Service\Idioma\IdiomaDeTrabajo,
+        // aplicada aquí con el fallback que esta función ya tenía.
+        //
+        // ⚠️ Hasta el 19/10/2026 los de prioridad 0 se guardaban a propósito, «para que Google
+        // Translate funcione con texto libre». El efecto fue que el agente contestaba en hebreo a
+        // una huésped que escribía en inglés —su reserva venía en hebreo—, en un idioma que nadie
+        // del equipo puede revisar. Decidido por el dueño: sólo los idiomas de trabajo.
+        if (!$idioma || !$idioma->esDeTrabajo()) {
             $idiomaDefault = $this->em->find(MaestroIdioma::class, MaestroIdioma::DEFAULT_IDIOMA);
 
             if (!$idiomaDefault) {

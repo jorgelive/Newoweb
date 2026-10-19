@@ -298,6 +298,12 @@ de procesar las reservas y la vuelve a leer después. Test: `RollbackDelWebhookT
 > partir del país del huésped llevaba muerta desde que se escribió **sin dar un solo error**.
 > Arreglado el 15/08/2026.
 >
+> **Y el idioma que se deduce sólo se guarda si es de TRABAJO** (prioridad > 0; si no, inglés),
+> desde el 19/10/2026: una reserva de Airbnb en hebreo hacía que el agente contestara en hebreo a
+> quien escribía en inglés. Ver `docs/Mensajeria.md`, «Cómo se decide el idioma del hilo», punto 5.
+> Como el idioma de la reserva viaja a Beds24 (`lang`), el siguiente envío lo manda en inglés; y
+> aunque Beds24 siguiera devolviendo «he», la lectura lo vuelve a resolver a inglés: no oscila.
+>
 > Si ves `->country` en cualquier sitio del módulo, es el fallo — no una mejora. El aviso está
 > repetido en el propio DTO, junto a la propiedad.
 

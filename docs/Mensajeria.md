@@ -2618,6 +2618,31 @@ MessageTranslator (Google) ───┴─▶ LongitudParaIdioma::basta()  + «f
    el actual puntúa casi como el ganador, se queda. «Me confirmas porfa» daba portugués 0,533
    frente a español 0,504.
 4. **El idioma fijado a mano manda** en los tres. Beds24 no lo respetaba.
+5. **Al hilo sólo va un idioma de TRABAJO** (19/10/2026): los de prioridad > 0 en `maestro_idioma`
+   —es, en, pt, fr, it, de, nl—, y cualquier otro pasa a **inglés**. El MENSAJE conserva el idioma
+   en que está escrito (con eso se traduce al español para el panel); lo que cambia es en qué se
+   le contesta. La regla es `IdiomaDeTrabajo` (+ `MaestroIdioma::esDeTrabajo()`, la misma que
+   `idiomaDePlantilla()` ya aplicaba a las plantillas).
+
+   **Por qué**: una huésped israelí con la reserva en hebreo escribía en inglés. La detección
+   ponía el hilo en inglés al llegar su mensaje, pero `upsertFromContext()` —que corre en cada
+   cambio de la reserva, y la lectura de Beds24 la toca cada cinco minutos— lo devolvía al idioma
+   de la reserva. El agente, que contesta «SIEMPRE en el idioma de la conversación», respondía en
+   hebreo, y el acuse de recibo, sin hebreo en su tabla, caía al **español**.
+
+   ```
+   en origen ─┬─ BookingPullPersister::resolveIdioma()   (prioridad 0 → inglés, como «no existe»)
+              ├─ las tres detecciones de arriba          (al hilo, para(); el mensaje, su código)
+              └─ AiConversationProcessor                 (idioma de respuesta y del acuse)
+   red ───────── IdiomaDeTrabajoListener  prePersist/preUpdate de MessageConversation y PmsReserva
+   ```
+
+   La red existe porque hay 17 sitios que asignan idioma y el siguiente se olvidaría; la regla va
+   también en origen para que la lectura de Beds24 no reescriba la reserva con el mismo valor cada
+   cinco minutos. ⚠️ **Revierte una decisión anterior**: `resolveIdioma()` guardaba los de prioridad
+   0 «para que Google Translate funcione con texto libre». Desde ahora el texto libre a esos
+   huéspedes sale en inglés, como las plantillas. Lo que ya estaba guardado lo pasó a inglés
+   `app:message:idiomas-de-trabajo` (10 hilos y 10 reservas; éstas mandan `lang=en` a Beds24).
 
 Medido sobre 542 entrantes reales de 60 días, antes de desplegar: cambios de idioma equivocados
 **121 → 27** mensajes; hilos con alguno, **25 → 12** de 59; y de los 21 hilos que de verdad
