@@ -47,6 +47,10 @@ canal: es **si hay alguien esperando** y **qué se hace con la salida**.
 | 3 | **Voz** | Alexa | `VoiceAssistant` | texto que se lee en voz alta |
 | 4 | **Evento de dominio** | un cambio de datos | un `*DispatchHandler` | **un dato guardado** |
 
+🕐 **El panel recibe la hora, no sólo la fecha** (`PanelAssistant::ahora()`, en el bloque volátil
+para no romper la caché del prompt). Con sólo la fecha, a las 00:10 redactó para una huésped que
+salía a las 10:00 «confirme que ya dejó la casita esta mañana».
+
 ### 1.1 La cuarta es distinta, y conviene tenerlo escrito
 
 Las tres primeras son conversaciones: alguien pregunta, el agente contesta, la respuesta se

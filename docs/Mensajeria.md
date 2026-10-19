@@ -5403,6 +5403,15 @@ memoria, **sin persistir**. Es el mismo juez que decidirá en el envío real, as
 diga aquí es lo que pasará después. Copiar aquí «Beds24 no admite directas» o la ventana de
 24 h habría creado una segunda verdad que se desincroniza a la primera.
 
+⚠️ **«Sin persistir» no bastaba con no llamar a `persist()`.** La sonda se ataba con
+`setConversation()`, que la mete en la colección de mensajes de la conversación —`cascade:
+persist`—, y el siguiente `flush()` de la petición la guardaba como un mensaje saliente vacío. Un
+envío desde el panel dejó el 19/10/2026 **tres** filas `failed` en el hilo de una huésped, una por
+sonda (localizar, la vista previa que repite `GuardiaDeSkills` y el envío); sólo las paró el
+filtro de «no se envía nada vacío». Las sondas se crean con `Message::sondaDeSalida()`, que asigna
+la conversación sin apuntarse en ella. Un `Message` en memoria que toque una conversación
+gestionada **no es inocuo**: pasa por ahí o no se ata.
+
 Verificado sobre dos reservas reales: en una de OTA salen los dos canales; en una directa,
 Beds24 aparece como no disponible **con el motivo en lenguaje de operador**.
 

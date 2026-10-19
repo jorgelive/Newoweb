@@ -676,6 +676,25 @@ class Message
             ?? throw new \LogicException('Mensaje sin conversación (la columna es NOT NULL): #' . ($this->id ?? 'nuevo'));
     }
 
+    /**
+     * Un mensaje que NO existe: el contexto para preguntar a los encoladores (`isValid()`) por qué
+     * canales saldría uno de verdad. Lo usan `localizar_conversacion` y `enviar_mensaje_huesped`.
+     *
+     * ⚠️ **Asigna la conversación sin pasar por {@see self::setConversation()}**, y es todo el
+     * motivo de que exista. Ese setter mete el mensaje en la colección de la conversación, que
+     * persiste en CASCADA: la sonda «que nunca se persiste» se guardaba en el siguiente `flush()`
+     * de la petición como un mensaje saliente vacío. El 19/10/2026 un envío desde el panel dejó
+     * tres en el hilo de una huésped —una por sonda: localizar, la vista previa que repite la
+     * guardia y el envío— que sólo paró el filtro de «no se envía nada vacío».
+     */
+    public static function sondaDeSalida(MessageConversation $conversation): self
+    {
+        $sonda = new self();
+        $sonda->conversation = $conversation;
+
+        return $sonda->setDirection(self::DIRECTION_OUTGOING)->setSenderType(self::SENDER_HOST);
+    }
+
     public function setConversation(?MessageConversation $conversation): self
     {
         $this->conversation = $conversation;

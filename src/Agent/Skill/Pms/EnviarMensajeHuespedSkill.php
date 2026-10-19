@@ -239,10 +239,9 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
     /** @return list<string> */
     private function canalesDisponibles(MessageConversation $conversacion): array
     {
-        $sonda = new Message();
-        $sonda->setConversation($conversacion);
-        $sonda->setDirection(Message::DIRECTION_OUTGOING);
-        $sonda->setSenderType(Message::SENDER_HOST);
+        // Mensaje de mentira, sólo para preguntar: ver `Message::sondaDeSalida()`, que es la que
+        // garantiza que no acabe guardado.
+        $sonda = Message::sondaDeSalida($conversacion);
 
         $disponibles = [];
 

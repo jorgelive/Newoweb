@@ -85,6 +85,11 @@ final readonly class PanelAssistant
             mensaje: $pregunta,
             historial: $historial,
             modelo: $modelo,
+            // 🕐 La HORA, en el bloque volátil y no en el prompt (19/10/2026). El prompt tenía la
+            // fecha y no la hora, y a las 00:10 el asistente redactó para una huésped que salía a
+            // las 10:00 «confirme que ya dejó la casita esta mañana». Aquí y no arriba porque el
+            // prompt es el prefijo cacheado: con la hora dentro cambiaría cada minuto.
+            contexto: $this->ahora(),
         ));
 
         return [
@@ -150,6 +155,19 @@ final readonly class PanelAssistant
                 ? (string) $respuesta->texto
                 : 'No he sabido responder a eso.',
         };
+    }
+
+    private function ahora(): string
+    {
+        $ahora = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+
+        return sprintf(
+            'Ahora son las %s del %s (hora de Cusco). Para lo que pase HOY, mira si ya ocurrió o '
+            . 'está por ocurrir: una salida a las 10:00 todavía no ha pasado a las 00:10. Y antes de '
+            . 'mandarle algo a un huésped a estas horas, ten en cuenta que lo leerá ahora.',
+            $ahora->format('H:i'),
+            $ahora->format('d/m/Y'),
+        );
     }
 
     private function systemPrompt(): string

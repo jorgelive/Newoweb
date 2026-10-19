@@ -146,12 +146,9 @@ final readonly class LocalizarConversacionSkill implements SkillInterface, Skill
      */
     private function canales(MessageConversation $conversacion): array
     {
-        // Mensaje de mentira, sólo para preguntar. Nunca se persiste: sirve de contexto a
-        // `isValid()`, que necesita la conversación para decidir.
-        $sonda = new Message();
-        $sonda->setConversation($conversacion);
-        $sonda->setDirection(Message::DIRECTION_OUTGOING);
-        $sonda->setSenderType(Message::SENDER_HOST);
+        // Mensaje de mentira, sólo para preguntar: ver `Message::sondaDeSalida()`, que es la que
+        // garantiza que no acabe guardado.
+        $sonda = Message::sondaDeSalida($conversacion);
 
         $salida = [];
 
