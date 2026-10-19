@@ -684,6 +684,13 @@ Gemini, en la misma ronda: 4,04.
   resultado (`high` + marco) no se repite en los otros dos esfuerzos y cuesta más: 2,0¢ por turno
   frente a 1,6¢. **Se quitó del código.** El contexto de «chat con un huésped» ya lo da el prompt
   común; lo que fallaba era otra cosa.
+- **En producción desde el 18/10/2026**: `AGENT_IA_POTENCIA_ALTA` y `_MEDIA` (y con ellas el
+  triaje) en `anthropic:claude-sonnet-5-5`, BAJA en Gemini Flash Lite. ⚠️ El servidor carga
+  `.env.local.php`, un volcado: cambiar `.env` y desplegar **no cambia nada** hasta `composer
+  dump-env prod` + `cache:clear` + reiniciar los workers. La clave llevaba días en `.env.local`
+  sin volcar. Antes de volcar se comparó el volcado nuevo con el viejo (no se perdía ninguna
+  variable); copia en `.env.local.php.bak-antes-claude-20261018`. Volver a Gemini es poner los
+  dos tramos en `google:gemini-3.8-flash` en `.env.local` y repetir el volcado.
 - **La configuración elegida para Claude es `ANTHROPIC_EFFORT=low` + `ANTHROPIC_AJUSTES_CHAT=1`.**
   Es la más estable de las dos rondas (4,44 y 4,33; 2 y 1 notas ≤ 2) y la que mejor cierra los
   «gracias».
