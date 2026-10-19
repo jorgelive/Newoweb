@@ -1959,6 +1959,7 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar contra qué vuelo se coteja un trámite | `CruceDeFrontera` | puro y con test: entrada = primer destino del país, salida = primer origen **tras** entrar |
 | Cambiar cómo se gira o se enseña un PDF subido | `PaginasDePdf` | `girar()` (qpdf) / `vista()` (gs: `MAX_PAGINAS`, `RESOLUCION`); el panel en `FileDetalle.vue` → `vistaDe()` |
 | Que algo que vive junto a un documento se borre con él | `EscaneoDerivadosListener` | la lista de derivados — escucha el `PRE_REMOVE` de **Vich**, no el de Doctrine |
+| Que un adjunto se borre con una entidad nueva de la que cuelgue | `ArchivosConSuDuenoListener` | un `#[AsEntityListener]` más y su `match` — si no, la fila la borra el `CASCADE` de MySQL y el fichero se queda |
 | Cambiar qué se le pregunta al modelo de un E-Ticket | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA`. ⚠️ **sin `additionalProperties`**: Google AI rechaza la llamada entera |
 | Cambiar cuándo un E-Ticket queda observado | `CotejoDeEticket` | puro, sin dependencias |
 | Cambiar contra qué identidad se coteja | `ReferenciaDeIdentidad` | el **escaneo** manda; el manifiesto es el último recurso y se marca como no fiable |
@@ -3387,6 +3388,23 @@ escucha el `PRE_REMOVE` de Vich, que salta al borrar la entidad **y** al subir o
 (`delete_on_update`). El listener anterior era el `preRemove` de Doctrine y sólo veía el borrado:
 subir un pasaporte nuevo sobre uno girado dejaba el `.original` del viejo huérfano, fuera de la
 política de retención.
+
+🔥 **Y borrar un pasajero, un vuelo o un grupo dejaba en disco el escaneo entero** (visto el
+19/10/2026, aún sin estrenar: 681 filas, 681 ficheros, 99 derivados, ningún huérfano). El adjunto
+cuelga de los tres con `onDelete: 'CASCADE'` y ninguno tiene la relación inversa en el ORM, así que
+la fila la borraba **MySQL** y Vich no se enteraba. `ArchivosConSuDuenoListener` los borra antes
+por Doctrine, en el `preRemove` del dueño. Comprobado con una sonda: sin él quedaban los 3
+ficheros; con él, 0.
+
+| Cómo desaparece un adjunto | ¿Pasa por Vich? | Fichero y derivados |
+|---|---|---|
+| Se borra el adjunto (panel, `app:cotizacion:purgar-archivos`) | sí | se borran — la purga hace `unlink()` antes, y Vich lanza `PRE_REMOVE` igual porque la fila aún tiene nombre |
+| Se sube otro fichero encima | sí (`delete_on_update`) | se borran los del viejo |
+| Se borra el expediente | sí (`CotizacionFile::$filearchivos`, `cascade: ['remove']`) | se borran |
+| Se borra el pasajero, el vuelo o el grupo | **sí, desde el 19/10/2026** (`ArchivosConSuDuenoListener`) | se borran |
+| Un `DELETE` en SQL a mano | **no** | se quedan: el `CASCADE` de la base sólo borra la fila |
+
+⚠️ **Por eso lo de la última fila no se hace.** Cualquier borrado de adjuntos va por el ORM.
 
 ##### Girar limpia su propia sugerencia — y dos fallos que salieron al hacerlo
 
