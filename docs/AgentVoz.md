@@ -491,6 +491,11 @@ dos repreguntas seguidas de silencio y la sesión acaba en `EXCEEDED_MAX_REPROMP
   `PeticionAlexa::PALABRA_DEL_INTENT` se la devuelve delante (sin duplicarla si Alexa ya la dejó
   dentro, que a veces pasa). Un `AMAZON.NoIntent` suelto, además, llegaba sin consulta y se
   contestaba «no te he entendido».
+- ⚠️ **Cada frase va CON y SIN tilde** («quiénes» y «quienes», «nada más» y «nada mas»). El
+  19/10/2026 «quienes salen mañana» cayó en `AMAZON.FallbackIntent` («no te he entendido») porque
+  el modelo sólo tenía «quiénes»: Alexa no iguala tildes al casar frases. El modelo viejo, escrito
+  sin tildes, sí lo cogía. Y en la consola, **pegar el JSON por código no basta para guardar**:
+  hasta una pulsación real en el editor, el botón *Guardar* no hace nada y no lo dice.
 - **El mapa y el JSON son dos mitades** y `PeticionAlexaTest::testElModeloYElMapaCoinciden()`
   falla si un intent de texto está en uno y no en otro. Palabra nueva = una línea en el mapa, su
   intent en el JSON, y pegarlo en la consola.

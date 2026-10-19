@@ -38,13 +38,18 @@
             "muchas gracias",
             "eso es todo",
             "eso sería todo",
+            "eso seria todo",
             "nada más",
+            "nada mas",
             "nada más gracias",
+            "nada mas gracias",
             "eso es todo gracias",
             "hasta luego",
             "chao",
             "adiós",
-            "ya terminé"
+            "adios",
+            "ya terminé",
+            "ya termine"
           ]
         },
         {
@@ -62,6 +67,7 @@
             "di me que {consulta}",
             "pregunta {consulta}",
             "pregúntale {consulta}",
+            "preguntale {consulta}",
             "sobre {consulta}",
             "necesito saber {consulta}",
             "quiero saber {consulta}",
@@ -79,11 +85,14 @@
             "mejor {consulta}",
             "ahora {consulta}",
             "también {consulta}",
+            "tambien {consulta}",
             "para {consulta}",
             "son {consulta}",
             "somos {consulta}",
             "serían {consulta}",
+            "serian {consulta}",
             "sería {consulta}",
+            "seria {consulta}",
             "es {consulta}",
             "el {consulta}",
             "la {consulta}",
@@ -96,7 +105,9 @@
             "lista {consulta}",
             "dame {consulta}",
             "muéstrame {consulta}",
+            "muestrame {consulta}",
             "léeme {consulta}",
+            "leeme {consulta}",
             "repite {consulta}"
           ]
         },
@@ -144,7 +155,8 @@
             }
           ],
           "samples": [
-            "quién {consulta}"
+            "quién {consulta}",
+            "quien {consulta}"
           ]
         },
         {
@@ -156,7 +168,8 @@
             }
           ],
           "samples": [
-            "quiénes {consulta}"
+            "quiénes {consulta}",
+            "quienes {consulta}"
           ]
         },
         {
@@ -181,7 +194,8 @@
             }
           ],
           "samples": [
-            "cuánto {consulta}"
+            "cuánto {consulta}",
+            "cuanto {consulta}"
           ]
         },
         {
@@ -193,7 +207,8 @@
             }
           ],
           "samples": [
-            "cuánta {consulta}"
+            "cuánta {consulta}",
+            "cuanta {consulta}"
           ]
         },
         {
@@ -205,7 +220,8 @@
             }
           ],
           "samples": [
-            "cuántos {consulta}"
+            "cuántos {consulta}",
+            "cuantos {consulta}"
           ]
         },
         {
@@ -217,7 +233,8 @@
             }
           ],
           "samples": [
-            "cuántas {consulta}"
+            "cuántas {consulta}",
+            "cuantas {consulta}"
           ]
         },
         {
@@ -229,7 +246,8 @@
             }
           ],
           "samples": [
-            "cuál {consulta}"
+            "cuál {consulta}",
+            "cual {consulta}"
           ]
         },
         {
@@ -241,7 +259,8 @@
             }
           ],
           "samples": [
-            "cuál es {consulta}"
+            "cuál es {consulta}",
+            "cual es {consulta}"
           ]
         },
         {
@@ -253,7 +272,8 @@
             }
           ],
           "samples": [
-            "cuáles {consulta}"
+            "cuáles {consulta}",
+            "cuales {consulta}"
           ]
         },
         {
@@ -265,7 +285,8 @@
             }
           ],
           "samples": [
-            "cuándo {consulta}"
+            "cuándo {consulta}",
+            "cuando {consulta}"
           ]
         },
         {
@@ -277,7 +298,8 @@
             }
           ],
           "samples": [
-            "dónde {consulta}"
+            "dónde {consulta}",
+            "donde {consulta}"
           ]
         },
         {
@@ -289,7 +311,8 @@
             }
           ],
           "samples": [
-            "cómo {consulta}"
+            "cómo {consulta}",
+            "como {consulta}"
           ]
         },
         {
@@ -301,7 +324,8 @@
             }
           ],
           "samples": [
-            "a qué hora {consulta}"
+            "a qué hora {consulta}",
+            "a que hora {consulta}"
           ]
         },
         {
@@ -325,7 +349,8 @@
             }
           ],
           "samples": [
-            "está {consulta}"
+            "está {consulta}",
+            "esta {consulta}"
           ]
         },
         {
@@ -337,7 +362,8 @@
             }
           ],
           "samples": [
-            "están {consulta}"
+            "están {consulta}",
+            "estan {consulta}"
           ]
         },
         {
