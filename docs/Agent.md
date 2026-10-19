@@ -619,6 +619,24 @@ ejecutan de verdad contra la base a la que apuntes: en local, sin workers ni `ex
 aviso se queda en la base sin salir. Ya en la primera prueba, DeepSeek escaló al equipo una
 pregunta de tours que sólo había que anotar.
 
+#### Lo que salió de la primera comparativa (18/10/2026)
+
+10 conversaciones reales, 52 turnos, evaluadas a ciegas con las reglas de la casa (nota global de
+1 a 5): DeepSeek 4,13 · Gemini 4,02 · Sonnet 5.5 3,92 · Haiku 5.5 3,33. Los tres primeros, empate
+técnico con esta muestra; Haiku se desdice de servicios reales y escala de más. Sonnet no fue mejor
+que Gemini, y **la causa era de configuración**, descrita en la guía de migración de Anthropic:
+
+| Lo que vimos en Sonnet | Por qué | Qué se configura |
+|---|---|---|
+| Ante un «gracias», revisa, «corrige» lo que estaba bien y escala | Sonnet 5.5 vuelve sobre sus respuestas en cada mensaje; a esfuerzo `high` (su defecto) razona antes de casi cualquier respuesta | `ANTHROPIC_EFFORT=low` y la frase de «una respuesta dada está hecha» |
+| Respuestas que empiezan «Además, …» | lo que escribe entre herramientas llega en bloques de razonamiento VACÍOS: su primera mitad se pierde | que el último mensaje valga solo |
+| ~500 tokens de salida por turno para textos de 50–100 | razonamiento | el esfuerzo |
+
+Las dos frases van en `AnthropicEngine::AJUSTES_DE_CHAT`, sólo para Claude (el prompt está afinado
+con Gemini), detrás de `ANTHROPIC_AJUSTES_CHAT=1`; el esfuerzo, en `ANTHROPIC_EFFORT`. Las dos vienen
+APAGADAS y tienen su valor por defecto en `services_agent.yaml` (`env(default:…)`), así que no
+existir en el servidor no tumba el contenedor.
+
 Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
 Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
 sin modelo no se podía repartir. Tras una prueba, los avisos que quedaron en cola en la base local
@@ -969,6 +987,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
+| Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; ver la comparativa del 18/10/2026 |
 | Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
 | Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |

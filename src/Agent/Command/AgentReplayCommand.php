@@ -237,7 +237,8 @@ final class AgentReplayCommand extends Command
                     // El mismo techo que el turno real (`AiConversationProcessor::TOPE_DEL_TURNO`):
                     // con uno más bajo, el ensayo fallaría por el tope —el pensamiento sale de
                     // ahí— y no por lo que se esté probando.
-                    maxTokens: 4096,
+                    // El MISMO tope que producción, leído de allí para que no diverjan.
+                    maxTokens: AiConversationProcessor::TOPE_DEL_TURNO,
                     modelo: $conModelo,
                     contexto: $this->porNombre($contextoDe, [
                         'conversacion' => $conversacion,

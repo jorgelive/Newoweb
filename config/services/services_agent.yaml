@@ -12,6 +12,12 @@ parameters:
     # contenedor cacheado era anterior. Con `env(default:…)` la ausencia significa lo mismo que
     # el valor vacío —«usa el modelo de `GOOGLE_AI_MODEL`»—, que es justo lo que ya documenta.
     agent_ia_vision_modelo: ''
+    # Esfuerzo de Claude (`low`…`max`). Vacío = el del modelo, que en Sonnet 5.5 es `high`: piensa
+    # cientos de tokens en cada respuesta de chat. Ver AnthropicClientFactory::esfuerzo().
+    anthropic_esfuerzo: ''
+    # `1` añade al prompt de Claude los ajustes de chat (no volver sobre lo contestado, que el último
+    # mensaje valga solo). Ver AnthropicEngine::AJUSTES_DE_CHAT.
+    anthropic_ajustes_chat: ''
 
 services:
 
@@ -54,6 +60,8 @@ services:
             $apiKey: '%env(resolve:ANTHROPIC_API_KEY)%'
             $modelo: '%env(resolve:ANTHROPIC_MODEL)%'
             $modelos: '%env(resolve:ANTHROPIC_MODELS)%'
+            $esfuerzo: '%env(default:anthropic_esfuerzo:ANTHROPIC_EFFORT)%'
+            $ajustes: '%env(default:anthropic_ajustes_chat:ANTHROPIC_AJUSTES_CHAT)%'
 
     # DeepSeek es compatible con la API de OpenAI, así que el cliente es el mismo HttpClient de
     # siempre y no hace falta SDK. Su caché es AUTOMÁTICO por prefijo: no hay marcas que poner,

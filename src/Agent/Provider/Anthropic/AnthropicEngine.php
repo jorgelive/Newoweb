@@ -110,7 +110,7 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
             // 🔒 Un tope, como los otros dos motores (16/10/2026). Sin él `BetaToolRunner` gira
             // SIN LÍMITE: un modelo en bucle llamando a la misma skill no paraba nunca.
             maxIterations: ControlDeVueltas::MAX_VUELTAS,
-            extraParams: ['system' => $this->bloquesDeSistema($peticion)],
+            extraParams: ['system' => $this->bloquesDeSistema($peticion), ...$this->esfuerzo()],
         );
 
         $cerrando = false;
@@ -272,6 +272,19 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
         }
     }
 
+    /**
+     * `outputConfig.effort` si está configurado (`ANTHROPIC_EFFORT`), para mezclar en los
+     * parámetros de la petición. Ver `AnthropicClientFactory::esfuerzo()`.
+     *
+     * @return array{outputConfig?: array{effort: 'low'|'medium'|'high'|'xhigh'|'max'}}
+     */
+    private function esfuerzo(): array
+    {
+        $nivel = $this->anthropic->esfuerzo();
+
+        return $nivel === null ? [] : ['outputConfig' => ['effort' => $nivel]];
+    }
+
     public function turnoDirecto(ConversationRequest $peticion, ?array $esquema = null): ?string
     {
         $cliente = $this->anthropic->crear();
@@ -292,8 +305,18 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
         // Structured outputs: el proveedor obliga a que la salida case con el esquema, así que
         // no hay que defenderse de un ```json ni de un «Claro, aquí tienes:» delante. Va por
         // `outputConfig.format`; `outputFormat` a secas está deprecado en el SDK.
+        $config = [];
+
         if ($esquema !== null) {
-            $parametros['outputConfig'] = ['format' => ['type' => 'json_schema', 'schema' => $esquema]];
+            $config['format'] = ['type' => 'json_schema', 'schema' => $esquema];
+        }
+
+        if (($nivel = $this->anthropic->esfuerzo()) !== null) {
+            $config['effort'] = $nivel;
+        }
+
+        if ($config !== []) {
+            $parametros['outputConfig'] = $config;
         }
 
         try {
@@ -338,6 +361,33 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
     }
 
     /**
+     * Lo que los modelos Claude 5.5 necesitan oír en un CHAT y Gemini no (18/10/2026).
+     *
+     * Sale de la comparativa con conversaciones reales y de la guía de migración de Anthropic, que
+     * describe los dos fallos que vimos en Sonnet 5.5:
+     *
+     * - **Vuelve sobre sus respuestas** en cada mensaje nuevo: ante un «gracias» revisaba, «corregía»
+     *   lo que estaba bien (el almacén de equipaje, que existe) y escalaba. La guía da la frase que
+     *   lo corta, y es la primera.
+     * - **Lo que escribe entre herramientas no llega**: en Sonnet 5.5 viaja en bloques de
+     *   razonamiento vacíos, así que la respuesta final empezaba «Además, …» con su primera mitad
+     *   perdida. El huésped sólo lee el último mensaje: tiene que valer por sí solo.
+     *
+     * Sólo aquí, no en las reglas comunes: el prompt lleva meses afinado con Gemini, que no lo
+     * necesita, y no se toca a ciegas el motor de producción. Se enciende con
+     * `ANTHROPIC_AJUSTES_CHAT=1` (ver `AnthropicClientFactory::ajustesDeChat()`).
+     */
+    private const string AJUSTES_DE_CHAT = <<<'PROMPT'
+        Una vez que has contestado algo, esa respuesta está hecha. En los mensajes siguientes piensa
+        en lo que la persona pregunta ahora, y no vuelvas sobre una respuesta anterior salvo que te
+        pregunte por ella o te señale un problema. Un «gracias» o un «perfecto» se contesta con una
+        despedida breve y cordial.
+
+        El huésped sólo lee tu ÚLTIMO mensaje, no lo que escribas entre una herramienta y otra:
+        escríbelo completo y que se entienda por sí solo, sin empezar como continuación de algo.
+        PROMPT;
+
+    /**
      * El `system` en dos bloques: primero lo estable, después lo de esta conversación.
      *
      * 🔑 **El orden es el que decide si el caché sirve.** La marca de la última herramienta ya
@@ -358,9 +408,12 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
      */
     private function bloquesDeSistema(ConversationRequest $peticion): array
     {
+        // Los ajustes de chat van DENTRO del bloque estable: son texto fijo, así que no rompen la
+        // caché, y como cambian el prefijo sólo cuando se encienden, encenderlos es un cambio de
+        // caché de una vez. Ver AJUSTES_DE_CHAT.
         $bloques = [[
             'type' => 'text',
-            'text' => $peticion->systemPrompt,
+            'text' => $peticion->systemPrompt . ($this->anthropic->ajustesDeChat() ? "\n\n" . self::AJUSTES_DE_CHAT : ''),
             'cacheControl' => ['type' => 'ephemeral', 'ttl' => '1h'],
         ]];
 

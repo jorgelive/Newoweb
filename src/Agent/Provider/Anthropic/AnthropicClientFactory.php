@@ -45,12 +45,16 @@ final class AnthropicClientFactory
     private readonly array $modelos;
 
     /**
-     * @param string $modelos Lista separada por comas (`ANTHROPIC_MODELS`).
+     * @param string $modelos  Lista separada por comas (`ANTHROPIC_MODELS`).
+     * @param string $esfuerzo `ANTHROPIC_EFFORT`; vacío = el del modelo. Ver `esfuerzo()`.
+     * @param string $ajustes  `ANTHROPIC_AJUSTES_CHAT`; `1` los enciende. Ver `ajustesDeChat()`.
      */
     public function __construct(
         private readonly string $apiKey,
         string $modelo,
         string $modelos = '',
+        private readonly string $esfuerzo = '',
+        private readonly string $ajustes = '',
     ) {
         $this->modelo = trim($modelo) !== '' ? trim($modelo) : self::MODELO_FALLBACK;
         $this->modelos = CatalogoModelos::desde($this->modelo, $modelos);
@@ -84,6 +88,40 @@ final class AnthropicClientFactory
     public function modelo(): string
     {
         return $this->modelo;
+    }
+
+    /**
+     * El esfuerzo con que piensa Claude, o `null` para dejar el del modelo (18/10/2026).
+     *
+     * Los modelos 5.5 razonan SIEMPRE (no se puede apagar), y el esfuerzo es lo que dice cuánto:
+     * Sonnet 5.5 viene en `high`. En la comparativa con conversaciones reales, Sonnet gastó una media
+     * de ~500 tokens de salida por turno para respuestas de 50–100 —el resto, razonamiento— y salió
+     * más insistente y más propenso a escalar que Gemini, que corre casi sin razonar. Para un chat,
+     * la guía de Anthropic recomienda `low`; `medium` cuando hay varias herramientas encadenadas.
+     *
+     * Un valor que no sea un nivel válido se ignora (`null`): mejor el defecto del modelo que un 400
+     * en cada turno por una errata en el `.env`.
+     *
+     * @return 'low'|'medium'|'high'|'xhigh'|'max'|null
+     */
+    public function esfuerzo(): ?string
+    {
+        return match (strtolower(trim($this->esfuerzo))) {
+            'low' => 'low',
+            'medium' => 'medium',
+            'high' => 'high',
+            'xhigh' => 'xhigh',
+            'max' => 'max',
+            default => null,
+        };
+    }
+
+    /**
+     * ¿Se añaden al prompt los ajustes de chat para Claude 5.5? Ver `AnthropicEngine::AJUSTES_DE_CHAT`.
+     */
+    public function ajustesDeChat(): bool
+    {
+        return in_array(strtolower(trim($this->ajustes)), ['1', 'true', 'si', 'sí', 'on'], true);
     }
 
     /**

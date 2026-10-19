@@ -50,7 +50,7 @@ final readonly class AiConversationProcessor
 {
     /** Mensajes de historial que se mandan al modelo. Acota coste y latencia. */
     /** Techo de salida de un turno del agente, pensamiento incluido. Ver la llamada al motor. */
-    private const int TOPE_DEL_TURNO = 4096;
+    public const int TOPE_DEL_TURNO = 4096;
 
     private const int HISTORIAL_MAX = 20;
 
