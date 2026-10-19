@@ -1588,6 +1588,68 @@ const descargarEscaneos = async () => {
   }
 };
 
+/**
+ * La lista de pasajeros en la plantilla de PeruRail (ver `ListaPeruRail.php`).
+ *
+ * Respeta los filtros como la hoja de control: al tren casi nunca va el grupo entero en el mismo
+ * horario, así que lo normal es filtrar por subgrupo y bajar sólo a ésos.
+ *
+ * ⚠️ Pide la FECHA DEL TREN porque adulto/niño (12 años) se decide ese día, no hoy. Vacía = hoy.
+ * Y avisa de los huecos (vienen en `X-PeruRail-Incompletos`, pintados de ámbar en la hoja): una
+ * fila incompleta no la rechaza la descarga, la rechaza PeruRail días después.
+ */
+const panelPeruRail = ref(false);
+const fechaTrenPeruRail = ref('');
+const descargandoPeruRail = ref(false);
+
+const descargarPeruRail = async () => {
+  const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+  if (!id) return;
+
+  const ruta = `/cotizacion/user/manifiesto/perurail/${id}`;
+  const fecha = fechaTrenPeruRail.value || undefined;
+  // ⚠️ `@id`, NO `id`: el pasajero no expone `id` en el grupo de lectura, sólo el IRI.
+  const ids = hayFiltros.value
+    ? pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean)
+    : [];
+  if (hayFiltros.value && !ids.length) return;
+
+  descargandoPeruRail.value = true;
+  panelPeruRail.value = false;
+  try {
+    const respuesta = ids.length === 0
+      ? await apiClient.get(ruta, { responseType: 'blob', params: fecha ? { fecha } : {} })
+      : await apiClient.post(ruta, { ids, fecha }, { responseType: 'blob' });
+
+    const cabecera = (nombre: string): string => {
+      const v: unknown = respuesta.headers[nombre];
+      return typeof v === 'string' ? v : '';
+    };
+    const esZip = cabecera('content-type').includes('zip');
+    const url = URL.createObjectURL(respuesta.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PERURAIL${hayFiltros.value ? `-filtrado-${ids.length}` : ''}.${esZip ? 'zip' : 'xlsx'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    const incompletos = Number(cabecera('x-perurail-incompletos') || 0);
+    if (incompletos > 0) {
+      let detalle: string[] = [];
+      try {
+        const leido: unknown = JSON.parse(decodeURIComponent(cabecera('x-perurail-detalle') || '[]'));
+        if (Array.isArray(leido)) { detalle = leido.filter((x): x is string => typeof x === 'string'); }
+      } catch { /* sin detalle: el número basta para avisar */ }
+      alert(`${incompletos} pasajero(s) con datos incompletos (resaltados en amarillo en la hoja):\n\n`
+        + detalle.join('\n') + (incompletos > detalle.length ? '\n…' : ''));
+    }
+  } catch {
+    alert('No se pudo generar la lista de PeruRail.');
+  } finally {
+    descargandoPeruRail.value = false;
+  }
+};
+
 const descargarDocumentos = async () => {
   const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
   if (!id) return;
@@ -5065,6 +5127,33 @@ const eliminarDocumento = async (iri?: string) => {
                   <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                   Hoja de control<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
                 </button>
+                <!-- Lista para PeruRail: su plantilla, rellena. Pide el día del tren porque la
+                     tarifa de niño se decide por la edad ESE día. -->
+                <div v-if="file.filepasajeros?.length" class="relative">
+                  <button type="button" @click="panelPeruRail = !panelPeruRail"
+                          :disabled="descargandoPeruRail"
+                          class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
+                    <i class="fas mr-1.5" :class="descargandoPeruRail ? 'fa-spinner fa-spin' : 'fa-train'"></i>
+                    Lista PeruRail<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
+                    <i class="fas fa-chevron-down ml-1.5 text-[9px] opacity-60"></i>
+                  </button>
+                  <div v-if="panelPeruRail"
+                       class="absolute right-0 z-20 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      Fecha del tren
+                      <input type="date" v-model="fechaTrenPeruRail"
+                             class="mt-1 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold text-slate-700 normal-case tracking-normal">
+                    </label>
+                    <p class="text-[9px] text-slate-400 leading-tight">
+                      Adulto/niño (12 años) se calcula a esa fecha; vacía, a hoy. Más de 100 personas bajan en un ZIP por partes.
+                      {{ hayFiltros ? 'Respeta los filtros de abajo.' : 'Sin filtros: todo el expediente menos «No participa».' }}
+                    </p>
+                    <button type="button" @click="descargarPeruRail"
+                            class="w-full bg-teal-600 text-white py-2 rounded-lg text-[11px] font-bold hover:bg-teal-700">
+                      Descargar lista
+                    </button>
+                  </div>
+                </div>
                 <!-- ⚠️ **Ya no dice «Enviar al hotel».** El ZIP se le manda a quien lo pida —un
                      hotel, la discoteca del Coco Bongo, una aerolínea— y el botón no debe decidir
                      a quién: el nombre lo estrechaba a un solo destinatario y hacía dudar de si

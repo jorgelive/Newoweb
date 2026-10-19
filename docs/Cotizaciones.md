@@ -12893,3 +12893,59 @@ avisar.
 | Entender el gate del prestador | `src/Cotizacion/Serializer/CotizacionCotcomponentePrestadorPublicNormalizer.php` | el `if ($object->isPrestadorVisible())` |
 | Cambiar cuántos o en qué orden | el orden de la lista es el orden en que se enseñan | `Cotizacion::$destacadosComponenteIds` |
 | Cambiar el orden de la galería de la ficha web | `src/Cotizacion/Service/TourTarjetaResolver.php` | `imagenesDeTour()` |
+
+## La lista de pasajeros para PeruRail (19/10/2026)
+
+Vuelve la exportación que tenía Oweb (`CotizacionFileController::archivoprAction()`, botón «F PeruRail»
+del panel Sonata, archivado el 17/09/2026 — etiqueta `oweb-final`). Se baja desde el **manifiesto**
+del expediente en `util/`, botón **«Lista PeruRail»**, al lado de «Hoja de control».
+
+```
+FileDetalle.vue  descargarPeruRail()
+   │  GET  (sin filtros: todos menos «No participa»)  ?fecha=AAAA-MM-DD
+   │  POST { ids, fecha }  (con filtros: los que se ven)
+   ▼
+ListaPeruRailController  /cotizacion/user/manifiesto/perurail/{id}
+   ▼
+ListaPeruRail::generar()  → abre public/templates/perurail.xlsx, rellena PASAJEROS desde la fila 2
+   ▼
+.xlsx (≤ 100 personas)  ó  .zip con PERURAIL_<grupo>_Parte_N.xlsx
++ cabeceras X-PeruRail-Incompletos / X-PeruRail-Detalle → el panel avisa con un alert
+```
+
+**Se rellena la plantilla de PeruRail, no una hoja propia**, y con los mismos valores que mandaba Oweb
+y PeruRail aceptaba: códigos pelados (`1`/`2`, `M`/`F`, `DNI`/`CEX`/`PAS`/`ID`, código numérico de
+nacionalidad), no el «1-Adult» del ejemplo de su hoja INDICACIONES.
+
+| Columna | De dónde sale |
+|---|---|
+| TIPO PASAJERO | `CotizacionFilepasajero::getTipopaxperurail($fechaDelTren)` — 1 adulto (≥12), 2 niño |
+| GENERO | `SexoEnum::value` |
+| TIPO DOC / NRO DOC | el documento elegido: peruano → DNI, PAS, CE, CI; extranjero → PAS, CE, CI, DNI. Código en `DocumentoTipoEnum::getCodigoPeruRail()` |
+| PRIMER NOMBRE / PRIMER APELLIDO | `nombre` y `apellido` **enteros**, como en Oweb |
+| FECHA NAC. | `d/m/Y` como texto |
+| NACIONALIDAD | `MaestroPais::$codigoPeruRail` del país del pasajero (o del emisor del documento si no tiene) |
+
+⚠️ **La edad es la del día del tren, no la de hoy.** Oweb usaba hoy; la lista se saca semanas antes y un
+niño de 11 que cumple 12 antes de subir paga adulto. El panel pide la fecha; vacía = hoy.
+
+⚠️ **Un hueco no rompe la descarga.** Oweb hacía `->getCodigopr()` sobre país o documento nulos y daba
+un 500. Ahora la celda queda vacía en ámbar y la persona sale en el aviso. Un país sin
+`codigoPeruRail` se nombra («código PeruRail del país Bolivia»): se arregla en el maestro de países,
+no en el pasajero.
+
+⚠️ **100 por archivo** porque las listas desplegables de la plantilla llegan a la fila 101.
+
+⚠️ **Los códigos de documento ya no son datos.** En Oweb estaban en `maestro_tipodocumento.codigopr`,
+que se fue con el archivado; se sacaron de la tabla «TIPO DOCUMENTO» de la propia plantilla.
+
+### Dónde tocar
+
+| Necesidad | Archivo | Método |
+|---|---|---|
+| Columnas / valores de la lista | `src/Cotizacion/Service/Padron/ListaPeruRail.php` | `escribirFila()` |
+| Qué documento se elige | idem | `PREFERENCIA_PERUANO` / `PREFERENCIA_EXTRANJERO` |
+| Código de tipo de documento | `src/Enum/DocumentoTipoEnum.php` | `getCodigoPeruRail()` |
+| Corte adulto/niño | `src/Cotizacion/Entity/CotizacionFilepasajero.php` | `getTipopaxperurail()` / `edadAl()` |
+| Ruta, filtros, fecha | `src/Api/Controller/Cotizacion/ListaPeruRailController.php` | `__invoke()` |
+| Botón y aviso | `util/src/views/Cotizaciones/FileDetalle.vue` | `descargarPeruRail()` |

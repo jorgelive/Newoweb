@@ -67,6 +67,14 @@ migración generada se lee entera antes de ejecutarla.
 Lo único que se perdió es la dependencia y el área de 5 usuarios, que sin Oweb no significan nada.
 Hay volcado completo de producción del mismo día, antes del cambio.
 
+**Las exportaciones a proveedores del expediente** (`CotizacionFileController`: Ministerio de Cultura
+`archivomc`, DDC `archivodcc`, PeruRail `archivopr`, Consettur `archivocon`) se fueron con el código.
+Las plantillas siguen en `public/templates/` y los códigos de país en `MaestroPais`
+(`codigoMc`, `codigoConsettur`, `codigoPeruRail`). **PeruRail volvió el 19/10/2026** desde el
+manifiesto de `util/` (`docs/Cotizaciones.md`, «La lista de pasajeros para PeruRail»); las otras tres
+siguen pendientes y se reimplementan igual: un servicio en `src/Cotizacion/Service/Padron/` que
+rellena su plantilla y un controlador GET/POST con los ids filtrados.
+
 ⚠️ **Las claves foráneas de `user` las tuvo que escribir la migración a mano.** El
 `schema:update` de Doctrine sólo proponía `DROP INDEX` y `DROP COLUMN`, porque ya no conoce las
 tablas de destino (`use_area`, `use_dependencia`), y MySQL no deja borrar un índice que sostiene una

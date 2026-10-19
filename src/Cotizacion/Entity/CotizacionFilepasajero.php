@@ -256,21 +256,35 @@ class CotizacionFilepasajero
     #[Groups(['file:item:read'])]
     public function getEdad(): ?int
     {
+        return $this->edadAl(new DateTimeImmutable('today'));
+    }
+
+    /**
+     * La edad que tendrá (o tenía) en una fecha concreta.
+     *
+     * ⚠️ Para una tarifa por edad la fecha que cuenta es la del SERVICIO, no la de hoy: un niño de 11
+     * que cumple 12 antes de subir al tren viaja como adulto, y la lista se suele sacar semanas antes.
+     */
+    public function edadAl(DateTimeInterface $fecha): ?int
+    {
         if (!$this->fechanacimiento) {
             return null;
         }
-        $hoy = new DateTimeImmutable('today');
-        return $hoy->diff($this->fechanacimiento)->y;
+        return DateTimeImmutable::createFromInterface($fecha)->setTime(0, 0)
+            ->diff($this->fechanacimiento)->y;
     }
 
     /**
      * Devuelve el código de tipo de pasajero según las reglas de PeruRail.
      * 1 = Adulto (>=12), 2 = Niño (<12).
+     *
+     * Sin fecha, la edad es la de hoy (lo que enseña el panel). La lista de PeruRail pasa la fecha
+     * del tren: ver {@see \App\Cotizacion\Service\Padron\ListaPeruRail}.
      */
     #[Groups(['file:item:read'])]
-    public function getTipopaxperurail(): ?int
+    public function getTipopaxperurail(?DateTimeInterface $alDia = null): ?int
     {
-        $edad = $this->getEdad();
+        $edad = $alDia === null ? $this->getEdad() : $this->edadAl($alDia);
         if ($edad === null) {
             return null;
         }

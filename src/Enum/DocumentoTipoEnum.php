@@ -56,6 +56,27 @@ enum DocumentoTipoEnum: string
     }
 
     /**
+     * El código de la columna «TIPO DOC» de la lista de pasajeros de PeruRail.
+     *
+     * Sale de la tabla «TIPO DOCUMENTO» de la hoja INDICACIONES de su propia plantilla
+     * (`public/templates/perurail.xlsx`). En Oweb vivía como dato en `maestro_tipodocumento.codigopr`
+     * y esa tabla se fue con el archivado; aquí va en código porque son cuatro valores fijos.
+     *
+     * ⚠️ `ID` («Documento de Identidad») es la cédula de otro país, o sea nuestro CI. El DNI tiene su
+     * propio código y no se manda como `ID`.
+     */
+    public function getCodigoPeruRail(): ?string
+    {
+        return match($this) {
+            self::DNI => 'DNI',
+            self::CE => 'CEX',
+            self::PASAPORTE => 'PAS',
+            self::CI => 'ID',
+            self::RUC => null,
+        };
+    }
+
+    /**
      * Retorna el código requerido por la API de Consettur (Buses Aguas Calientes).
      */
     public function getCodigoConsettur(): ?int
