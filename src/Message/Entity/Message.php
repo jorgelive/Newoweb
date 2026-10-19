@@ -420,6 +420,17 @@ class Message
     private ?string $referenciaEspera = null;
 
     /**
+     * Con QUÉ plantilla se pide permiso para soltar este mensaje, si no es la de siempre
+     * (`respuesta_pendiente`), y con qué variables. No se persiste ni viaja por la API: lo pone el
+     * dominio que manda el mensaje —la orden de servicio al proveedor lleva su plantilla con el
+     * enlace— y `MensajeEnEsperaDeVentana::retener()` lo lee al crearse. Para el núcleo son datos
+     * opacos: un código de plantilla y unas variables.
+     *
+     * @var array{plantilla: string, variables: array<string, string>}|null
+     */
+    private ?array $avisoDeEspera = null;
+
+    /**
      * A qué número sale ESTE mensaje por WhatsApp, cuando el operador elige uno distinto del de
      * salida del hilo (`guestPhone`). `null` = el de siempre.
      *
@@ -751,6 +762,17 @@ class Message
 
     public function getReferenciaEspera(): ?string { return $this->referenciaEspera; }
     public function setReferenciaEspera(?string $referencia): self { $this->referenciaEspera = $referencia; return $this; }
+
+    /** @return array{plantilla: string, variables: array<string, string>}|null */
+    public function getAvisoDeEspera(): ?array { return $this->avisoDeEspera; }
+
+    /** @param array<string, string> $variables */
+    public function setAvisoDeEspera(string $plantilla, array $variables): self
+    {
+        $this->avisoDeEspera = ['plantilla' => $plantilla, 'variables' => $variables];
+
+        return $this;
+    }
 
     /**
      * Desde qué número escribió un ENTRANTE de WhatsApp, normalizado. Lo estampa

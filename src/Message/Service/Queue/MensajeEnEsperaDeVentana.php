@@ -115,10 +115,17 @@ final readonly class MensajeEnEsperaDeVentana
             return;
         }
 
+        // El aviso por defecto es `respuesta_pendiente`; quien manda el mensaje puede traer el suyo
+        // (`Message::$avisoDeEspera`) con sus variables, que ganan a las de aquí — la orden de
+        // servicio lleva el enlace a la solicitud y el saludo a una empresa o a una persona.
+        $propio = $mensaje->getAvisoDeEspera();
+        $codigo = $propio['plantilla'] ?? self::PLANTILLA;
+        $extra = $propio['variables'] ?? [];
+
         $idioma = $this->idiomaDePlantilla($hilo);
-        $nombre = $this->nombreDePila($hilo);
-        $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => self::PLANTILLA]);
-        $motivo = $this->porQueNoSePuedeAvisar($plantilla, $idioma, $referencia, $nombre);
+        $nombre = $extra['guest_name'] ?? $this->nombreDePila($hilo);
+        $plantilla = $this->em->getRepository(MessageTemplate::class)->findOneBy(['code' => $codigo]);
+        $motivo = $this->porQueNoSePuedeAvisar($codigo, $plantilla, $idioma, $referencia, $nombre);
 
         // ❌ Sin aviso que se pueda mandar, NO se espera: se da por no salido, en rojo y con el
         // motivo. Esperar en silencio era lo peor de los dos mundos —el chat decía «esperando a
@@ -157,6 +164,7 @@ final readonly class MensajeEnEsperaDeVentana
         $aviso->setVariablesPlantilla([
             'guest_name' => $nombre,
             'referencia' => $this->referenciaEnIdioma($referencia, $idioma),
+            ...$extra,
         ]);
 
         $hilo->addMessage($aviso);
@@ -173,10 +181,10 @@ final readonly class MensajeEnEsperaDeVentana
      * Cada motivo nombra lo que falta: el operador lo lee en rojo en el chat y tiene que poder
      * resolverlo sin preguntar —ponerle nombre al hilo, escribir el asunto, mandar una plantilla—.
      */
-    private function porQueNoSePuedeAvisar(?MessageTemplate $plantilla, string $idioma, ?string $referencia, ?string $nombre): ?string
+    private function porQueNoSePuedeAvisar(string $codigo, ?MessageTemplate $plantilla, string $idioma, ?string $referencia, ?string $nombre): ?string
     {
         if (!$plantilla instanceof MessageTemplate) {
-            return sprintf('falta la plantilla «%s»', self::PLANTILLA);
+            return sprintf('falta la plantilla «%s»', $codigo);
         }
 
         if ($nombre === null) {
@@ -188,7 +196,7 @@ final readonly class MensajeEnEsperaDeVentana
         }
 
         if (!$plantilla->hasWhatsappMetaOfficialData($idioma)) {
-            return sprintf('el aviso «%s» no está aprobado por Meta en «%s». Envíalo con una plantilla o por otro canal', self::PLANTILLA, $idioma);
+            return sprintf('el aviso «%s» no está aprobado por Meta en «%s». Envíalo con una plantilla o por otro canal', $codigo, $idioma);
         }
 
         return null;

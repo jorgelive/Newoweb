@@ -307,6 +307,63 @@ final readonly class OperacionOrdenDocumento
             : sprintf('Estimado equipo de %s:', $nombre);
     }
 
+    /**
+     * A quién se saluda en la plantilla de fuera de ventana, que empieza «Hola {{guest_name}}»:
+     * «Gabriel Ayme» si es una persona, «equipo de Tunupa» si es una empresa. La misma regla que
+     * `saludo()`, para que el aviso y el texto que suelta después hablen igual.
+     */
+    public function nombreParaSaludo(OperacionOrdenServicio $orden): string
+    {
+        $organizacion = $this->organizacionDestinataria($orden);
+        $nombre = $this->tratamientoDelDestinatario($orden, $organizacion);
+
+        return $organizacion?->isEsPersona() ? $nombre : 'equipo de ' . $nombre;
+    }
+
+    /**
+     * Qué se le pide, en una línea para la plantilla: «2 servicios, del 19 al 24 de octubre».
+     *
+     * Una línea porque Meta no admite saltos en una variable, y corta porque es la frase del
+     * medio del aviso: el detalle va en el enlace o en el texto que se suelta al pulsar el botón.
+     */
+    public function resumenParaAviso(OperacionOrdenServicio $orden): string
+    {
+        $fechas = [];
+        $cuantos = 0;
+
+        foreach ($orden->getItemsOrdenados() as $item) {
+            ++$cuantos;
+            if (($fecha = $item->getFechaServicio()) !== null) {
+                $fechas[] = $fecha;
+            }
+        }
+
+        $servicios = sprintf('%d %s', $cuantos, $cuantos === 1 ? 'servicio' : 'servicios');
+
+        if ($fechas === []) {
+            return $servicios;
+        }
+
+        $desde = min($fechas);
+        $hasta = max($fechas);
+        $dia = static fn (\DateTimeInterface $f, bool $conMes): string => $conMes
+            ? sprintf('%d de %s', (int) $f->format('j'), self::MESES[(int) $f->format('n') - 1])
+            : (string) (int) $f->format('j');
+
+        if ($desde->format('Y-m-d') === $hasta->format('Y-m-d')) {
+            return sprintf('%s, el %s', $servicios, $dia($desde, true));
+        }
+
+        $mismoMes = $desde->format('Y-m') === $hasta->format('Y-m');
+
+        return sprintf('%s, del %s al %s', $servicios, $dia($desde, !$mismoMes), $dia($hasta, true));
+    }
+
+    private const array MESES = [
+        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    ];
+
     private function organizacionDestinataria(OperacionOrdenServicio $orden): ?TravelOrganizacion
     {
         $id = $orden->getCompradorMaestroId();

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
+use App\Message\Command\MessageCrearSolicitudProveedorCommand;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
+use App\Message\Entity\MessageTemplate;
 use App\Message\Service\Conversacion\AperturaDeHilo;
 use App\Message\Service\Conversacion\CanalesDisponibles;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -67,26 +69,41 @@ final readonly class OperacionOrdenEnvio
     /**
      * ⚠️ **Fuera de la ventana de 24 h, WhatsApp NO admite texto libre.**
      *
-     * Meta sólo deja mandar plantillas aprobadas, y una orden de servicio no cabe en una: las
-     * plantillas tienen variables sueltas, no filas — y una orden tiene tantas líneas como
-     * servicios. Ésa es la razón de que exista el enlace público: la plantilla lleva un botón
-     * con la URL y el detalle vive al otro lado.
+     * Meta sólo deja mandar plantillas aprobadas, y una orden de servicio no cabe en una: tiene
+     * tantas líneas como servicios. Desde el 19/10/2026 se manda la plantilla
+     * `solicitud_servicio_proveedor` —el enlace a la solicitud y un botón «Envíenmelo aquí»— y el
+     * texto entero se queda EN ESPERA en el hilo: sale solo cuando el proveedor responde, con la
+     * ventana ya abierta (`MensajeEnEsperaDeVentana`).
      *
-     * Mientras esa plantilla no esté dada de alta y aprobada por Meta, esto se **niega con el
-     * motivo** en vez de intentarlo: un envío que Meta rechaza deja al proveedor sin enterarse y
-     * al operador creyendo que salió.
+     * Mientras Meta no la apruebe, esto se **niega con el motivo** en vez de intentarlo: un envío
+     * que Meta rechaza deja al proveedor sin enterarse y al operador creyendo que salió.
+     *
+     * @return bool `true` si hay que mandarlo EN ESPERA; `false` si sale normal.
      */
-    private function exigirVentanaAbierta(MessageConversation $hilo, string $canal): void
+    private function exigirVentanaAbierta(MessageConversation $hilo, string $canal): bool
     {
         if ($canal !== 'whatsapp_meta' || $hilo->isWhatsappSessionActive()) {
-            return;
+            return false;
+        }
+
+        if ($this->plantillaFueraDeVentanaAprobada()) {
+            return true;
         }
 
         throw new DomainException(
-            'La ventana de 24 h de WhatsApp con este proveedor está cerrada, así que Meta sólo '
-            . 'admite plantillas aprobadas — y una orden con varias líneas no cabe en una. '
-            . 'Mándala por correo, o espera a que el proveedor escriba para reabrir la ventana.'
+            'La ventana de 24 h de WhatsApp con este proveedor está cerrada y la plantilla de '
+            . 'solicitud todavía no está aprobada por Meta. Mándala por correo, o espera a que el '
+            . 'proveedor escriba para reabrir la ventana.'
         );
+    }
+
+    /** ¿Está la plantilla de fuera de ventana creada y aprobada en español? */
+    private function plantillaFueraDeVentanaAprobada(): bool
+    {
+        $plantilla = $this->em->getRepository(MessageTemplate::class)
+            ->findOneBy(['code' => MessageCrearSolicitudProveedorCommand::CODIGO]);
+
+        return $plantilla instanceof MessageTemplate && $plantilla->hasWhatsappMetaOfficialData('es');
     }
 
     /**
@@ -123,6 +140,7 @@ final readonly class OperacionOrdenEnvio
                 'canales' => $this->canales->ningunoDisponible('sin_datos_o_vetado'),
                 'enlace' => $this->enlace($orden),
                 'ventanaWhatsappAbierta' => false,
+                'whatsappEnEspera' => false,
                 // El motivo REDACTADO, para enseñarlo tal cual: dice qué falta y qué hacer.
                 'motivoSinCanal' => $e->getMessage(),
             ];
@@ -135,6 +153,9 @@ final readonly class OperacionOrdenEnvio
             // Para que el panel avise ANTES de que el operador elija WhatsApp y se lleve el
             // rechazo después de haber leído todo el documento.
             'ventanaWhatsappAbierta' => $hilo->isWhatsappSessionActive(),
+            // Con la ventana cerrada, si la plantilla está aprobada, WhatsApp sigue sirviendo:
+            // sale el aviso con el enlace y el texto espera a que responda.
+            'whatsappEnEspera' => !$hilo->isWhatsappSessionActive() && $this->plantillaFueraDeVentanaAprobada(),
             'motivoSinCanal' => null,
         ];
     }
@@ -163,7 +184,7 @@ final readonly class OperacionOrdenEnvio
         }
 
         $hilo = $this->hiloDelProveedor($orden);
-        $this->exigirVentanaAbierta($hilo, $canal);
+        $enEspera = $this->exigirVentanaAbierta($hilo, $canal);
 
         $disponible = false;
         foreach ($this->canales->para($hilo) as $fila) {
@@ -207,6 +228,20 @@ final readonly class OperacionOrdenEnvio
         $mensaje->setSubjectExternal($doc['asunto']);
         $mensaje->setLanguageCode('es');
         $mensaje->addMetadata('orden_servicio', (string) $orden->getNumeroOs());
+
+        if ($enEspera) {
+            // El texto espera en el hilo; lo que sale ya es la plantilla con el enlace y el botón.
+            // `retener()` lo hace al persistir. La referencia es el número: es lo que se ve en el
+            // chat junto al reloj de arena.
+            $mensaje->setStatus(Message::STATUS_EN_ESPERA);
+            $mensaje->setReferenciaEspera((string) $orden->getNumeroOs());
+            $mensaje->setAvisoDeEspera(MessageCrearSolicitudProveedorCommand::CODIGO, [
+                'guest_name' => $this->documento->nombreParaSaludo($orden),
+                'numero' => (string) $orden->getNumeroOs(),
+                'resumen' => $this->documento->resumenParaAviso($orden),
+                'orden_token' => (string) $orden->getTokenPublico(),
+            ]);
+        }
 
         $hilo->addMessage($mensaje);
         $this->em->persist($mensaje);

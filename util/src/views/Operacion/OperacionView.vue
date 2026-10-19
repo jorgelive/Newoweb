@@ -4286,11 +4286,18 @@ onMounted(async () => {
 <!-- ⚠️ Fuera de la ventana de 24 h, Meta sólo admite plantillas aprobadas
                              y una orden con varias líneas no cabe en una. Se dice ANTES de elegir
                              canal, no después de leer todo el documento. -->
-                        <p v-if="!documento.ventanaWhatsappAbierta"
+                        <p v-if="!documento.ventanaWhatsappAbierta && documento.whatsappEnEspera"
+                           class="text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 leading-snug">
+                            <i class="fas fa-hourglass-half mr-1"></i>
+                            La ventana de 24 h de WhatsApp está cerrada. Por WhatsApp le llegará un aviso con
+                            el enlace a la solicitud y un botón «Envíenmelo aquí»; este texto saldrá solo en
+                            cuanto responda.
+                        </p>
+                        <p v-else-if="!documento.ventanaWhatsappAbierta"
                            class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">
                             <i class="fas fa-triangle-exclamation mr-1"></i>
-                            La ventana de 24 h de WhatsApp está cerrada: Meta sólo deja mandar plantillas
-                            aprobadas. Usa el correo, o espera a que el proveedor escriba.
+                            La ventana de 24 h de WhatsApp está cerrada y la plantilla de solicitud todavía
+                            no está aprobada por Meta. Usa el correo, o espera a que el proveedor escriba.
                         </p>
 
                         <div>

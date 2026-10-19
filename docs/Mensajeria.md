@@ -1000,6 +1000,12 @@ WhatsappMetaReceivePersister (cualquier mensaje suyo, botón o texto) → abre l
 
 - **Un solo aviso por espera.** Si ya hay algo esperando en el hilo, el mensaje nuevo se suma sin
   otro «¿te lo envío?».
+- **El aviso puede ser otro** (19/10/2026): quien crea el mensaje le pone
+  `Message::setAvisoDeEspera(plantilla, variables)` y `retener()` usa esa plantilla, con esas
+  variables por encima de `guest_name`/`referencia`. Para el núcleo son datos opacos. Lo usa la orden
+  de servicio al proveedor: `solicitud_servicio_proveedor`, con el enlace a la solicitud y el mismo
+  botón `CMD_ENVIAR_PENDIENTE` (`docs/Operacion.md` §5.7). Sin aviso propio, `respuesta_pendiente`
+  como siempre.
 - **El botón no tiene regla de autorespuesta, a propósito**: `IntentRouter` lo cierra como
   `sin_regla` y lo que contesta es lo liberado. Si en vez de pulsar escribe texto, el agente lo
   atiende además, como cualquier mensaje.

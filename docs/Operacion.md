@@ -2342,14 +2342,36 @@ aceptado a cambio de no mantener un almacén de documentos.
 entiende CSS 2.1 y poco más, y una hoja moderna se ve bien en el navegador y descuadrada en el
 PDF. Que es el peor de los dos resultados, porque sólo se nota cuando ya lo mandaste.
 
-### Fuera de la ventana de 24 h no se manda por WhatsApp
+### Fuera de la ventana de 24 h: el aviso con enlace, y el texto en espera (19/10/2026)
 
-`OperacionOrdenEnvio::exigirVentanaAbierta()` se niega con el motivo en vez de intentarlo: un
-envío que Meta rechaza deja al proveedor sin enterarse y al operador creyendo que salió. El panel
-además lo avisa **antes** de elegir canal, no después de leer todo el documento.
+Una orden no cabe en una plantilla, así que fuera de ventana sale **`solicitud_servicio_proveedor`**
+y el texto completo se queda **en espera** en el hilo del proveedor:
 
-**Pendiente:** dar de alta la plantilla con botón-URL y que Meta la apruebe. Hasta entonces,
-fuera de ventana la salida es el correo.
+```
+Enviar por WhatsApp, ventana cerrada
+  └─ el texto de la orden: Message en_espera (reloj de arena en el chat), referencia = nº de OS
+  └─ sale la plantilla:
+       «Hola {{guest_name}}, le enviamos la solicitud de servicio {{numero}} para {{resumen}}. Puede
+        verla completa en el enlace o pedirnos que se la enviemos por aquí. Por favor, confírmenos
+        recepción y disponibilidad.»
+       [ Envíenmelo aquí ]  ← respuesta rápida CMD_ENVIAR_PENDIENTE
+       [ Ver solicitud ]    ← https://pax.openperu.pe/orden/{{orden_token}}
+  ▼ responde (el botón o cualquier texto) → se abre la ventana → sale el texto completo
+```
+
+- Las dos salidas porque hay quien prefiere tenerlo todo en su WhatsApp (Jorge): el enlace le da
+  la solicitud al momento; el botón, el texto en el chat.
+- Es el mecanismo del **mensaje en espera** de `docs/Mensajeria.md` §5, con la plantilla de aviso
+  propia que el mensaje trae en `Message::$avisoDeEspera`. Caduca igual: a los 3 días sin
+  respuesta, el texto queda `failed` y se avisa al equipo — para entonces ya tuvo el enlace.
+- `{{guest_name}}` es `OperacionOrdenDocumento::nombreParaSaludo()` —«Gabriel Ayme» o «equipo de
+  Tunupa», la regla de `esPersona`— y `{{resumen}}` es `resumenParaAviso()`: «2 servicios, del 19 al
+  24 de octubre», en una línea porque Meta no admite saltos en una variable.
+- **Sin la plantilla aprobada en español, se sigue negando** con el motivo, y el panel lo avisa
+  antes de elegir canal (`whatsappEnEspera` en la previsualización: azul si sale en espera, ámbar
+  si no se puede).
+- La crea `msg:plantillas:solicitud-proveedor`; se sube con `msg:meta:push solicitud_servicio_proveedor
+  --idiomas=es` y se sincroniza con `app:whatsapp:sync-templates` cuando Meta la apruebe.
 
 ### ⚠️ Un controlador nuevo no tiene rutas hasta declarar su directorio
 

@@ -91,6 +91,12 @@ export interface DocumentoDeOrden {
      */
     ventanaWhatsappAbierta: boolean;
     /**
+     * Cerrada pero con la plantilla de solicitud aprobada: por WhatsApp sale el aviso con el
+     * enlace y el botón «Envíenmelo aquí», y el texto espera a que responda. Ver
+     * `OperacionOrdenEnvio::exigirVentanaAbierta()`.
+     */
+    whatsappEnEspera?: boolean;
+    /**
      * Por qué no hay ningún canal, ya redactado. `null` cuando sí los hay.
      *
      * Previsualizar no falla por esto: se enseña el documento entero con los canales apagados y
