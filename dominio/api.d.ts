@@ -27762,6 +27762,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -27824,6 +27829,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -27859,6 +27869,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -27895,6 +27910,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -27923,6 +27943,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -27961,6 +27986,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28023,6 +28053,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28058,6 +28093,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28104,6 +28144,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28166,6 +28211,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28201,6 +28251,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28247,6 +28302,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28309,6 +28369,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */
@@ -28344,6 +28409,11 @@ export interface components {
             nombreComercial?: string;
             /** @description Obtiene la razón social legal de la organización. */
             razonSocial?: string | null;
+            /**
+             * @description ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+             * @default false
+             */
+            esPersona: boolean;
             /** @description Obtiene el número de teléfono principal de la organización. */
             telefono?: string | null;
             /** @description Obtiene el correo electrónico comercial de la organización. */

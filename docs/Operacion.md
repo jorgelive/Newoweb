@@ -3032,6 +3032,14 @@ factura— con cascada a `compradorNombre` si no la tiene, y a «nuestro proveed
 no está en el catálogo. Se lee **en vivo**: si la empresa cambió de razón social, se la saluda como
 se llama hoy. Lo congelado es el contenido de la orden, que es lo pactado; el saludo no lo es.
 
+**A una persona se le habla a ella (19/10/2026).** Un conductor que trabaja por su cuenta recibía
+«Estimado equipo de Gabriel Ayme:». La ficha lleva ahora `TravelOrganizacion::$esPersona` —casilla
+«Es una persona, no una empresa»— y con ella el saludo es **«Hola, Gabriel Ayme:»**
+(`OperacionOrdenDocumento::saludo()`). «Hola» y no «Estimado», porque el adjetivo obliga a elegir
+género y deducirlo del nombre falla con alguien. Por dato y no por regla sobre el nombre: «Gabriel
+Ayme» y «Tunupa» no se distinguen leyéndolos. Al leerse en vivo, marcar la casilla cambia también el
+saludo de las órdenes ya emitidas.
+
 ⚠️ **El enlace se compone DENTRO del cuerpo, y eso mató un espejo.** Antes lo pegaba
 `OperacionOrdenEnvio::enviar()` **y** lo repetía por su cuenta el botón «Copiar» del front: dos
 sitios armando el mismo texto, o sea que el proveedor de un grupo podía recibir una versión y el

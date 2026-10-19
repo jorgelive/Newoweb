@@ -594,6 +594,12 @@ para cualquier resort; la **descripción del servicio** cuenta cómo es en éste
 piscinas, una con bar acuático» en el segmento lo ata a un hotel y rompe justo el ahorro que
 persigue todo el diseño de §11.quater.
 
+### `TravelOrganizacion::$esPersona` — persona o empresa (19/10/2026)
+
+Un guía o un conductor por su cuenta no es «un equipo». La bandera sólo decide **cómo se le habla**
+en la solicitud de servicio —«Hola, Gabriel Ayme:» frente a «Estimado equipo de Tunupa:»; ver
+`docs/Operacion.md`, el saludo—. Arranca en `false`: lo normal en el catálogo es una empresa.
+
 ### `TravelOrganizacion::$visibleParaCliente` — la bandera manda, el título aporta el texto
 
 Hasta 2026-08-16 no había bandera: la regla era **«sin título, el cliente no lo ve»**, y

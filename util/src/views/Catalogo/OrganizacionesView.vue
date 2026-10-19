@@ -164,6 +164,7 @@ const abrirEdicion = async (p: Organizacion) => {
         url: f?.url ?? '',
         direccion: f?.direccion ?? '',
         visibleParaCliente: f?.visibleParaCliente ?? false,
+        esPersona: f?.esPersona ?? false,
         titulo: f?.titulo ?? [],
     };
     lugaresSel.value = [...(f?.lugares ?? [])];

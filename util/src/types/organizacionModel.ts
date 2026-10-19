@@ -90,6 +90,8 @@ export interface ProveedorWrite {
     titulo?: I18nTexto[];
     /** ¿Nombrable ante el cliente? Semilla, no veto — ver el bloque de visibilidad. */
     visibleParaCliente?: boolean;
+    /** ¿Una persona y no una empresa? Decide el saludo de la solicitud. `TravelOrganizacion::$esPersona`. */
+    esPersona?: boolean;
     /** IRIs de `TravelLugar`. Cobertura: hasta dónde opera este proveedor. */
     lugares?: string[];
 }
@@ -112,6 +114,7 @@ export const proveedorVacio = (): ProveedorWrite => ({
     // Opt-in, igual que el default de la columna: nombrar a un proveedor que no tocaba
     // invita al cliente a saltarse la intermediación, y ése es el olvido caro.
     visibleParaCliente: false,
+    esPersona: false,
     lugares: [],
 });
 

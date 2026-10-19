@@ -114,6 +114,21 @@ class TravelOrganizacion implements ConIdentificador
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $razonSocial = null;
 
+    /**
+     * ¿Es una PERSONA y no una empresa? Un guía o un conductor que trabaja por su cuenta.
+     *
+     * Decide cómo se le habla: a una empresa, «Estimado equipo de Tunupa:»; a una persona, «Hola,
+     * Gabriel Ayme:». Hasta el 19/10/2026 todo destinatario era «equipo de», y a un conductor
+     * independiente la solicitud le llegaba dirigida a un equipo que no existe.
+     *
+     * Por dato y no deduciéndolo del nombre: «Gabriel Ayme» y «Tunupa» no se distinguen con una
+     * regla, y una que acierte casi siempre es la que falla con el siguiente proveedor.
+     * Ver `OperacionOrdenDocumento::saludo()`.
+     */
+    #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $esPersona = false;
+
     #[Groups(['organizacion:read', 'organizacion:item:read', 'organizacion:write'])]
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $telefono = null;
@@ -318,6 +333,17 @@ class TravelOrganizacion implements ConIdentificador
     public function setEmail(?string $email): self
     {
         $this->email = $email;
+        return $this;
+    }
+
+    public function isEsPersona(): bool
+    {
+        return $this->esPersona;
+    }
+
+    public function setEsPersona(bool $esPersona): self
+    {
+        $this->esPersona = $esPersona;
         return $this;
     }
 

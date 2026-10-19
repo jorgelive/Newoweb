@@ -235,7 +235,7 @@ final readonly class OperacionOrdenDocumento
         $grupos = $this->bloqueDeGrupos($orden->getGruposSnapshot());
 
         $partes = array_filter([
-            sprintf('Estimado equipo de %s:', $this->tratamientoDelDestinatario($orden)),
+            $this->saludo($orden),
             // ⚠️ **«Solicitud», no «Orden», de cara al proveedor.**
             //
             // Internamente es una Orden de Servicio y así se llama en todo el módulo, en la base y
@@ -287,6 +287,40 @@ final readonly class OperacionOrdenDocumento
     }
 
     /**
+     * Cómo empieza la solicitud: a un equipo si es una empresa, a la persona si es una persona.
+     *
+     * 🔥 A un conductor independiente le llegaba «Estimado equipo de Gabriel Ayme:». La ficha dice
+     * ahora si es una persona (`TravelOrganizacion::$esPersona`) y entonces se le habla a él.
+     *
+     * «Hola» y no «Estimado»: el adjetivo obliga a elegir género, y deducirlo del nombre es
+     * acertar casi siempre — que es fallar con alguien.
+     *
+     * Sin ficha en el catálogo —un destinatario escrito a mano— se le trata como hasta ahora.
+     */
+    private function saludo(OperacionOrdenServicio $orden): string
+    {
+        $organizacion = $this->organizacionDestinataria($orden);
+        $nombre = $this->tratamientoDelDestinatario($orden, $organizacion);
+
+        return $organizacion?->isEsPersona()
+            ? sprintf('Hola, %s:', $nombre)
+            : sprintf('Estimado equipo de %s:', $nombre);
+    }
+
+    private function organizacionDestinataria(OperacionOrdenServicio $orden): ?TravelOrganizacion
+    {
+        $id = $orden->getCompradorMaestroId();
+
+        if ($id === null || !Uuid::isValid($id)) {
+            return null;
+        }
+
+        $organizacion = $this->em->find(TravelOrganizacion::class, Uuid::fromString($id));
+
+        return $organizacion instanceof TravelOrganizacion ? $organizacion : null;
+    }
+
+    /**
      * Cómo se le llama al destinatario en el saludo.
      *
      * Cascada corta: **razón social del catálogo → nombre congelado en la orden**. La primera es
@@ -297,20 +331,12 @@ final readonly class OperacionOrdenDocumento
      * correcto es saludarla como se llama hoy. Lo que sí queda congelado es el contenido de la
      * orden, que es lo que se pactó — el saludo no es parte del pacto.
      */
-    private function tratamientoDelDestinatario(OperacionOrdenServicio $orden): string
+    private function tratamientoDelDestinatario(OperacionOrdenServicio $orden, ?TravelOrganizacion $organizacion): string
     {
-        $id = $orden->getCompradorMaestroId();
+        $razon = trim((string) $organizacion?->getRazonSocial());
 
-        if ($id !== null && Uuid::isValid($id)) {
-            $organizacion = $this->em->find(TravelOrganizacion::class, Uuid::fromString($id));
-
-            if ($organizacion instanceof TravelOrganizacion) {
-                $razon = trim((string) $organizacion->getRazonSocial());
-
-                if ($razon !== '') {
-                    return $razon;
-                }
-            }
+        if ($razon !== '') {
+            return $razon;
         }
 
         return trim((string) $orden->getCompradorNombre()) ?: 'nuestro proveedor';

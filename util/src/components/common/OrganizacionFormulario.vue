@@ -99,6 +99,19 @@ const alternarLugar = (iri: string): void => {
       </p>
     </div>
 
+    <!-- Persona o empresa: decide cómo empieza la solicitud que se le manda. -->
+    <div>
+      <label class="flex items-start gap-2 cursor-pointer">
+        <input :checked="modelValue.esPersona"
+               @change="set('esPersona', ($event.target as HTMLInputElement).checked)"
+               type="checkbox" class="mt-0.5 w-4 h-4 accent-[#E07845] cursor-pointer" />
+        <span>
+          <span class="block text-[10px] font-black text-slate-500 uppercase">Es una persona, no una empresa</span>
+          <span class="block text-[10px] text-slate-400 mt-0.5">Un guía o un conductor por su cuenta. La solicitud empieza «Hola, {{ modelValue.nombreComercial || 'Nombre' }}:» en vez de «Estimado equipo de…».</span>
+        </span>
+      </label>
+    </div>
+
     <!-- La bandera decide SI se nombra; el título, CÓMO. Hacen falta las dos. -->
     <div>
       <label class="flex items-start gap-2 cursor-pointer">
