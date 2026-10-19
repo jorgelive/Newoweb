@@ -67,9 +67,14 @@ final readonly class OperacionOrdenDocumento
             // con su consulta de semillas cuando el hilo no tiene teléfono vivo.
             $telefono = $this->telefonoVivo($g);
 
+            // Recortados: «*… y familia *» con el espacio del nombre dentro de los asteriscos
+            // NO es negrita en WhatsApp — se ven los asteriscos. Los nombres llegan tecleados.
+            $grupo = trim($g['grupo']);
+            $pasajero = trim($g['pasajero']);
+
             $partes = array_values(array_filter([
-                $g['grupo'] !== '' ? sprintf('*%s*', $g['grupo']) : null,
-                $g['pasajero'] !== '' && $g['pasajero'] !== $g['grupo'] ? $g['pasajero'] : null,
+                $grupo !== '' ? sprintf('*%s*', $grupo) : null,
+                $pasajero !== '' && $pasajero !== $grupo ? $pasajero : null,
                 $g['habitaciones'] > 0
                     ? sprintf('%d %s', $g['habitaciones'], $g['habitaciones'] === 1 ? 'habitación' : 'habitaciones')
                     : null,
