@@ -3530,10 +3530,14 @@ onMounted(async () => {
                             :key="estado"
                             @click="alternarEstadoOs(estado as EstadoOsValue)"
                             :class="estadosOsVisibles.includes(estado as EstadoOsValue)
-                                ? [cfg.bg, cfg.text, cfg.border]
-                                : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'"
+                                ? [cfg.bg, cfg.text, cfg.border, 'ring-1 ring-current/30 shadow-sm']
+                                : 'bg-white text-slate-400 border-slate-200 border-dashed opacity-70 hover:opacity-100 hover:border-slate-400'"
+                            :aria-pressed="estadosOsVisibles.includes(estado as EstadoOsValue)"
                             class="flex items-center gap-1 px-2 py-1 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors"
                         >
+                            <!-- ⚠️ Encendido y apagado NO se distinguen sólo por color: el de borrador es
+                                 gris, como los apagados, y no se sabía si estaba marcado. El encendido
+                                 lleva aro y sombra; el apagado, borde discontinuo y atenuado. -->
                             <i class="fas" :class="cfg.icon"></i>
                             {{ cfg.label }}
                             <span v-if="conteoPorEstadoOs[estado]" class="tabular-nums opacity-70">
