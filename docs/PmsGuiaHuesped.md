@@ -2474,6 +2474,15 @@ borraba como maquetación, y el pin de «Ubicación» era justo lo que necesitab
 viaja tal cual; unas coordenadas se convierten en enlace de Google Maps; cualquier otra cosa se
 borra.
 
+🧭 **«No encuentro la casita» son dos preguntas**: la casa desde la calle, o su departamento ya
+dentro del pasaje. Con las palabras no se distingue —«where is the room»—, y el agente elegía
+siempre «Localización» y repetía la dirección a quien ya estaba en la puerta de la calle sin ver
+números. `app:pms:guia:orientar-llegada` le da a «Localización» texto para el agente: la dirección y
+el mapa **copiados del publicado** y la regla —si no está claro, las dos cosas a la vez (mapa +
+recorrido, croquis y vídeo de «Puerta del Departamento»); si ya está en la casa, directo a su
+puerta—, y añade a las siete puertas los términos de quien no encuentra su departamento. ⚠️ Desde
+entonces la dirección de «Localización» vive en DOS superficies: si cambia, se cambian las dos.
+
 Lo hizo `app:pms:guia:medios-por-marcador` (archivado), tocando sólo el español: las traducciones se
 quedan **sin imágenes dentro** para siempre, que es la mitad del valor del cambio.
 
