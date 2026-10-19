@@ -619,6 +619,12 @@ ejecutan de verdad contra la base a la que apuntes: en local, sin workers ni `ex
 aviso se queda en la base sin salir. Ya en la primera prueba, DeepSeek escaló al equipo una
 pregunta de tours que sólo había que anotar.
 
+Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
+Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
+sin modelo no se podía repartir. Tras una prueba, los avisos que quedaron en cola en la base local
+(`msg_*_send_queue`) se marcan `cancelled`: con el `exchange:run` encendido en local saldrían a
+huéspedes reales.
+
 ### 🩺 La vigilancia del motor no espera a un huésped (17/10/2026)
 
 `VigilanteDelMotor::motorCaido()` avisa a soporte cuando un turno falla, o sea **cuando un huésped

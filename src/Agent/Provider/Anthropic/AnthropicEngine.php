@@ -172,7 +172,10 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
         // es lo que se busca; `escrito` alto en cada consulta significa que el prefijo cambia
         // entre conversaciones y se está pagando 1,25× por un caché que no lee nadie.
         $this->logger->info(sprintf(
-            'Agent (anthropic): %d vuelta(s) · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
+            // Con el MODELO, como la de Google y la de DeepSeek: con varios en el mismo proveedor
+            // (Sonnet y Haiku), un coste sin modelo no se puede atribuir.
+            'Agent (anthropic): %s · %d vuelta(s) · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
+            $peticion->modelo ?? $this->anthropic->modelo(),
             $vueltas,
             $entrada,
             $cacheLeido,
