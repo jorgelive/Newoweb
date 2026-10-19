@@ -312,4 +312,17 @@ final class TipocambioManagerTest extends TestCase
         self::assertStringNotContainsString('IGNORE', $sentencias[0][0]);
         self::assertSame(['USD', '2026-10-17', '3.424', '3.431'], array_slice($sentencias[1][1], 1, 4));
     }
+
+    /**
+     * Una fecha futura no va a la API: SUNAT no publica cambios por adelantado y la consulta sólo
+     * gastaba cupo y armaba la espera de 20 minutos (el push de tarifas de una reserva de
+     * noviembre, 18/10/2026). Hoy y antes, sí.
+     */
+    public function testUnaFechaFuturaNoSePreguntaALaApi(): void
+    {
+        self::assertTrue(TipocambioManager::esFutura(new \DateTimeImmutable('2026-11-26'), '2026-10-18'));
+        self::assertTrue(TipocambioManager::esFutura(new \DateTimeImmutable('2026-10-19 00:00'), '2026-10-18'));
+        self::assertFalse(TipocambioManager::esFutura(new \DateTimeImmutable('2026-10-18 23:59'), '2026-10-18'), 'hoy no es futuro');
+        self::assertFalse(TipocambioManager::esFutura(new \DateTimeImmutable('2026-09-30'), '2026-10-18'));
+    }
 }

@@ -162,6 +162,12 @@ class TipocambioManager
     }
 
     /** Hoy en Lima, que es el día de SUNAT. El servidor va en UTC. */
+    /** ¿Es posterior a hoy? Se compara el día de calendario de Lima, en texto `Y-m-d`. */
+    public static function esFutura(\DateTimeInterface $fecha, string $hoyEnLima): bool
+    {
+        return $fecha->format('Y-m-d') > $hoyEnLima;
+    }
+
     private function hoyEnLima(): string
     {
         return (new DateTimeImmutable('now', new \DateTimeZone('America/Lima')))->format('Y-m-d');
@@ -193,6 +199,15 @@ class TipocambioManager
 
         if ($enDB instanceof MaestroTipocambio) {
             return $enDB;
+        }
+
+        // 🔮 Una fecha FUTURA no se pregunta (19/10/2026). SUNAT no publica cambios por adelantado,
+        // así que la respuesta es siempre vacía y se acaba en el respaldo de abajo — pero gastando
+        // una consulta del cupo diario y armando los 20 minutos de espera entre consultas. El push
+        // de tarifas en soles pide el cambio de CADA fecha de tarifa: una reserva de noviembre
+        // llegada el 18/10 a las 21:24 pidió `month=11` y frenó la siguiente consulta de verdad.
+        if (self::esFutura($fechaBuscada, $this->hoyEnLima())) {
+            return $this->findLastAvailableInDb($fechaBuscada);
         }
 
         // 2) Consultar API (usamos la fecha original para el request, da igual la hora)
