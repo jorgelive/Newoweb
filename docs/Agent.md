@@ -637,6 +637,24 @@ con Gemini), detrás de `ANTHROPIC_AJUSTES_CHAT=1`; el esfuerzo, en `ANTHROPIC_E
 APAGADAS y tienen su valor por defecto en `services_agent.yaml` (`env(default:…)`), así que no
 existir en el servidor no tumba el contenedor.
 
+**Segunda ronda, mismo juego y mismo evaluador a ciegas, con seis versiones:**
+
+| Versión | Global | Notas ≤ 2 | Notas = 5 | Turnos de «gracias» (15) |
+|---|---|---|---|---|
+| Sonnet, esfuerzo `low` + ajustes de chat | **4,44** | 2 | 33 | 4,73 |
+| DeepSeek V4 | 4,33 | 2 | 26 | 4,40 |
+| Sonnet, esfuerzo `low` | 4,21 | 6 | 30 | 4,07 |
+| Gemini 3.8 Flash (producción) | 4,12 | 3 | 25 | 4,80 |
+| Sonnet por defecto (`high`) | 4,02 | 6 | 21 | 3,60 |
+| Sonnet, esfuerzo `medium` | 3,71 | 11 | 16 | 3,73 |
+
+⚠️ **Pensar más empeora este chat, no lo mejora**: `medium` queda por debajo del defecto y de `low`.
+Lo que arregla es la combinación: el esfuerzo bajo quita la revisión de lo ya contestado, y la
+frase cierra los «gracias» (de 3,60 a 4,73). Lo que **no** arregla ninguna configuración es lo que
+fallan todos los motores: anticipar costes y negativas no preguntados (recargo de horario, «no
+puedo prometer»), y desdecirse de servicios que existen (Western Union, la custodia de equipaje).
+Eso es contenido y prompt, no motor. Diferencias de 0,1–0,3 con 52 turnos son orientativas.
+
 Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
 Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
 sin modelo no se podía repartir. Tras una prueba, los avisos que quedaron en cola en la base local
