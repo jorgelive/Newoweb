@@ -533,6 +533,19 @@ class CotizacionFilearchivo implements RequiereAltaFidelidadInterface
         return '/archivo/' . $this->id->toRfc4122();
     }
 
+    /**
+     * La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+     * icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+     * {@see \App\Cotizacion\Documento\PaginasDePdf}.
+     */
+    #[Groups(['file:item:read'])]
+    public function getVistaUrl(): ?string
+    {
+        $url = $this->getImageUrl();
+
+        return $url !== null && $this->getTipoMedio() === 'pdf' ? $url . '/vista' : null;
+    }
+
     /** @var list<array{language?: string, content?: string|null}>|null */
     #[Groups(['file:item:read', 'file:write', 'pax_file:read'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]

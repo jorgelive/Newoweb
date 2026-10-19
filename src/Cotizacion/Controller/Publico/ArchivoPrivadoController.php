@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Cotizacion\Controller\Publico;
 
+use App\Cotizacion\Documento\PaginasDePdf;
 use App\Cotizacion\Entity\CotizacionFilearchivo;
 use App\Cotizacion\Service\Publico\IdentidadDelPasajero;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,7 +72,58 @@ final class ArchivoPrivadoController
         private readonly Security $security,
         #[Autowire(param: 'kernel.project_dir')]
         private readonly string $projectDir,
+        private readonly PaginasDePdf $pdf,
+        private readonly LoggerInterface $logger,
     ) {
+    }
+
+    /**
+     * La imagen de las primeras páginas de un PDF, para verlo en el panel sin abrirlo.
+     *
+     * 🔒 **Sólo con sesión del panel**, aunque el permiso del PDF diga otra cosa. Generarla pasa el
+     * fichero por Ghostscript, y eso no debe poder dispararlo una petición pública; la app del
+     * pasajero tampoco la usa. El resto —404 mudo, nginx sirviendo, sin caché compartida— es igual
+     * que el del fichero. Ver {@see PaginasDePdf}.
+     */
+    #[Route(
+        '/archivo/{id}/vista',
+        name: 'cotizacion_archivo_vista',
+        requirements: ['id' => '[0-9a-f-]{36}'],
+        methods: ['GET'],
+    )]
+    public function vista(string $id): Response
+    {
+        if ($this->security->getUser() === null || !Uuid::isValid($id)) {
+            return new Response(status: Response::HTTP_NOT_FOUND);
+        }
+
+        $archivo = $this->em->getRepository(CotizacionFilearchivo::class)->find(Uuid::fromString($id));
+        if ($archivo === null || $archivo->getTipoMedio() !== 'pdf') {
+            return new Response(status: Response::HTTP_NOT_FOUND);
+        }
+
+        $ruta = $this->projectDir . '/var/documentos/archivos/' . $archivo->getImageName();
+        if (!is_file($ruta)) {
+            return new Response(status: Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $this->pdf->vista($ruta);
+        } catch (\Throwable $e) {
+            // Un PDF roto o cifrado no tiene vista: el panel cae al enlace de «abrir». Se registra
+            // porque si fallan TODOS, lo que falta es el binario, no el PDF.
+            $this->logger->warning('[archivo] no se pudo generar la vista del PDF.', ['archivo' => $id, 'error' => $e->getMessage()]);
+
+            return new Response(status: Response::HTTP_NOT_FOUND);
+        }
+
+        $respuesta = new Response();
+        // La vista vive junto al PDF, así que su ruta interna es la del PDF con el sufijo.
+        $respuesta->headers->set('X-Accel-Redirect', PaginasDePdf::rutaDeVista('/_privado/archivos/' . $archivo->getImageName()));
+        $respuesta->headers->set('Content-Type', 'image/webp');
+        $respuesta->headers->set('Cache-Control', 'private, no-cache');
+
+        return $respuesta;
     }
 
     #[Route(

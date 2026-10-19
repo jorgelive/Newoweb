@@ -1957,6 +1957,8 @@ el orden con sentido lo pone quien pinta, que ya tiene el índice de nombres mon
 | Cambiar qué se puede quitar al reimportar el padrón | `PadronImportador` | `ejesDeclarados()` — sólo se sincroniza el eje cuyas columnas trae el archivo |
 | Añadir un país que exija trámite migratorio | `PaisDeControlEnum` | un `case` con sus aeropuertos IATA. Nada más |
 | Cambiar contra qué vuelo se coteja un trámite | `CruceDeFrontera` | puro y con test: entrada = primer destino del país, salida = primer origen **tras** entrar |
+| Cambiar cómo se gira o se enseña un PDF subido | `PaginasDePdf` | `girar()` (qpdf) / `vista()` (gs: `MAX_PAGINAS`, `RESOLUCION`); el panel en `FileDetalle.vue` → `vistaDe()` |
+| Que algo que vive junto a un documento se borre con él | `EscaneoDerivadosListener` | la lista de derivados — escucha el `PRE_REMOVE` de **Vich**, no el de Doctrine |
 | Cambiar qué se le pregunta al modelo de un E-Ticket | `LectorDeEticket` | `INSTRUCCION` + `ESQUEMA`. ⚠️ **sin `additionalProperties`**: Google AI rechaza la llamada entera |
 | Cambiar cuándo un E-Ticket queda observado | `CotejoDeEticket` | puro, sin dependencias |
 | Cambiar contra qué identidad se coteja | `ReferenciaDeIdentidad` | el **escaneo** manda; el manifiesto es el último recurso y se marca como no fiable |
@@ -3354,6 +3356,37 @@ comprobarlo, porque el escaneo no se le devuelve.
 Un campo aplicado al mostrar reintroduce ese fallo **con más consumidores que antes**: la bóveda,
 el visor, la descarga del gate y **el propio lector de IA**, que leería la imagen cruda y volvería
 a fallar. Cualquiera que se olvide de aplicarlo la ve torcida, y ninguno da error.
+
+##### PDF: girar y enseñar sin rasterizar (19/10/2026)
+
+Casi la mitad de lo que suben los pasajeros es PDF (330 de 681). Hasta entonces, en el visor eran un
+icono —«No se puede previsualizar aquí»— y girarlos se rechazaba. Lo hace `PaginasDePdf`, en el
+servidor y sin tocar el contenido del documento:
+
+| | Imagen | PDF |
+|---|---|---|
+| Girar | reescribe los píxeles, con copia `.original` | **`qpdf --rotate`**: el giro de cada página, dentro del propio PDF |
+| Pérdida por giro | una generación (por eso la copia) | **ninguna**: no recomprime nada |
+| Ver en el panel | el fichero | `/archivo/{id}/vista` → `<pdf>.vista.webp`, hasta 4 páginas apiladas |
+
+- **El giro de un PDF no es «un ángulo guardado aparte».** Va dentro del fichero y lo respeta
+  cualquier lector —navegador, visor del móvil, lector de IA—, que es justo lo que exige el
+  párrafo de arriba. Rasterizarlo para girarlo cambiaría el documento por una foto suya.
+- **La vista es un derivado, no el documento.** Vive junto al PDF en la carpeta privada, la sirve
+  nginx con el mismo `X-Accel-Redirect`, y se rehace sola si el PDF es más nuevo (`filemtime`).
+  Girar la tira; el panel le cuelga `updatedAt` para que el navegador no enseñe la de antes.
+- 🔒 **La vista sólo con sesión del panel.** Generarla pasa el fichero por Ghostscript, que ha
+  tenido fallos graves con PDF manipulados, y estos los sube cualquiera. Así nunca la dispara una
+  petición pública. Además: `-dSAFER`, 4 páginas, 110 ppp y 30 s como máximo.
+- **Hacen falta `qpdf` y `gs`** en el servidor (`apt install qpdf`, el 19/10/2026; `gs` ya
+  estaba). `PaginasDePdf` los busca también en `/opt/homebrew/bin`, que el php-fpm del Mac no tiene
+  en el PATH. Sin ellos, girar da un error con nombre y la vista cae al enlace de «abrir».
+
+⚠️ **Los derivados se borran con el documento, también al REEMPLAZARLO.** `EscaneoDerivadosListener`
+escucha el `PRE_REMOVE` de Vich, que salta al borrar la entidad **y** al subir otro fichero encima
+(`delete_on_update`). El listener anterior era el `preRemove` de Doctrine y sólo veía el borrado:
+subir un pasaporte nuevo sobre uno girado dejaba el `.original` del viejo huérfano, fuera de la
+política de retención.
 
 ##### Girar limpia su propia sugerencia — y dos fallos que salieron al hacerlo
 
@@ -11258,7 +11291,8 @@ dos usan `queCaduca()`:
 | `tipoArchivo` | sí, al tipo viejo y al nuevo | sí |
 | giro, nombre, tamaño, la propia lectura | **no** | no |
 
-⚠️ **El giro es el que no se ve**: `GiradorDeEscaneo` no pasa por Vich —escribe con Imagick—, así
+⚠️ **El giro es el que no se ve**: `GiradorDeEscaneo` no pasa por Vich —escribe con Imagick, o con
+qpdf si es un PDF—, así
 que `hayFicheroNuevo()` es falso y el changeset trae `rotacionAplicada`, `datosLeidos` e
 `imageSize`. Mismo documento, derecho: no caduca nada.
 

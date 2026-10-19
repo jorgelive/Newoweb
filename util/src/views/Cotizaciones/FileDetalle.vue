@@ -3086,6 +3086,31 @@ const leidoDe = (doc: ApiCotizacionFilearchivo): Record<string, unknown> | null 
  */
 const esImagen = (doc: ApiCotizacionFilearchivo): boolean => String(doc.tipoMedio) === 'imagen';
 
+/**
+ * Los PDF cuya vista no se pudo generar (cifrado, roto). Caen al enlace de «abrir», como antes.
+ * Por id, para que el fallo de uno no se lleve la vista de los demás.
+ */
+const vistasFallidas = ref(new Set<string>());
+
+/**
+ * La imagen de las primeras páginas de un PDF, con la misma marca que `urlFresca()`.
+ *
+ * ⚠️ La marca hace falta por el mismo motivo: girar un PDF lo reescribe en su sitio y la URL de la
+ * vista no cambia, así que el navegador enseñaría la de antes del giro. El servidor ya la regenera
+ * (`PaginasDePdf::vista()` compara fechas); lo que hay que romper es la caché de aquí.
+ */
+const vistaDe = (doc: ApiCotizacionFilearchivo): string | undefined => {
+    const url = doc.vistaUrl;
+    if (!url || vistasFallidas.value.has(String(doc.id))) return undefined;
+
+    const marca = String(doc.updatedAt ?? doc.createdAt ?? '').replace(/\D/g, '');
+
+    return marca ? `${url}?v=${marca}` : url;
+};
+
+/** ¿Se puede girar? Las imágenes reescribiendo píxeles; los PDF, el giro de sus páginas. */
+const sePuedeGirar = (doc: ApiCotizacionFilearchivo): boolean => esImagen(doc) || String(doc.tipoMedio) === 'pdf';
+
 /* ══ PANEL DE RESOLUCIÓN: los documentos que no son de nadie ══════════════ */
 
 const sueltos = ref<DocumentoSuelto[]>([]);
@@ -6978,7 +7003,9 @@ const eliminarDocumento = async (iri?: string) => {
                      ángulo viviera aparte, cualquiera que se olvide de aplicarlo lo vería
                      torcido —el gate, el lector de IA— y ninguno daría error. Ya pasó con el
                      EXIF. -->
-                <template v-if="esImagen(doc)">
+                <!-- Un PDF también: se le cambia el giro de las páginas, sin rasterizarlo
+                     (`PaginasDePdf::girar()`). -->
+                <template v-if="sePuedeGirar(doc)">
                   <!-- ⚠️ **«Falta girar», no «parece girado».** El número es una ACCIÓN —cuántos
                        grados en sentido horario hay que aplicar— y el rótulo lo describía como un
                        ESTADO. Un escaneo que se ve girado 90° necesita 270° para enderezarse, así
@@ -7012,6 +7039,13 @@ const eliminarDocumento = async (iri?: string) => {
             <a v-if="esImagen(doc)" :href="urlFresca(doc)" target="_blank" class="block bg-slate-900/5">
               <img :src="urlFresca(doc)" :alt="getArchivoLabel(doc.tipoArchivo)" loading="lazy"
                    class="w-full max-h-[60vh] object-contain">
+            </a>
+            <!-- Un PDF: la imagen de sus primeras páginas, que genera el servidor. El enlace abre el
+                 PDF de verdad, que es el documento. Si la vista falla, cae al enlace de abajo. -->
+            <a v-else-if="vistaDe(doc)" :href="doc.imageUrl || undefined" target="_blank" class="block bg-slate-900/5">
+              <img :src="vistaDe(doc)" :alt="getArchivoLabel(doc.tipoArchivo)" loading="lazy"
+                   class="w-full max-h-[60vh] object-contain"
+                   @error="vistasFallidas = new Set([...vistasFallidas, String(doc.id)])">
             </a>
             <a v-else :href="doc.imageUrl || undefined" target="_blank"
                class="flex items-center gap-3 px-4 py-6 hover:bg-slate-50 transition-colors">

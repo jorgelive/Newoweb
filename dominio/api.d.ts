@@ -14955,6 +14955,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15030,6 +15036,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15102,6 +15114,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15174,6 +15192,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15342,6 +15366,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15417,6 +15447,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15489,6 +15525,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15561,6 +15603,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15681,6 +15729,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15756,6 +15810,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15828,6 +15888,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -15900,6 +15966,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -16020,6 +16092,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -16095,6 +16173,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -16167,6 +16251,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -16239,6 +16329,12 @@ export interface components {
             readonly rotacionPendiente?: number;
             /** @description Por dónde se pide este archivo. **Ya no es una URL pública.** */
             readonly imageUrl?: string | null;
+            /**
+             * @description La imagen de las primeras páginas, sólo para un PDF: lo que el panel enseña en lugar de un
+             *     icono. Sólo en el panel (`file:item:read`): la ruta exige sesión. Ver
+             *     {@see \App\Cotizacion\Documento\PaginasDePdf}.
+             */
+            readonly vistaUrl?: string | null;
             /** @description Qué CLASE de fichero es, para que quien lo pinte no tenga que adivinar. */
             readonly tipoMedio?: string;
             /** @description ¿Lo ve todo el expediente, o es de alguien? */
@@ -16317,9 +16413,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16363,9 +16459,9 @@ export interface components {
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16409,9 +16505,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16454,9 +16550,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16613,9 +16709,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16659,9 +16755,9 @@ export interface components {
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16705,9 +16801,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16750,9 +16846,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16849,9 +16945,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16896,9 +16992,9 @@ export interface components {
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16942,9 +17038,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -16988,9 +17084,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -17089,9 +17185,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -17135,9 +17231,9 @@ export interface components {
             telefono?: string | null;
             /** @description Texto libre del padrón: «FALTA PASAPORTE», «reemplaza a…». */
             observaciones?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -17181,9 +17277,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;
@@ -17226,9 +17322,9 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string | null;
-            /** @description Obtiene el primer bloque del apellido. */
+            /** @description El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas». */
             readonly apellidoPaterno?: string | null;
-            /** @description Obtiene el segundo bloque del apellido. */
+            /** @description El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
             readonly apellidoMaterno?: string | null;
             /** @description Calcula la edad actual basada en la fecha de nacimiento. */
             readonly edad?: number | null;

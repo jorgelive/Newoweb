@@ -47,6 +47,10 @@ use Vich\UploaderBundle\Storage\StorageInterface;
  * que el caso normal sea un solo clic. Si esto llega a molestar, el arreglo es guardar una copia
  * del fichero antes del primer giro y regirar siempre desde ella: acota la pérdida a una
  * generación para siempre, a cambio de un fichero más por documento girado.
+ *
+ * 📄 **Un PDF se gira de otra forma** ({@see PaginasDePdf::girar()}): el giro de cada página va
+ * dentro del propio PDF, lo respeta cualquier lector y cambiarlo no recomprime nada. Ni pérdida de
+ * generación ni copia `.original`. Hasta el 19/10/2026 se rechazaba.
  */
 final readonly class GiradorDeEscaneo
 {
@@ -55,13 +59,14 @@ final readonly class GiradorDeEscaneo
      *
      * ⚠️ Hace falta **borrarla con el archivo**: es un documento de identidad, y la política de
      * retención no distingue entre el fichero y su copia. De eso se encarga
-     * {@see \App\Cotizacion\EventListener\EscaneoOriginalListener}.
+     * {@see \App\Cotizacion\EventListener\EscaneoDerivadosListener}.
      */
     public const SUFIJO_ORIGINAL = '.original';
 
     public function __construct(
         private EntityManagerInterface $em,
         private StorageInterface $almacen,
+        private PaginasDePdf $pdf,
     ) {}
 
     /**
@@ -100,11 +105,16 @@ final readonly class GiradorDeEscaneo
             throw new RuntimeException('No se puede escribir sobre ese fichero.');
         }
 
-        // Un PDF no se gira con Imagick sin rasterizarlo, y rasterizar un PDF de identidad para
-        // enderezarlo cambia el fichero por uno peor. Se rechaza con una frase en vez de dejar
-        // un PDF convertido en imagen sin que nadie lo pidiera.
-        if (str_ends_with(strtolower($ruta), '.pdf')) {
-            throw new RuntimeException('Los PDF no se giran aquí: vuelve a subirlo derecho.');
+        $acumulado = ((($archivo->getRotacionAplicada() + $grados) % 360) + 360) % 360;
+
+        // Un PDF NO se rasteriza para girarlo —cambiaría el documento por una foto suya—: se le
+        // cambia el giro de sus páginas, que es parte del propio PDF. Sin pérdida, así que tampoco
+        // necesita la copia `.original` de abajo.
+        if (PaginasDePdf::esPdf($ruta)) {
+            $this->pdf->girar($ruta, $grados);
+            $this->cerrarGiro($archivo, $ruta, $grados, $acumulado);
+
+            return;
         }
 
         // 🔑 **La copia intacta, guardada ANTES del primer giro.** Sin ella, cada giro reescribe
@@ -125,8 +135,6 @@ final readonly class GiradorDeEscaneo
         if (!is_file($original)) {
             throw new RuntimeException('No se pudo guardar la copia original antes de girar.');
         }
-
-        $acumulado = ((($archivo->getRotacionAplicada() + $grados) % 360) + 360) % 360;
 
         // ⚠️ Un enlace duro comparte inodo: escribir sobre el fichero vivo con `writeImage()` lo
         // reemplaza (crea y renombra), así que el original sobrevive. Pero si alguna vez se
@@ -155,6 +163,12 @@ final readonly class GiradorDeEscaneo
             throw new RuntimeException('No se pudo girar: ' . $e->getMessage(), 0, $e);
         }
 
+        $this->cerrarGiro($archivo, $ruta, $grados, $acumulado);
+    }
+
+    /** Lo que queda igual gire lo que gire: el ángulo acumulado, la lectura, el tamaño y el flush. */
+    private function cerrarGiro(CotizacionFilearchivo $archivo, string $ruta, int $grados, int $acumulado): void
+    {
         $archivo->setRotacionAplicada($acumulado);
 
         // 🔑 **La lectura se CORRIGE, no se tira — y eso es lo que quita los 16 segundos.**
