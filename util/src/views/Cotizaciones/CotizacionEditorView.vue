@@ -4487,34 +4487,36 @@ store.$onAction(({ name, args }) => {
                   Sin detalles operativos
                 </div>
                 <div v-else v-for="bloque in store.componenteActivo.detallesOperativos" :key="bloque.id"
-                     class="flex gap-2 items-start bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                     class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm space-y-1.5">
                   <!--
                     Banderas, no un desplegable: el mismo texto suele ir a más de un sitio. Con el
                     `tipo` viejo había que escribirlo dos veces, y en producción los 15 componentes
                     que tenían los dos bloques los tenían idénticos palabra por palabra.
                     La última audiencia no se puede quitar — para eso está la papelera de al lado.
+                    En fila ENCIMA del texto, no en columna al lado: la columna se comía un tercio
+                    del ancho en el móvil y el texto quedaba en tres palabras por línea.
                   -->
-                  <div class="shrink-0 w-32 flex flex-col gap-1">
+                  <div class="flex items-center gap-1">
                     <button v-for="(cfg, aud) in AUDIENCIA_DETALLE_CONFIG" :key="aud"
                             type="button"
                             :title="cfg.documento"
                             @click="store.componenteActivo && store.alternarAudienciaDetalle(store.componenteActivo.id, bloque.id, aud as AudienciaDetalle)"
-                            class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-bold transition-colors"
+                            class="flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold transition-colors"
                             :class="bloque.audiencias?.includes(aud as AudienciaDetalle)
                               ? 'bg-sky-100 text-sky-700 border-sky-200'
                               : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'">
                       <i class="fas w-3 text-center" :class="cfg.icon"></i>
                       {{ cfg.label }}
                     </button>
+                    <button @click="store.eliminarDetalleOperativo(store.componenteActivo.id, bloque.id)" class="ml-auto text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
+                      <i class="fas fa-times text-sm"></i>
+                    </button>
                   </div>
                   <textarea :value="store.getI18nText(bloque.detalle, store.cotizacion?.idiomaEdicion || 'es')"
                             @input="e => { if(store.cotizacion) store.setI18nText(bloque.detalle, store.cotizacion.idiomaEdicion, (e.target as HTMLTextAreaElement).value) }"
                             rows="2"
-                            class="flex-1 bg-transparent text-xs font-bold text-slate-700 outline-none resize-none"
+                            class="w-full bg-transparent text-xs font-bold text-slate-700 outline-none resize-y"
                             placeholder="Contenido..."></textarea>
-                  <button @click="store.eliminarDetalleOperativo(store.componenteActivo.id, bloque.id)" class="text-slate-300 hover:text-red-500 transition-colors px-1 shrink-0">
-                    <i class="fas fa-times text-sm"></i>
-                  </button>
                 </div>
               </div>
             </div>
