@@ -125,6 +125,11 @@ final readonly class CotizacionFileMessageContext implements MessageContextInter
         return $this->file->getEstado()->value;
     }
 
+    public function getRotulo(): string
+    {
+        return 'Viaje';
+    }
+
     /**
      * Interesado mientras se le vende; cliente en cuanto pagó algo; terminado al archivar o cerrar.
      *

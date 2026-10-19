@@ -833,6 +833,21 @@ class MessageConversation
     public function getContextStatusTag(): ?string { return $this->textoDeContexto('status_tag'); }
 
     /**
+     * Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`).
+     * La bandeja lo enseña cuando no hay ítems que listar. `null` en un hilo sin dominio (manual).
+     */
+    #[Groups(['conversation:read'])]
+    public function getContextRotulo(): ?string { return $this->textoDeContexto('rotulo'); }
+
+    public function setContextRotulo(?string $rotulo): self
+    {
+        $this->initContextData();
+        $this->contextData['rotulo'] = $rotulo;
+
+        return $this;
+    }
+
+    /**
      * El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
      *
      * Quien lo consuma debe tratar el `null` como «no lo sé» y no como «ninguno»: hasta que el

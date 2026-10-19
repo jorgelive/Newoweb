@@ -575,7 +575,7 @@ Las dos caras usan ya `ContactoDeIdentidad`, que resuelve por el hilo.
 | Término | Significado |
 |---|---|
 | **Conversación** (`MessageConversation`) | El chat con un huésped. Se identifica por la pareja lógica `contextType` + `contextId` (ej. `pms_reserva` + UUID de reserva), no por una FK. |
-| **Contexto** (`MessageContextInterface`) | Adaptador que traduce una entidad de negocio (una reserva) al vocabulario agnóstico del chat. Hoy sólo lo implementa `PmsReservaMessageContext`. |
+| **Contexto** (`MessageContextInterface`) | Adaptador que traduce una entidad de negocio al vocabulario agnóstico del chat. Lo implementan `PmsReservaMessageContext`, `CotizacionFileMessageContext` y `TravelOrganizacionMessageContext`. Desde el 19/10/2026 lleva `getRotulo()` —«Reserva», «Viaje», «Proveedor»—, lo que la bandeja enseña cuando el hilo no tiene ítems que listar: antes suponía «Reserva PMS» para todo lo que no fuera WhatsApp, y un conductor salía así. Se guarda en `context_data.rotulo` y viaja como `contextRotulo` (API y Mercure). |
 | **Hito** (`ConversationMilestoneInterface`) | Fecha clave del contexto: `created_at`, `start`, `end`, `expected_arrival`, `cancelled_at`. Es el ancla temporal de toda regla. |
 | **Regla** (`MessageRule`) | "Esta plantilla, por estos canales, N minutos antes/después de este hito, sólo para estas fuentes/agencias". |
 | **Mensaje** (`Message`) | La intención de comunicar. No envía nada por sí mismo. |

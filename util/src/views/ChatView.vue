@@ -1572,7 +1572,9 @@ const getDirectChannelId = (channel?: ApiMessage['channel']): string | null => {
 
               <span class="flex flex-col gap-1.25">
                 <span class="text-[10px] font-black truncate text-[#E07845] uppercase tracking-tight leading-none">
-                  {{ chat.contextItems?.length ? chat.contextItems.join(', ') : (chat.contextOrigin === 'whatsapp' ? 'Chat Directo' : 'Reserva PMS') }}
+                  <!-- Sin ítems, lo que ES el asunto lo dice su dominio (`contextRotulo`): «Proveedor»,
+                       «Viaje», «Reserva». Antes se suponía «Reserva PMS» y un conductor salía así. -->
+                  {{ chat.contextItems?.length ? chat.contextItems.join(', ') : (chat.contextRotulo || (chat.contextOrigin === 'whatsapp' ? 'Chat Directo' : '')) }}
                 </span>
                 <span v-if="chat.contextMilestones?.start && chat.contextMilestones?.end" class="text-[10px] font-bold text-slate-400 flex items-center gap-1 truncate leading-none">
                   <i class="far fa-calendar-alt opacity-70 text-[8px]"></i>

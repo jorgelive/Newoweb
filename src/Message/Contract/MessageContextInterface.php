@@ -40,6 +40,17 @@ interface MessageContextInterface
     public function getStatusTag(): ?string;
 
     /**
+     * Qué ES este asunto, en una palabra, para la bandeja cuando no hay ítems que listar:
+     * «Reserva», «Viaje», «Proveedor».
+     *
+     * 🔥 La bandeja lo suponía: sin casitas que enseñar ponía «Chat Directo» si el origen era
+     * WhatsApp y **«Reserva PMS» en cualquier otro caso**, de cuando todo eran reservas. Un
+     * conductor (Gabriel Ayme, 19/10/2026) salía como «RESERVA PMS». Lo dice quien lo sabe — el
+     * dominio— y el núcleo lo pinta sin interpretarlo.
+     */
+    public function getRotulo(): string;
+
+    /**
      * Qué vínculo tiene con nosotros quien escribe por esta conversación.
      *
      * ### Por qué está en el contrato y no se deduce de `getStatusTag()`

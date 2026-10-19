@@ -137,6 +137,7 @@ final class AperturaDeHiloTest extends TestCase
             public function getIdentificadores(): array { return $this->identificadores; }
             public function getOrigin(): ?string { return 'directo'; }
             public function getStatusTag(): ?string { return null; }
+            public function getRotulo(): string { return 'Prueba'; }
             public function getVinculo(): VinculoComercial { return VinculoComercial::Cliente; }
             public function getAgencyId(): ?string { return null; }
             public function getMilestones(): MapaDeHitos { return MapaDeHitos::vacio(); }

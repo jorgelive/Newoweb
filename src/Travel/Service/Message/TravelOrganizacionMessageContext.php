@@ -109,6 +109,11 @@ final readonly class TravelOrganizacionMessageContext implements MessageContextI
         return 'proveedor';
     }
 
+    public function getRotulo(): string
+    {
+        return 'Proveedor';
+    }
+
     public function getVinculo(): VinculoComercial
     {
         return VinculoComercial::Cliente;

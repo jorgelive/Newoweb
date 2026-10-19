@@ -148,6 +148,11 @@ class PmsReservaMessageContext implements MessageContextInterface
         return 'confirmed';
     }
 
+    public function getRotulo(): string
+    {
+        return 'Reserva';
+    }
+
     /**
      * Qué hace cliente a alguien EN ALOJAMIENTO: que su reserva esté en firme.
      *

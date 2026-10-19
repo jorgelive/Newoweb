@@ -41,6 +41,7 @@ class MercureConversationDto implements JsonSerializable
 
     private ?string $contextOrigin;
     private ?string $contextStatusTag;
+    private ?string $contextRotulo;
     /** @var array<string, string> Hitos ya en texto: {@see \App\Contract\MomentoDeHito}. */
     private array $contextMilestones = [];
     /** @var list<string> */
@@ -86,6 +87,7 @@ class MercureConversationDto implements JsonSerializable
 
         $this->contextOrigin = $conversation->getContextOrigin();
         $this->contextStatusTag = $conversation->getContextStatusTag();
+        $this->contextRotulo = $conversation->getContextRotulo();
         $this->contextMilestones = $conversation->getContextMilestones();
         $this->contextItems = $conversation->getContextItems();
         $this->contextFinancialTotal = $conversation->getContextFinancialTotal();
@@ -120,6 +122,7 @@ class MercureConversationDto implements JsonSerializable
 
                 'contextOrigin' => $this->getContextOrigin(),
                 'contextStatusTag' => $this->getContextStatusTag(),
+                'contextRotulo' => $this->contextRotulo,
                 'contextMilestones' => $this->getContextMilestones(),
                 'contextItems' => $this->getContextItems(),
                 'contextFinancialTotal' => $this->getContextFinancialTotal(),

@@ -280,6 +280,7 @@ readonly class MessageConversationFactory
         $conversation->setContextOrigin($context->getOrigin());
         $conversation->setContextAgency($context->getAgencyId());
         $conversation->setContextStatusTag($context->getStatusTag());
+        $conversation->setContextRotulo($context->getRotulo());
         $conversation->setContextVinculo($context->getVinculo());
         $conversation->setContextMilestones($context->getMilestones());
         $conversation->setContextItems($context->getItems());

@@ -4652,6 +4652,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
              * @enum {string|null}
@@ -4743,6 +4745,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
              *     serializa tal cual y el front la consume así.
@@ -4840,6 +4844,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
              *     serializa tal cual y el front la consume así.
@@ -4929,6 +4935,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
              * @enum {string|null}
@@ -5020,6 +5028,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
              *     serializa tal cual y el front la consume así.
@@ -5097,6 +5107,8 @@ export interface components {
              */
             contextAgency?: string | null;
             contextStatusTag?: string | null;
+            /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
+            contextRotulo?: string | null;
             /**
              * @description La forma persistida y la que sale por la API. No cambia de tipo: `conversation:read` la
              *     serializa tal cual y el front la consume así.
@@ -21558,6 +21570,11 @@ export interface components {
             /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
             detalle?: string;
             filas?: number;
+            /**
+             * @description Cuáles: el nombre de las primeras filas. «2 prestadores ocultos» sin decir cuáles obligaba
+             *     a buscarlos a mano por toda la cotización.
+             */
+            cuales?: string[];
         };
         "HallazgoCoherencia.html-coherencia.read": {
             clave?: string;
@@ -21565,6 +21582,11 @@ export interface components {
             /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
             detalle?: string;
             filas?: number;
+            /**
+             * @description Cuáles: el nombre de las primeras filas. «2 prestadores ocultos» sin decir cuáles obligaba
+             *     a buscarlos a mano por toda la cotización.
+             */
+            cuales?: string[];
         };
         "HallazgoCoherencia.jsonld-coherencia.read": {
             clave?: string;
@@ -21572,6 +21594,11 @@ export interface components {
             /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
             detalle?: string;
             filas?: number;
+            /**
+             * @description Cuáles: el nombre de las primeras filas. «2 prestadores ocultos» sin decir cuáles obligaba
+             *     a buscarlos a mano por toda la cotización.
+             */
+            cuales?: string[];
         };
         "HallazgoCoherencia.multipart-coherencia.read": {
             clave?: string;
@@ -21579,6 +21606,11 @@ export interface components {
             /** @description Qué se rompe por culpa de esto, en una frase. No es prosa: es lo que decide si urge. */
             detalle?: string;
             filas?: number;
+            /**
+             * @description Cuáles: el nombre de las primeras filas. «2 prestadores ocultos» sin decir cuáles obligaba
+             *     a buscarlos a mano por toda la cotización.
+             */
+            cuales?: string[];
         };
         HydraCollectionBaseSchema: components["schemas"]["HydraCollectionBaseSchemaNoPagination"] & {
             /**
