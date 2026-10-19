@@ -694,13 +694,19 @@ Gemini, en la misma ronda: 4,04.
 - **La configuración elegida para Claude es `ANTHROPIC_EFFORT=low` + `ANTHROPIC_AJUSTES_CHAT=1`.**
   Es la más estable de las dos rondas (4,44 y 4,33; 2 y 1 notas ≤ 2) y la que mejor cierra los
   «gracias».
-- **Lo que siguen fallando todas, Gemini incluido:**
-  - retractarse del almacén de equipaje ante un «gracias» (el turno c7-t2 lo fallan casi todas);
-  - escalar dudas de pago que podía explicar;
-  - la hora de salida «04:00»;
-  - el enlace `wa.me/921166466` sin el prefijo 51.
+- **Los «fallos comunes a todos los motores» resultaron ser de la PRUEBA, no de los modelos.**
+  Investigados uno por uno el 18/10/2026:
 
-  Gemini además se inventa el piso de la casita.
+  | Fallo visto | Causa real |
+  |---|---|
+  | Se retracta del almacén ante un «gracias» | La base local es de antes del 18/09: el almacén era un párrafo dentro de «Horario de ingreso y salida», una ficha **con escalera**, y `consultar_guia` con `busqueda` sólo devuelve un puntero en ese caso. En producción existe «Equipaje y horarios flexibles (general)», sin escalera y con sus términos. |
+  | Escala dudas de pago | La reserva de prueba conservaba un enlace de ADELANTO (primera noche) de agosto: la skill decía «se pide el total» y le daba un enlace por otro importe. En producción el enlace del total anula al del adelanto el día de llegada (comprobado: ningún alojado con un adelanto vivo). |
+  | Western Union «no sirve» | No era un fallo: `FinMedioCobroRepository::ofrecibles()` lo retira cuando ya no da tiempo, y el huésped estaba alojado. La pauta de evaluación estaba mal. |
+  | Salida a las «04:00» | `confirmar_hora` escribía en la reserva de prueba durante el replay (ya no: ver el rollback arriba). |
+  | `wa.me/921166466` sin el 51 | `telefono_principal` viejo en local; en producción es `+51 970 393 305`. |
+
+  ⚠️ **Antes de la próxima comparativa, refrescar la base local desde producción.** Las notas
+  relativas entre motores valen (todos vieron los mismos datos); las absolutas, no.
 
 Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
 Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
