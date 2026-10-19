@@ -614,10 +614,16 @@ primera. Vale la pena descartarlo con el log antes que con la intuición.
 (o un `--guion`, que es la RUTA de un JSON con los mensajes del huésped) y **todas** las respuestas
 las redacta ese motor: el triaje sigue clasificando con el de siempre, para que la pista y el tema
 sean los mismos, pero su atajo de charla se salta. Cada turno queda con su respuesta, latencia,
-herramientas y motivo. ⚠️ Las skills `Interna` (`escalar_al_equipo`, `enviarme_plantilla`) se
-ejecutan de verdad contra la base a la que apuntes: en local, sin workers ni `exchange:run`, el
-aviso se queda en la base sin salir. Ya en la primera prueba, DeepSeek escaló al equipo una
-pregunta de tours que sólo había que anotar.
+herramientas y motivo.
+
+🔒 **Cada conversación corre dentro de una transacción que se deshace al terminar** (18/10/2026,
+con savepoints para que el fallo de una skill no envenene el resto del ensayo). Las skills `Interna`
+se ejecutan de verdad y escriben: `confirmar_hora` dejó «salida 04:00» en la reserva de prueba
+porque un huésped del guion dijo «nos retiraremos a las 4 am», y las conversaciones siguientes lo
+leyeron como dato — la comparativa castigó a los modelos por una hora que no inventaron. Ahora la
+hora, las peticiones anotadas y los avisos en cola (Messenger y `msg_*_send_queue` viven en la
+misma base) se van con el rollback. Lo que no vuelve es lo que sale de la base en el momento: un
+push, una llamada HTTP directa.
 
 #### Lo que salió de la primera comparativa (18/10/2026)
 
@@ -691,9 +697,9 @@ Gemini, en la misma ronda: 4,04.
 
 Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
 Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
-sin modelo no se podía repartir. Tras una prueba, los avisos que quedaron en cola en la base local
-(`msg_*_send_queue`) se marcan `cancelled`: con el `exchange:run` encendido en local saldrían a
-huéspedes reales.
+sin modelo no se podía repartir. Hasta el rollback del replay, los avisos que quedaban en cola tras
+una prueba había que marcarlos `cancelled` a mano: con el `exchange:run` encendido en local habrían
+salido a huéspedes reales.
 
 ### 🩺 La vigilancia del motor no espera a un huésped (17/10/2026)
 

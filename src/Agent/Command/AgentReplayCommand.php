@@ -44,12 +44,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * sola y acabaría probando algo que ya no está en producción.
  *
  * **No persiste nada**: el historial se acumula en memoria, así que no crea mensajes, no encola
- * envíos y no marca la conversación como no leída. Se puede correr veinte veces seguidas.
+ * envíos y no marca la conversación como no leída. Y desde el 18/10/2026 la conversación entera
+ * corre dentro de una transacción que se DESHACE al terminar: lo que escriban las skills
+ * —`confirmar_hora`, `anotar_peticion`, los avisos en cola— tampoco queda. Se puede correr veinte
+ * veces seguidas sin que una pasada contamine a la siguiente, que es lo que pasaba: un «nos
+ * retiraremos a las 4 am» del guion dejaba la salida de la reserva de prueba en 04:00.
  *
- * ### ⚠️ Lo único que sí tiene efectos: las skills
+ * ### ⚠️ Lo que sí sale: lo que no pasa por la base
  *
- * Si el modelo llama a una skill, se ejecuta de verdad contra la base de datos a la que apuntes.
- * Con el actor de huésped **dos** escriben, y las dos mandan mensajes a personas reales:
+ * Las skills se ejecutan de verdad. Lo que escriben en la base se deshace, pero lo que sale de
+ * ella en el momento no vuelve (un push, una llamada HTTP directa). Con el actor de huésped **dos**
+ * avisan a personas reales —hoy por cola, que se deshace, pero el día que una mande directo, sale:
  *
  * - `escalar_al_equipo` → WhatsApp a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil.
  * - `enviarme_plantilla` → un mensaje **al propio huésped**, por su canal.
@@ -175,6 +180,22 @@ final class AgentReplayCommand extends Command
             trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente())
         ));
 
+        // 🔒 TODO lo que escriban las skills se deshace al terminar (18/10/2026). El historial ya
+        // vivía en memoria, pero las skills `Interna` escriben de verdad: `confirmar_hora` dejó
+        // «salida 04:00» en la reserva de prueba porque un huésped del guion dijo «nos retiraremos
+        // como a las 4 am», y las conversaciones siguientes lo leyeron como dato. Las peticiones
+        // anotadas y los avisos en cola (Messenger y las colas de envío viven en esta misma base)
+        // también se van. Lo que no vuelve es lo que sale de la base en el momento: un push.
+        //
+        // Con savepoints, porque DBAL 3 no los usa por defecto: sin ellos, una skill que falla y
+        // deshace SU transacción marca la de fuera como «sólo rollback», y todas las escrituras
+        // posteriores del ensayo fallarían — un resultado que no tiene nada que ver con el motor.
+        $conexion = $this->em->getConnection();
+        $conSavepoints = $conexion->getNestTransactionsWithSavepoints();
+        $conexion->setNestTransactionsWithSavepoints(true);
+        $conexion->beginTransaction();
+
+        try {
         foreach ($mensajes as $i => $mensaje) {
             $io->writeln(sprintf("\n<fg=cyan>[%d] 👤 %s</>", $i + 1, str_replace("\n", "\n         ", $mensaje)));
 
@@ -276,6 +297,14 @@ final class AgentReplayCommand extends Command
             $historial[] = ['rol' => 'usuario', 'texto' => $mensaje];
             $historial[] = ['rol' => 'asistente', 'texto' => (string) $respuesta];
         }
+        } finally {
+            while ($conexion->isTransactionActive()) {
+                $conexion->rollBack();
+            }
+            $conexion->setNestTransactionsWithSavepoints($conSavepoints);
+            // Lo que quedó en memoria describe filas que ya no existen.
+            $this->em->clear();
+        }
 
         $io->newLine();
 
@@ -307,7 +336,7 @@ final class AgentReplayCommand extends Command
             $io->writeln(sprintf('<info>Turnos guardados en %s.</info>', $salida));
         }
 
-        $io->success('Nada de esto se ha guardado en la base: el historial vivió en memoria.');
+        $io->success('Nada de esto se ha guardado en la base: el historial vivió en memoria y lo que escribieron las skills se ha deshecho.');
 
         return Command::SUCCESS;
     }
