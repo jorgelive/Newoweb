@@ -4224,7 +4224,10 @@ onMounted(async () => {
                     </button>
                 </header>
 
-                <div class="overflow-y-auto px-5 py-4 space-y-4">
+                <!-- `overflow-x-hidden`: el enlace de la orden es una palabra de 60 caracteres sin espacios;
+                     sin partirla (`overflow-wrap: anywhere` en el cuerpo) ensanchaba el panel y en el
+                     móvil se leía cortado por los dos lados. -->
+                <div class="overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4">
                     <p v-if="cargandoDocumento" class="text-xs text-slate-400 text-center py-6">
                         <i class="fas fa-spinner fa-spin mr-1"></i> Preparando el documento…
                     </p>
@@ -4255,7 +4258,7 @@ onMounted(async () => {
                                     {{ copiado ? 'Copiado' : 'Copiar' }}
                                 </button>
                             </div>
-                            <pre id="cuerpo-del-mensaje" class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap font-sans leading-relaxed">{{ documento.cuerpo }}</pre>
+                            <pre id="cuerpo-del-mensaje" class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap [overflow-wrap:anywhere] font-sans leading-relaxed">{{ documento.cuerpo }}</pre>
                             <p class="text-[10px] text-slate-400 mt-1 leading-snug">
                                 Sale de las líneas congeladas al emitir, y no lleva importes: lo que se paga
                                 se lleva aparte. <b>Copiar</b> se lleva también el enlace, con el formato de

@@ -9171,6 +9171,12 @@ chequeo**: es lo único que separa una consulta correcta de una que devuelve cer
 `CoherenciaCatalogoChecker` reparte en dos bloques: lo que repara solo y lo que deja para una
 persona. El segundo bloque **tiene que poder vaciarse**, o deja de leerse.
 
+**Y dice CUÁLES (19/10/2026).** Sólo contaba: «2 Prestadores ocultos cuyo catálogo ya permite
+nombrarlos», y había que buscarlos por toda la cotización. Cada chequeo lleva ahora un `cual` —la
+expresión SQL que nombra la fila, sobre los mismos alias de su `desde`— y el hallazgo trae hasta 8
+nombres (`HallazgoCoherencia::$cuales`), leídos **antes** de reparar. El editor los pinta bajo el
+detalle; el comando, debajo de cada línea. Un chequeo sin `cual` sigue contando, sin más.
+
 ⚠️ El chequeo `orden-congelada-incompleta` estaba pidiendo lo imposible: listaba líneas de órdenes
 **canceladas**. Su propio consejo es «se corrigen reemitiendo», y una orden cancelada no se
 reemite. Cuatro líneas de las dos órdenes de prueba del 22/08 salían **en cada inspección** desde

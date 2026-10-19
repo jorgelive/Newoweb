@@ -371,6 +371,8 @@ export interface HallazgoCoherencia {
     /** Qué se rompe por esto. No es prosa: es lo que decide si urge. */
     detalle: string;
     filas: number;
+    /** El nombre de las primeras filas (hasta 8), para saber dónde mirar. */
+    cuales?: string[];
 }
 
 export interface InformeCoherencia {

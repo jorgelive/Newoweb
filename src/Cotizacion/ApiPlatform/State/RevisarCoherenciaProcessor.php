@@ -41,7 +41,7 @@ final class RevisarCoherenciaProcessor implements ProcessorInterface
         $reparables = [];
         $manuales = [];
         foreach ($hallazgos as $h) {
-            $hallazgo = new HallazgoCoherencia($h['clave'], $h['titulo'], $h['detalle'], $h['filas']);
+            $hallazgo = new HallazgoCoherencia($h['clave'], $h['titulo'], $h['detalle'], $h['filas'], $h['cuales']);
 
             if ($h['reparable']) {
                 $reparables[] = $hallazgo;

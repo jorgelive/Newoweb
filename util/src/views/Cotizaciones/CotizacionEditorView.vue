@@ -2892,6 +2892,10 @@ store.$onAction(({ name, args }) => {
                           <span class="text-[11px] font-black text-amber-800">{{ h.filas }}</span>
                           <span class="text-[11px] font-bold text-amber-800 ml-1">{{ h.titulo }}</span>
                           <span class="block text-[10px] text-amber-600 leading-snug">{{ h.detalle }}</span>
+                          <!-- Cuáles: sin ellos «2 prestadores ocultos» obligaba a buscarlos a mano. -->
+                          <span v-if="h.cuales?.length" class="block mt-0.5 text-[10px] font-semibold text-amber-800 leading-snug break-words">
+                            {{ h.cuales.join(' · ') }}<template v-if="h.filas > h.cuales.length"> · …</template>
+                          </span>
                         </li>
                       </ul>
                       <!-- El botón de reparar sólo aparece DESPUÉS de enseñar qué se va a tocar. -->
@@ -2913,6 +2917,10 @@ store.$onAction(({ name, args }) => {
                           <span class="text-[11px] font-black text-slate-700">{{ h.filas }}</span>
                           <span class="text-[11px] font-bold text-slate-700 ml-1">{{ h.titulo }}</span>
                           <span class="block text-[10px] text-slate-500 leading-snug">{{ h.detalle }}</span>
+                          <!-- Cuáles: sin ellos «2 prestadores ocultos» obligaba a buscarlos a mano. -->
+                          <span v-if="h.cuales?.length" class="block mt-0.5 text-[10px] font-semibold text-slate-700 leading-snug break-words">
+                            {{ h.cuales.join(' · ') }}<template v-if="h.filas > h.cuales.length"> · …</template>
+                          </span>
                         </li>
                       </ul>
                     </div>

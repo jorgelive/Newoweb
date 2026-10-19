@@ -43,6 +43,9 @@ use Symfony\Component\Uid\Uuid;
  */
 final class CoherenciaCatalogoChecker
 {
+    /** Cuántos nombres se enseñan por hallazgo: los primeros dicen dónde mirar; cien, no. */
+    private const int CUALES_MAX = 8;
+
     public function __construct(private readonly Connection $db)
     {
     }
@@ -50,7 +53,7 @@ final class CoherenciaCatalogoChecker
     /**
      * @param string|null $cotizacionId null = todo el catálogo; con id, sólo esa cotización
      *
-     * @return list<array{clave: string, titulo: string, detalle: string, filas: int, reparable: bool}>
+     * @return list<array{clave: string, titulo: string, detalle: string, filas: int, reparable: bool, cuales: list<string>}>
      */
     public function revisar(bool $reparar = false, ?string $cotizacionId = null): array
     {
@@ -80,6 +83,21 @@ final class CoherenciaCatalogoChecker
                 continue;
             }
 
+            // CUÁLES, antes de reparar: después, las reparadas ya no cumplen la condición. Sin esto
+            // el panel decía «2 prestadores ocultos…» y había que ir a buscarlos uno a uno.
+            $cuales = [];
+            if (isset($chk['cual'])) {
+                /** @var list<mixed> $nombres */
+                $nombres = $this->db->fetchFirstColumn(
+                    sprintf('SELECT DISTINCT %s FROM %s WHERE %s%s LIMIT %d', $chk['cual'], $chk['desde'], $chk['donde'], $filtro, self::CUALES_MAX),
+                    $params
+                );
+                $cuales = array_values(array_filter(
+                    array_map(static fn (mixed $n): string => is_scalar($n) ? trim((string) $n) : '', $nombres),
+                    static fn (string $n): bool => $n !== ''
+                ));
+            }
+
             if ($reparar && $reparable) {
                 $filas = (int) $this->db->executeStatement(
                     sprintf('UPDATE %s SET %s WHERE %s%s', $chk['desde'], $chk['set'], $chk['donde'], $filtro),
@@ -93,6 +111,7 @@ final class CoherenciaCatalogoChecker
                 'detalle'   => $chk['detalle'],
                 'filas'     => $filas,
                 'reparable' => $reparable,
+                'cuales'    => $cuales,
             ];
         }
 
@@ -106,7 +125,7 @@ final class CoherenciaCatalogoChecker
      * `deCotizacion` es la condición que lo ata a una cotización concreta. Se añade sólo cuando
      * hace falta, así que el chequeo global no paga el JOIN.
      *
-     * @return array<string, array{titulo: string, detalle: string, desde: string, donde: string, set: string|null, deCotizacion: string}>
+     * @return array<string, array{titulo: string, cual?: string, detalle: string, desde: string, donde: string, set: string|null, deCotizacion: string}>
      */
     private function reparables(): array
     {
@@ -115,6 +134,7 @@ final class CoherenciaCatalogoChecker
         return [
             'componente-nombre' => [
                 'titulo'  => 'Componentes con maestro pero sin nombre operativo',
+                'cual'    => 'COALESCE(k.nombre_interno_snapshot, m.nombre_interno)',
                 'detalle' => 'La ficha de tráfico y la Orden caen al título público, que a veces es genérico.',
                 'desde'   => 'cotizacion_cotcomponente k JOIN travel_componente m ON HEX(m.id) = UPPER(REPLACE(k.componente_maestro_id, "-", ""))',
                 'donde'   => '(k.nombre_interno_snapshot IS NULL OR k.nombre_interno_snapshot = "") AND m.nombre_interno <> ""',
@@ -123,6 +143,7 @@ final class CoherenciaCatalogoChecker
             ],
             'prestador-nombre' => [
                 'titulo'  => 'Prestador asignado sin su nombre congelado',
+                'cual'    => 'o.nombre_comercial',
                 'detalle' => 'La Orden se queda sin decir quién opera; `pax` no lo nota porque resuelve en vivo.',
                 'desde'   => 'cotizacion_cotcomponente k JOIN travel_organizacion o ON HEX(o.id) = UPPER(REPLACE(k.prestador_maestro_id, "-", ""))',
                 'donde'   => '(k.prestador_nombre_snapshot IS NULL OR k.prestador_nombre_snapshot = "") AND o.nombre_comercial <> ""',
@@ -131,6 +152,7 @@ final class CoherenciaCatalogoChecker
             ],
             'habitacion-nombre' => [
                 'titulo'  => 'Habitación o clase asignada sin su nombre congelado',
+                'cual'    => 's.nombre',
                 'detalle' => 'El huésped la ve —resuelve en vivo— y el proveedor recibe la categoría a secas.',
                 'desde'   => 'cotizacion_cotcomponente k JOIN travel_organizacion_servicio s ON HEX(s.id) = UPPER(REPLACE(k.prestador_servicio_maestro_id, "-", ""))',
                 'donde'   => '(k.prestador_servicio_nombre_snapshot IS NULL OR k.prestador_servicio_nombre_snapshot = "") AND s.nombre <> ""',
@@ -139,6 +161,7 @@ final class CoherenciaCatalogoChecker
             ],
             'segmento-nombre' => [
                 'titulo'  => 'Segmentos con maestro pero sin nombre operativo',
+                'cual'    => 't.nombre_interno',
                 'detalle' => 'La línea pequeña de la ficha de tráfico se queda sin el tramo.',
                 'desde'   => 'cotizacion_segmento g JOIN travel_segmento t ON HEX(t.id) = UPPER(REPLACE(g.segmento_maestro_id, "-", ""))',
                 'donde'   => 'JSON_LENGTH(g.nombre_interno_snapshot) = 0 AND t.nombre_interno <> ""',
@@ -155,6 +178,7 @@ final class CoherenciaCatalogoChecker
             // y no se toca aquí. Ver docs/Cotizaciones.md §6.u.
             'alojamiento-con-hora' => [
                 'titulo'  => 'Alojamientos con hora, que romperían la estadía en la guía',
+                'cual'    => 'COALESCE(k.nombre_interno_snapshot, m.nombre_interno)',
                 'detalle' => 'Se marcan como sin horario: un hotel no se vende por hora.',
                 'desde'   => 'cotizacion_cotcomponente k JOIN travel_componente m ON HEX(m.id) = UPPER(REPLACE(k.componente_maestro_id, "-", ""))',
                 'donde'   => 'm.tipo = "alojamiento" AND k.sin_horario = 0
@@ -173,6 +197,7 @@ final class CoherenciaCatalogoChecker
             // prosa de cliente y ahí el paréntesis no significa nada para quien viaja.
             'bidireccional-sin-marca' => [
                 'titulo'  => 'Transportes con «↔» que no avisan de que sirven en los dos sentidos',
+                'cual'    => 'c.nombre_interno',
                 'detalle' => 'Se les añade «(ida o vuelta)»: la flecha sola invita a suponer el destino.',
                 'desde'   => 'travel_componente c',
                 'donde'   => 'c.tipo = "transporte" AND c.nombre_interno LIKE "%↔%"
@@ -186,6 +211,7 @@ final class CoherenciaCatalogoChecker
             // rellenan, no cambios que alguien deba aprobar.
             'biblia-desincronizada' => [
                 'titulo'  => 'Filas del Centro de Operaciones sin datos que la cotización sí tiene',
+                'cual'    => 'o.descripcion_servicio',
                 'detalle' => 'Se rellenan directamente: están vacíos, no hay nada que aprobar.',
                 'desde'   => 'operacion_servicio o JOIN cotizacion_cotcomponente k ON k.id = o.cotizacion_componente_id',
                 'donde'   => '((o.nombre_componente IS NULL AND k.nombre_interno_snapshot <> "")
@@ -202,13 +228,14 @@ final class CoherenciaCatalogoChecker
     /**
      * Lo que huele a medias pero admite más de una lectura. Se enseña y no se toca.
      *
-     * @return array<string, array{titulo: string, detalle: string, desde: string, donde: string, set: null, deCotizacion: string}>
+     * @return array<string, array{titulo: string, cual?: string, detalle: string, desde: string, donde: string, set: null, deCotizacion: string}>
      */
     private function avisos(): array
     {
         return [
             'servicio-sin-titulo' => [
                 'titulo'  => 'Servicios de organización sin título público',
+                'cual'    => 's.nombre',
                 'detalle' => 'Invisibles para el huésped aunque estén asignados. Se rellenan en el catálogo.',
                 'desde'   => 'travel_organizacion_servicio s',
                 'donde'   => 'JSON_LENGTH(s.titulo) = 0 AND s.nombre <> ""',
@@ -251,6 +278,7 @@ final class CoherenciaCatalogoChecker
             // como tiene que nacer un vigilante — si naciera en rojo, nadie lo miraría.
             'tarifas-no-cubren-pax' => [
                 'titulo'  => 'Componentes cuyas tarifas no suman los pasajeros cotizados',
+                'cual'    => 'k.nombre_interno_snapshot',
                 'detalle' => 'El precio se calcula por la cantidad de cada tarifa, no por los pax: esto cobra por otra cantidad de gente. Se reparte a mano en el editor.',
                 'desde'   => 'cotizacion_cotcomponente k
                               JOIN cotizacion_cotservicio sv ON sv.id = k.cotservicio_id
@@ -264,6 +292,7 @@ final class CoherenciaCatalogoChecker
             ],
             'visibilidad-desfasada' => [
                 'titulo'  => 'Prestadores ocultos cuyo catálogo ya permite nombrarlos',
+                'cual'    => 'CONCAT(o.nombre_comercial, " — ", COALESCE(k.nombre_interno_snapshot, ""))',
                 'detalle' => 'Puede ser deliberado: la cotización manda. Se arrastra reasignando el prestador.',
                 'desde'   => 'cotizacion_cotcomponente k JOIN travel_organizacion o ON HEX(o.id) = UPPER(REPLACE(k.prestador_maestro_id, "-", ""))',
                 'donde'   => 'k.prestador_visible = 0 AND o.visible_para_cliente = 1',
@@ -277,6 +306,7 @@ final class CoherenciaCatalogoChecker
             // vigilaba, y de los que depende que el itinerario salga en el orden correcto.
             'orden-empatado' => [
                 'titulo'  => 'Párrafos hermanos con el mismo orden en el mismo día',
+                'cual'    => 'JSON_UNQUOTE(JSON_EXTRACT(g.nombre_interno_snapshot, "$[0].content"))',
                 'detalle' => 'Cuál sale antes lo decide el azar del guardado. Se arregla renumerando en el constructor.',
                 'desde'   => 'cotizacion_segmento g',
                 'donde'   => 'EXISTS (SELECT 1 FROM cotizacion_segmento d
@@ -357,6 +387,7 @@ final class CoherenciaCatalogoChecker
             // fundir tarifas toca dinero, y eso no lo decide un chequeo.
             'tarifas-repetidas' => [
                 'titulo'  => 'Tarifas repetidas exactas dentro del mismo componente',
+                'cual'    => 't.nombre_interno',
                 'detalle' => 'Mismo nombre, importe y moneda. Se limpian con `app:travel:limpiar-tarifas-repetidas`.',
                 'desde'   => 'travel_tarifa t',
                 'donde'   => 'EXISTS (SELECT 1 FROM travel_tarifa d WHERE d.componente_id = t.componente_id
@@ -374,6 +405,7 @@ final class CoherenciaCatalogoChecker
             // el precio, y al duplicarlo lo deja divergir.
             'transporte-direccional' => [
                 'titulo'  => 'Transportes con su gemelo en sentido contrario',
+                'cual'    => 'a.nombre_interno',
                 'detalle' => 'Un componente por RUTA, no por sentido: `app:travel:fusionar-transportes-bidireccionales`.',
                 'desde'   => 'travel_componente a',
                 'donde'   => 'a.tipo = "transporte" AND a.nombre_interno LIKE "Transporte % - %"
@@ -392,6 +424,7 @@ final class CoherenciaCatalogoChecker
             // distingue —Urubamba 55, Aranwa 60, Pisac 120— porque es distancia real.
             'tarifas-por-sentido' => [
                 'titulo'  => 'Tarifas que sólo se diferencian en «desde» / «hasta»',
+                'cual'    => 'CONCAT(c.nombre_interno, " — ", t.nombre_interno)',
                 'detalle' => 'En un componente bidireccional no distinguen nada: `app:travel:fusionar-tarifas-por-sentido`.',
                 'desde'   => 'travel_tarifa t JOIN travel_componente c ON c.id = t.componente_id',
                 'donde'   => 'c.nombre_interno LIKE "%↔%"
@@ -415,6 +448,7 @@ final class CoherenciaCatalogoChecker
             // que `nombre_componente` nació el 27/08: cuatro líneas de ruido permanente.
             'orden-congelada-incompleta' => [
                 'titulo'  => 'Líneas de Orden emitida sin datos que el Centro de Operaciones sí tiene',
+                'cual'    => 'CONCAT(os.numero_os, " — ", i.descripcion)',
                 'detalle' => 'NO se reparan: dicen lo que se le mandó al proveedor. Se corrigen reemitiendo.',
                 'desde'   => 'operacion_orden_servicio_item i JOIN operacion_servicio s ON s.id = UNHEX(REPLACE(i.operacion_servicio_id, "-", "")) JOIN operacion_orden_servicio os ON os.id = i.orden_id',
                 'donde'   => 'os.estado_os NOT IN ("completada", "cancelada")

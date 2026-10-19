@@ -19,6 +19,14 @@ final class HallazgoCoherencia
         public readonly string $detalle,
         #[Groups(['coherencia:read'])]
         public readonly int $filas,
+        /**
+         * Cuáles: el nombre de las primeras filas. «2 prestadores ocultos» sin decir cuáles obligaba
+         * a buscarlos a mano por toda la cotización.
+         *
+         * @var list<string>
+         */
+        #[Groups(['coherencia:read'])]
+        public readonly array $cuales = [],
     ) {
     }
 }

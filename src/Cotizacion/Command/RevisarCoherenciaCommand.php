@@ -60,6 +60,9 @@ final class RevisarCoherenciaCommand extends Command
 
             foreach ($reparados as $h) {
                 $io->text(sprintf('  %4d · %s', $h['filas'], $h['titulo']));
+                if ($h['cuales'] !== []) {
+                    $io->text('         ' . implode(' · ', $h['cuales']));
+                }
                 $io->text(sprintf('         %s', $h['detalle']));
             }
         }
@@ -69,6 +72,9 @@ final class RevisarCoherenciaCommand extends Command
 
             foreach ($avisos as $h) {
                 $io->text(sprintf('  %4d · %s', $h['filas'], $h['titulo']));
+                if ($h['cuales'] !== []) {
+                    $io->text('         ' . implode(' · ', $h['cuales']));
+                }
                 $io->text(sprintf('         %s', $h['detalle']));
             }
         }
