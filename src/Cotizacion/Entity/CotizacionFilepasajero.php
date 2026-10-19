@@ -224,30 +224,58 @@ class CotizacionFilepasajero
      * ====================================================== */
 
     /**
-     * Obtiene el primer bloque del apellido.
+     * El primer apellido: «de la Cruz» de «de la Cruz Cruz», «Santos» de «Santos de Blas».
+     *
+     * 🔥 Partía por el PRIMER ESPACIO, así que «de la Cruz Cruz» daba «de» y «la Cruz Cruz». Lo pide
+     * por separado el Ministerio de Cultura (`ListaParaCultura`), y con eso a la entrada de Machu
+     * Picchu llegaba alguien apellidado «de». Las partículas (`de`, `del`, `la`…) se pegan al
+     * apellido que las sigue. Ver `apellidosPorSeparado()`.
      */
     #[Groups(['file:item:read'])]
     public function getApellidoPaterno(): ?string
     {
-        if (empty($this->apellido)) {
-            return null;
-        }
-        $apellidosArray = explode(' ', $this->apellido, 2);
-        // `explode()` nunca devuelve vacío y el apellido ya se comprobó arriba.
-        return $apellidosArray[0];
+        return self::apellidosPorSeparado($this->apellido)[0];
     }
 
-    /**
-     * Obtiene el segundo bloque del apellido.
-     */
+    /** El segundo apellido —todo lo que sigue al primero—, o `null` si sólo hay uno. */
     #[Groups(['file:item:read'])]
     public function getApellidoMaterno(): ?string
     {
-        if (empty($this->apellido)) {
-            return null;
+        return self::apellidosPorSeparado($this->apellido)[1];
+    }
+
+    /** Las partículas que forman parte del apellido que las sigue. En minúscula. */
+    private const array PARTICULAS_DE_APELLIDO = ['de', 'del', 'la', 'las', 'los', 'y', 'da', 'das', 'do', 'dos', 'van', 'von', 'der', 'di', 'san', 'santa'];
+
+    /**
+     * @return array{0: ?string, 1: ?string} [primer apellido, el resto]
+     */
+    public static function apellidosPorSeparado(?string $apellido): array
+    {
+        $palabras = preg_split('/\s+/', trim((string) $apellido)) ?: [];
+        $palabras = array_values(array_filter($palabras, static fn (string $p): bool => $p !== ''));
+
+        $bloques = [];
+        $pendiente = [];
+        foreach ($palabras as $palabra) {
+            $pendiente[] = $palabra;
+            if (!in_array(mb_strtolower($palabra), self::PARTICULAS_DE_APELLIDO, true)) {
+                $bloques[] = implode(' ', $pendiente);
+                $pendiente = [];
+            }
         }
-        $apellidosArray = explode(' ', $this->apellido, 2);
-        return $apellidosArray[1] ?? null;
+        if ($pendiente !== []) {
+            // Una partícula suelta al final («Cruz de»): va con lo último que había.
+            $bloques === [] ? $bloques[] = implode(' ', $pendiente) : $bloques[count($bloques) - 1] .= ' ' . implode(' ', $pendiente);
+        }
+
+        if ($bloques === []) {
+            return [null, null];
+        }
+
+        $primero = array_shift($bloques);
+
+        return [$primero, $bloques === [] ? null : implode(' ', $bloques)];
     }
 
     /**
