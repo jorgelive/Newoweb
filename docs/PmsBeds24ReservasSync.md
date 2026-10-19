@@ -6527,14 +6527,18 @@ ese día. Ahora se lee con `Lee::texto()` —un número JSON pasa a texto igual 
 por medio— y se exige `is_numeric()`. Sin la fila rige la última cotización buena, que es el respaldo
 que ya existía; y el cron de las 08:00 avisa si falta el día. Lo fija `TipocambioManagerTest`.
 
-🔮 **Una fecha futura no se pregunta** (19/10/2026). El push de tarifas en soles
-(`RatesNestedMappingStrategy`) pide el cambio de **cada fecha de tarifa**, y para una fecha
-posterior a hoy `getTipodecambio()` llamaba a la API aunque SUNAT no publica nada por adelantado:
-siempre vacía, siempre al respaldo —el precio salía bien—, pero gastando una consulta del cupo de
-20 y armando los 20 minutos de espera. El 18/10 a las 21:24 una reserva de noviembre pidió
-`month=11` y la consulta siguiente salió «frenada». Ahora `TipocambioManager::esFutura()` la manda
-directa a `findLastAvailableInDb()`: la última cotización conocida, que es lo que acababa
-devolviendo igual.
+🔮 **Una fecha futura no se pregunta** (19/10/2026). El depósito automático de una OTA
+(`PmsPagoOtaAutomaticoService`) va fechado **el día después de la llegada** —cuando paga Airbnb— y
+pide el cambio de esa fecha. Para una fecha posterior a hoy `getTipodecambio()` llamaba a la API
+aunque SUNAT no publica nada por adelantado: siempre vacía, siempre al respaldo, pero gastando una
+consulta del cupo de 20 y armando los 20 minutos de espera. El 18/10 a las 21:24 una reserva de
+Airbnb para noviembre pidió `month=11` y la consulta siguiente salió «frenada». Ahora
+`TipocambioManager::esFutura()` la manda directa a `findLastAvailableInDb()`: la última cotización
+conocida, que es lo que acababa devolviendo igual.
+
+⚠️ **Y ese cambio se queda congelado.** El depósito nace con el cambio del día en que entra la
+reserva y nadie lo vuelve a mirar cuando llega su fecha —ni siquiera si la reserva se mueve:
+`PmsPagoOtaAutomaticoService` actualiza importe y fecha, no el cambio—. Pendiente de decidir.
 
 ### El cron, que es lo que faltaba de verdad
 

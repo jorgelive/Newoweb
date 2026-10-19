@@ -203,9 +203,10 @@ class TipocambioManager
 
         // 🔮 Una fecha FUTURA no se pregunta (19/10/2026). SUNAT no publica cambios por adelantado,
         // así que la respuesta es siempre vacía y se acaba en el respaldo de abajo — pero gastando
-        // una consulta del cupo diario y armando los 20 minutos de espera entre consultas. El push
-        // de tarifas en soles pide el cambio de CADA fecha de tarifa: una reserva de noviembre
-        // llegada el 18/10 a las 21:24 pidió `month=11` y frenó la siguiente consulta de verdad.
+        // una consulta del cupo diario y armando los 20 minutos de espera entre consultas. Quien
+        // la pide es el depósito automático de una OTA (`PmsPagoOtaAutomaticoService`), fechado el
+        // día después de la llegada: una reserva de Airbnb para noviembre entrada el 18/10 a las
+        // 21:24 pidió `month=11` y frenó la siguiente consulta de verdad.
         if (self::esFutura($fechaBuscada, $this->hoyEnLima())) {
             return $this->findLastAvailableInDb($fechaBuscada);
         }
