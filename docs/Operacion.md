@@ -3315,6 +3315,11 @@ es la parte de la regla vieja que no se toca.
 
 ### «7 días, 6 noches»: una cuenta, dos consumidores
 
+⚠️ **Desde el 19/10/2026 la ORDEN ya no la imprime** (ni el mensaje, ni la página pública, ni el
+PDF): es la duración del viaje entero, y al hotel de Aguas Calientes de dos noches le llegaba «5
+noches» en el encabezado y las 2 de verdad en su línea — un dato que contradice al de abajo se toma
+por el bueno. Se sigue congelando en `gruposSnapshot`; lo de cada proveedor lo dice su línea.
+
 ⚠️ **La guía del huésped NO usa el cálculo de PHP.** Lo saca de `resumenDeDuracion()`
 (`dominio/cotizacion/unidades.ts`) sobre el itinerario **ya compuesto**: allí cada bloque sabe si
 es un periodo, en qué se cuenta y cuántas unidades tiene, así que sale gratis y sin recorrer otra

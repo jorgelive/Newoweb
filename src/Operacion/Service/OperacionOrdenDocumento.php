@@ -74,14 +74,11 @@ final readonly class OperacionOrdenDocumento
                     ? sprintf('%d %s', $g['habitaciones'], $g['habitaciones'] === 1 ? 'habitación' : 'habitaciones')
                     : null,
                 $g['pax'] > 0 ? sprintf('%d pax', $g['pax']) : null,
-                $g['dias'] > 0
-                    ? trim(sprintf(
-                        '%d %s%s',
-                        $g['dias'],
-                        $g['dias'] === 1 ? 'día' : 'días',
-                        $g['noches'] > 0 ? sprintf(', %d %s', $g['noches'], $g['noches'] === 1 ? 'noche' : 'noches') : ''
-                    ))
-                    : null,
+                // ⚠️ **Sin «6 días, 5 noches».** Es la duración del VIAJE entero, no de lo que se le
+                // pide a este proveedor: al hotel de Aguas Calientes de dos noches le llegaba «5
+                // noches» en el encabezado y las 2 de verdad más abajo. Un dato que contradice al
+                // de la línea se toma por el bueno (Jorge, 19/10/2026). Lo que se encarga ya lo dice
+                // cada línea, con sus noches y su salida. Se sigue congelando en `gruposSnapshot`.
                 $telefono !== '' ? sprintf('tel. %s', $telefono) : null,
             ], static fn (?string $p): bool => $p !== null));
 
