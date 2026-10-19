@@ -1098,6 +1098,49 @@ const guardarExpuestos = async () => {
   expuestosAbierto.value = false;
 };
 
+/**
+ * El TITULAR del expediente (`pasajeroPrincipal`) elegido de la lista de pasajeros.
+ *
+ * Se cotiza a nombre de quien escribe, y a veces esa persona no viaja: el titular tiene que pasar
+ * a ser alguien del manifiesto. Hasta ahora había que reescribir el nombre a mano en la cabecera.
+ *
+ * ⚠️ **Sólo cambia el titular, no el contacto.** Los mensajes siguen yendo a quien escribió —el
+ * contacto del expediente—, que es lo correcto: es quien gestiona el viaje. El titular es lo que
+ * lee el proveedor en la orden («pasajero») y la cabecera.
+ *
+ * Se guarda como TEXTO, igual que hoy: el campo existe antes que el manifiesto —se cotiza sin
+ * pasajeros— y una relación obligaría a tener a alguien cargado para poder cotizar.
+ */
+const nombreCompletoDe = (pax: { nombre?: string | null; apellido?: string | null }): string =>
+  `${pax.nombre ?? ''} ${pax.apellido ?? ''}`.replace(/\s+/g, ' ').trim();
+
+const esTitular = (pax: { nombre?: string | null; apellido?: string | null }): boolean => {
+  const titular = (file.value?.pasajeroPrincipal ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('es');
+  return titular !== '' && titular === nombreCompletoDe(pax).toLocaleLowerCase('es');
+};
+
+const haciendoTitular = ref(false);
+
+const hacerTitular = async (pax: { nombre?: string | null; apellido?: string | null }) => {
+  if (!file.value) return;
+  const nombre = nombreCompletoDe(pax);
+  if (!nombre) return;
+
+  const actual = file.value.pasajeroPrincipal?.trim();
+  if (!confirm(`«${nombre}» pasará a ser el titular del expediente${actual ? ` (ahora: «${actual}»)` : ''}.\n\nEl contacto no cambia: los mensajes siguen yendo a quien te escribió.`)) {
+    return;
+  }
+
+  haciendoTitular.value = true;
+  try {
+    const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
+    if (await fileStore.updateFile(iri, { pasajeroPrincipal: nombre })) { await cargarFile(); }
+    else { alert(fileStore.error || 'No se pudo cambiar el titular.'); }
+  } finally {
+    haciendoTitular.value = false;
+  }
+};
+
 const cambiarModo = async (modo: 'estandar' | 'grupo' | string) => {
   if (!file.value) return;
   const iri = file.value['@id'] || `/platform/sales/cotizacion_files/${extractIdStr(file.value.id)}`;
@@ -5362,7 +5405,10 @@ const eliminarDocumento = async (iri?: string) => {
                        hace falta, y **el resto baja debajo del número** a ancho completo. -->
                   <div class="flex items-start gap-2 pr-[6.5rem]">
                     <div class="w-8 h-8 shrink-0 rounded-full bg-indigo-100 text-indigo-600 font-black text-xs flex items-center justify-center border border-indigo-200">{{ idx + 1 }}</div>
-                    <h3 class="text-sm font-black text-slate-800 leading-tight min-w-0 pt-1">{{ pax.nombre }} {{ pax.apellido }}</h3>
+                    <h3 class="text-sm font-black text-slate-800 leading-tight min-w-0 pt-1">
+                      {{ pax.nombre }} {{ pax.apellido }}
+                      <i v-if="esTitular(pax)" class="fas fa-star text-amber-500 text-[10px] ml-1" title="Titular del expediente"></i>
+                    </h3>
                   </div>
 
                   <div class="mt-2">
@@ -6111,6 +6157,17 @@ const eliminarDocumento = async (iri?: string) => {
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
                         : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
                 <i class="fas" :class="copiado === 'nombre' ? 'fa-check' : 'fa-copy'"></i>
+              </button>
+            </p>
+            <!-- El titular del expediente, elegido de aquí. Ver `hacerTitular()`. -->
+            <p class="mt-1.5">
+              <span v-if="esTitular(paxEnFoco)"
+                    class="inline-flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wide bg-amber-50 text-amber-700 border-amber-200">
+                <i class="fas fa-star text-[9px]"></i> Titular del expediente
+              </span>
+              <button v-else type="button" @click="hacerTitular(paxEnFoco)" :disabled="haciendoTitular"
+                      class="inline-flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded border uppercase tracking-wide bg-white text-slate-500 border-slate-200 hover:text-amber-700 hover:border-amber-300 disabled:opacity-40">
+                <i class="far fa-star text-[9px]"></i> Hacer titular
               </button>
             </p>
             <p class="mt-1.5 flex flex-wrap items-center gap-2">

@@ -2239,6 +2239,21 @@ editor, así que había que abrir el formulario para leerla.
 y de los subgrupos, y son los dos datos que pide todo control migratorio. El orden de un formulario
 que se rellena 131 veces no es estética.
 
+#### El titular se elige del manifiesto (19/10/2026)
+
+Se cotiza a nombre de quien escribe, y a veces esa persona no viaja (EG95UF: «Omar Valverde y
+familia», y viajan otros tres). La ficha de cada pasajero tiene **«Hacer titular»**, que pone su
+nombre en `CotizacionFile::$pasajeroPrincipal`; la lista lo marca con una estrella.
+
+| | Qué es | Lo usa |
+|---|---|---|
+| **contacto** (`CotizacionFile::$contacto`) | quien escribe y gestiona | el chat y los mensajes (`guest_name` cae primero a él) |
+| **titular** (`pasajeroPrincipal`) | quien encabeza el viaje | la cabecera, la orden de servicio («pasajero»), los cobros si no hay nombre de grupo |
+
+⚠️ Cambiar el titular **no cambia el contacto**, a propósito: los mensajes siguen yendo a quien
+escribió. Y sigue siendo TEXTO, no una relación: el campo existe antes que el manifiesto —se cotiza
+sin pasajeros—. El nombre del grupo («… y familia») no se toca: se cambia en la cabecera si hace falta.
+
 #### Las listas para PeruRail y el Ministerio de Cultura, sobre SU plantilla (19/10/2026)
 
 Botones **PeruRail** y **Cultura** del manifiesto → `GET|POST /cotizacion/user/manifiesto/lista/{formato}/{id}`
