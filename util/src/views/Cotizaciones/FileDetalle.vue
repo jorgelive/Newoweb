@@ -1621,6 +1621,52 @@ const descargarDocumentos = async () => {
   }
 };
 
+/**
+ * La lista de pasajeros en el formato de un tercero —PeruRail, el Ministerio de Cultura—, ya rellena
+ * sobre su plantilla oficial. Con filtros, sólo los que se ven y en ese orden.
+ *
+ * Los incompletos no paran la descarga: el servidor los dice en `X-Avisos` y aquí se enseñan. Una
+ * celda vacía en la lista de PeruRail no da error, da un pasajero sin billete en la estación.
+ */
+const descargandoLista = ref<string | null>(null);
+
+const descargarLista = async (formato: 'perurail' | 'cultura') => {
+  const id = extractIdStr(file.value?.id || file.value?.['@id'] || '');
+  if (!id) return;
+
+  const ruta = `/cotizacion/user/manifiesto/lista/${formato}/${id}`;
+  descargandoLista.value = formato;
+  try {
+    const ids = hayFiltros.value
+      ? pasajerosFiltrados.value.map(p => extractIdStr(p['@id'] ?? p.id)).filter(Boolean)
+      : null;
+    const respuesta = ids
+      ? await apiClient.post(ruta, { ids }, { responseType: 'blob' })
+      : await apiClient.get(ruta, { responseType: 'blob' });
+
+    const disposicion = String(respuesta.headers['content-disposition'] ?? '');
+    const nombre = /filename="([^"]+)"/.exec(disposicion)?.[1] ?? `${formato}.xlsx`;
+    const url = URL.createObjectURL(respuesta.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    let avisos: string[] = [];
+    try {
+      avisos = JSON.parse(decodeURIComponent(String(respuesta.headers['x-avisos'] ?? '%5B%5D'))) as string[];
+    } catch { /* sin avisos legibles: nada que enseñar */ }
+    if (avisos.length) {
+      alert(`Descargado, pero revisa:\n\n• ${avisos.join('\n• ')}`);
+    }
+  } catch {
+    alert('No se pudo generar la lista.');
+  } finally {
+    descargandoLista.value = null;
+  }
+};
+
 // ── Filtros del manifiesto ─────────────────────────────────────────────────
 //
 // Con 133 personas y 108 subgrupos, la lista completa no sirve para nada: lo que se hace de
@@ -5065,6 +5111,19 @@ const eliminarDocumento = async (iri?: string) => {
                   <i class="fas mr-1.5" :class="descargandoPlantilla ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
                   Hoja de control<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
                 </button>
+                <!-- Las listas para terceros, sobre SU plantilla oficial. Ver `descargarLista()` y
+                     `ListaParaProveedorInterface`. Cultura, escrita como si se tecleara en Excel:
+                     el Ministerio detectaba las que generaba la librería. -->
+                <template v-if="file.filepasajeros?.length">
+                <button v-for="l in [{ id: 'perurail', texto: 'PeruRail', icono: 'fa-train' }, { id: 'cultura', texto: 'Cultura', icono: 'fa-landmark' }] as const"
+                        :key="l.id" type="button" @click="descargarLista(l.id)"
+                        :disabled="descargandoLista !== null"
+                        :title="`Lista de pasajeros para ${l.texto}, sobre su plantilla oficial`"
+                        class="border border-teal-200 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-teal-100 disabled:opacity-40">
+                  <i class="fas mr-1.5" :class="descargandoLista === l.id ? 'fa-spinner fa-spin' : l.icono"></i>
+                  {{ l.texto }}<span v-if="hayFiltros && pasajerosFiltrados.length"> ({{ pasajerosFiltrados.length }} pax)</span>
+                </button>
+                </template>
                 <!-- ⚠️ **Ya no dice «Enviar al hotel».** El ZIP se le manda a quien lo pida —un
                      hotel, la discoteca del Coco Bongo, una aerolínea— y el botón no debe decidir
                      a quién: el nombre lo estrechaba a un solo destinatario y hacía dudar de si

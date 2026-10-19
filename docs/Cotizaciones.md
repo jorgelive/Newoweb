@@ -2239,6 +2239,51 @@ editor, así que había que abrir el formulario para leerla.
 y de los subgrupos, y son los dos datos que pide todo control migratorio. El orden de un formulario
 que se rellena 131 veces no es estética.
 
+#### Las listas para PeruRail y el Ministerio de Cultura, sobre SU plantilla (19/10/2026)
+
+Botones **PeruRail** y **Cultura** del manifiesto → `GET|POST /cotizacion/user/manifiesto/lista/{formato}/{id}`
+(`ListaParaProveedorController`; con filtros, sólo los que se ven y en ese orden). Recuperadas del
+panel viejo —`archivoprAction()` y `archivomcAction()`, etiqueta git `oweb-final`— con sus reglas, y
+rellenan las plantillas oficiales que siguen en `public/templates/` (también está la de Consettur).
+
+| | PeruRail | Cultura (Llaqta) |
+|---|---|---|
+| Plantilla | `perurail.xlsx`, hoja PASAJEROS, filas 2–101 | `tuboletocultura.xlsx`, Hoja1, filas 4–13 |
+| Por archivo | 100 (más → ZIP en partes) | 10 (más → ZIP en partes) |
+| Tipo / tarifa | 1 adulto (12+), 2 niño | General / Menor 3–17, «promocional» si es peruano, CAN (BO·CO·EC) o residente (CE) |
+| Documento | DNI · PAS · CEX · ID | DNI · PAS · CE · CI |
+| País | `MaestroPais::$codigoPeruRail` (= la tabla NACIONALIDADES de la plantilla) | `$codigoMc` → el nombre, de la tabla del Ministerio (hasta su «Paises Bajos») |
+| Fuera | — | menores de 3 años: no llevan entrada |
+
+Con qué documento va cada uno lo decide `DocumentoParaLista`: el peruano con DNI, el resto con
+pasaporte. Los incompletos no paran la descarga: van en la cabecera `X-Avisos` y el panel los dice.
+
+🔑 **Cultura NO se escribe con PhpSpreadsheet.** El Ministerio empezó a detectar los archivos que
+no se llenaron a mano. Su plantilla lleva una consulta de Power Query (`customXml` + `connections.xml`),
+una tabla con nombre, la cadena de cálculo y siete rangos con nombre para las listas, y PhpSpreadsheet
+**reconstruye el libro entero** al guardar: lo que no conoce se pierde o cambia. Peor: las columnas
+idProcedencia, idPais, idTarifa e idTipoDocumento son fórmulas `BUSCARV` sobre la hoja oculta
+«Tablas», y su resultado GUARDADO se quedaba en «0» porque nadie recalculaba — el sistema que lee el
+archivo, que no abre Excel, veía un libro incoherente.
+
+`RellenadorDePlantillaXlsx` hace lo que haría alguien tecleando: copia **todas las partes tal cual y
+en el mismo orden**, reescribe sólo las celdas pedidas (con su estilo; si la celda no existe —la
+columna Procedencia no viene preparada— la crea en su sitio con el estilo de la columna), añade los
+textos a la tabla de compartidos reutilizando los que ya están, como Excel, y a las celdas con
+fórmula les deja la fórmula y les pone el resultado, **calculado con las tablas leídas de la propia
+plantilla**. Así, si el Ministerio cambia un código y se actualiza la plantilla, cambia solo. Lo
+cubre `RellenadorDePlantillaXlsxTest`: todo lo que no son datos sale byte a byte igual.
+
+⚠️ **Por eso los códigos NO salen de `DocumentoTipoEnum::getCodigoMC()`**, que ya discrepa del
+Ministerio: dice CI = 7 y su tabla dice DIE = 7, CI = 8.
+
+⚠️ **No está garantizado que esto pase su validación**: no sabemos qué mira. Es lo que una persona
+tecleando produciría; si aun así lo rechaza, lo siguiente a comparar es un archivo rellenado a mano
+contra uno nuestro, parte por parte.
+
+⚠️ Los apellidos para Cultura van por separado (`CotizacionFilepasajero::apellidosPorSeparado()`), y
+ahí había otro fallo: partía por el primer espacio, y «de la Cruz Cruz» daba «de».
+
 #### Quién ha subido sus documentos, en una hoja (08/09/2026)
 
 El manifiesto ya enseña los escaneos de cada persona, pero la pregunta que se hace de verdad no es

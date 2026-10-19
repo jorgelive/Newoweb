@@ -4,7 +4,8 @@ nelmio_cors:
         allow_origin: ['%env(CORS_ALLOW_ORIGIN)%']
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
         allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With']
-        expose_headers: ['Link']
+        # `X-Avisos`: los pasajeros incompletos de una lista para PeruRail o Cultura (ListaParaProveedorController).
+        expose_headers: ['Link', 'X-Avisos']
         allow_credentials: true
         max_age: 3600
     paths:
