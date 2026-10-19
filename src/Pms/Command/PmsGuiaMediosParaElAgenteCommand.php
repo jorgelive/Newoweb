@@ -41,6 +41,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:pms:guia:medios-para-el-agente',
     description: 'Añade al texto del agente los vídeos de ingreso y de la caja fuerte que ya publica la guía.',
+    // Corrió en producción el 19/10/2026 (8 fichas). Se queda como receta y sigue ejecutable.
+    hidden: true,
 )]
 final class PmsGuiaMediosParaElAgenteCommand extends Command
 {
