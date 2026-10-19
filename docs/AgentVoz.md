@@ -427,17 +427,22 @@ skill lleve meses funcionando en el otro.
 
 ### Nombre de invocación
 
-Es lo que se dice en voz alta y **no está en el código**: se elige en la consola. El acordado es
-**`openperu`**:
+Es lo que se dice en voz alta y se elige en la consola. El que está publicado es
+**`sistema open perú`** (comprobado en la consola el 18/10/2026; este doc decía `openperu`, que se
+había acordado pero nunca llegó a la consola):
 
 ```
-Alexa, abre openperu                          → LaunchRequest, micrófono abierto
-Alexa, pregúntale a openperu qué salidas hay hoy    → IntentRequest de un tiro
+Alexa, abre sistema open perú                          → LaunchRequest, micrófono abierto
+Alexa, pregúntale a sistema open perú qué salidas hay  → IntentRequest de un tiro
 ```
+
+⚠️ **Va también en `tools/alexa/modelo-interaccion.json`** (`invocationName`): pegar el JSON lo
+reescribe, así que si se cambia en la consola hay que cambiarlo ahí, o el siguiente pegado lo
+devuelve al de antes.
 
 Empezó siendo `el sistema`, que cumplía el formato de Amazon —dos palabras, minúsculas, sin
 palabras de activación— pero era **genérico**: la revisión de certificación rechaza por eso un
-skill público, y sobre todo no dice nada a quien lo usa. `openperu` es el nombre de la casa.
+skill público, y sobre todo no dice nada a quien lo usa.
 
 ⚠️ Al cambiarlo hay que tocar **una línea del código**: `AlexaController::BIENVENIDA`. Es la
 única atadura entre la consola y el repositorio, y es fácil de olvidar porque nada falla — el
@@ -445,7 +450,7 @@ skill sigue funcionando, sólo que se abre con un nombre y responde con otro, qu
 llamado a quien no era.
 
 Ojo con el formato si algún día se publica: Amazon pide dos palabras salvo que el nombre sea una
-marca propia. `openperu` lo es, pero eso lo decide la revisión, no nosotros. En *beta testing*,
+marca propia; eso lo decide la revisión, no nosotros. En *beta testing*,
 que es como se distribuye (§9), no hay revisión.
 
 Con la sesión abierta ya no hace falta repetir «Alexa» ni el nombre: se pregunta directamente,
@@ -454,8 +459,9 @@ que es lo que hace utilizable el canal. `AMAZON.StopIntent` («Alexa, para») ci
 ### Modelo de interacción
 
 **El modelo vive en `tools/alexa/modelo-interaccion.json`**, completo, para pegarlo tal cual en la
-consola (*Build → Interaction Model → JSON Editor*, en **cada** idioma del skill) y pulsar
-*Build Model*. Hasta el 17/10/2026 estaba copiado aquí a mano y ya no coincidía con la consola
+consola (*Build → Interaction Model → JSON Editor*) y pulsar *Guardar* y *Crear skill*. Basta con
+**es-MX**: los tres españoles (MX, ES, US) tienen la sincronización activada y es-MX es el
+principal, así que se copia a es-US, que es el idioma del Echo. Hasta el 17/10/2026 estaba copiado aquí a mano y ya no coincidía con la consola
 —el log traía consultas que empezaban por «cuánto», que no estaba en la lista—. **Se cambia el
 archivo y se pega**; nunca al revés.
 

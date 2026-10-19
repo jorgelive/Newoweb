@@ -182,6 +182,14 @@ final class PeticionAlexaTest extends TestCase
             array_keys(PeticionAlexa::PALABRA_DEL_INTENT),
             static fn (string $n): bool => !str_starts_with($n, 'AMAZON.')
         ));
+        // Amazon compara los nombres SIN mayúsculas: `CualEsIntent` y `CualesIntent` rompieron el
+        // build del 18/10/2026 con «cannot be defined more than once».
+        $nombres = array_map(
+            static fn (array $i): string => mb_strtolower($i['name']),
+            $modelo['interactionModel']['languageModel']['intents']
+        );
+        self::assertSame(count($nombres), count(array_unique($nombres)), 'dos intents que sólo difieren en mayúsculas');
+
         sort($delMapa);
         sort($conTexto);
         self::assertSame($delMapa, $conTexto, 'cada intent del mapa tiene que estar en el modelo');

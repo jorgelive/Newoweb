@@ -48,7 +48,7 @@ final readonly class PeticionAlexa
         'CuantasIntent' => 'cuántas',
         'CualIntent' => 'cuál',
         'CualEsIntent' => 'cuál es',
-        'CualesIntent' => 'cuáles',
+        'CualesListaIntent' => 'cuáles',
         'CuandoIntent' => 'cuándo',
         'DondeIntent' => 'dónde',
         'ComoIntent' => 'cómo',

@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "openperu",
+      "invocationName": "sistema open perú",
       "intents": [
         {
           "name": "AMAZON.HelpIntent",
@@ -58,6 +58,8 @@
           "samples": [
             "dime {consulta}",
             "dime que {consulta}",
+            "di me {consulta}",
+            "di me que {consulta}",
             "pregunta {consulta}",
             "pregúntale {consulta}",
             "sobre {consulta}",
@@ -243,7 +245,7 @@
           ]
         },
         {
-          "name": "CualesIntent",
+          "name": "CualesListaIntent",
           "slots": [
             {
               "name": "consulta",
