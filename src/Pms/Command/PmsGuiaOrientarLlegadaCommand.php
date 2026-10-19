@@ -39,6 +39,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:pms:guia:orientar-llegada',
     description: 'Enseña al agente que «no encuentro la casita» puede ser la casa o el departamento.',
+    // Corrió en producción el 19/10/2026 (8 fichas). Se queda como receta y sigue ejecutable.
+    hidden: true,
 )]
 final class PmsGuiaOrientarLlegadaCommand extends Command
 {
