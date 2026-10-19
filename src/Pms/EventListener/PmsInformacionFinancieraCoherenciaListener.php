@@ -655,6 +655,14 @@ final class PmsInformacionFinancieraCoherenciaListener
             return;
         }
 
+        // El depósito automático de una OTA nace con un cambio PROVISIONAL —su fecha es futura y
+        // SUNAT no publica por adelantado—, y el propio servicio lo corrige cuando el día llega
+        // (`PmsPagoOtaAutomaticoService::resellarCambio()`). Ni operador ni otro código: sólo él,
+        // y sólo sobre los que gestiona el sistema. Es la misma excepción que el importe y la fecha.
+        if ($entity instanceof PmsPagoFinanciero && $entity->isGestionadoPorElSistema() && $this->pagoOta->estaSincronizando()) {
+            return;
+        }
+
         $tipo = $entity instanceof PmsCargoFinanciero ? 'cargo' : 'pago';
         throw new DomainException(sprintf(
             'No se puede cambiar el tipo de cambio de un %s financiero que ya lo tenía (id=%s, %s → %s). '

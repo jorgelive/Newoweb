@@ -4118,7 +4118,14 @@ desde Beds24 eso ni siquiera es posible (§12.4.1).
 old=null, new=X   → PERMITIDO   (reparación: el cargo empieza a sumar)
 old=X,    new=X   → PERMITIDO   (no es un cambio)
 old=X,    new=Y   → BLOQUEADO   (es la foto del día; corregirla falsearía el histórico)
+                    salvo: depósito automático de OTA + escribe su servicio (§12.4.5)
 ```
+
+La salvedad no rompe la regla: el cambio de un depósito automático **no es una foto**. Va fechado
+el día después de la llegada, casi siempre futuro, y nace con un provisional. Sólo lo corrige
+`PmsPagoOtaAutomaticoService` (`estaSincronizando()`), y sólo en los que gestiona el sistema
+(`isGestionadoPorElSistema()`): uno intervenido, o cualquier otro pago, sigue bloqueado —
+comprobado con un pago manual y con un depósito tocado desde fuera del servicio.
 
 Lo aplica `PmsInformacionFinancieraCoherenciaListener::assertTipoCambioNoBloqueado()`, y por eso
 `tipoCambio` está en el grupo `pms_cargo:patch` mientras `moneda` sigue fuera. La SPA sólo envía
@@ -4288,6 +4295,21 @@ cobró el canal:
 | Fecha | Llegada **+ 1 día** | Es cuando la OTA libera el depósito |
 | Medio | Transferencia bancaria | Es como entra |
 | Moneda | La de la cabecera | Así no necesita tipo de cambio y no depende de §12.2 |
+| Tipo de cambio | El **de su fecha**: provisional (el último conocido) mientras es futura, y el de ese día cuando llega | Ver abajo |
+
+🔮 **El tipo de cambio del depósito se corrige cuando llega su fecha** (19/10/2026). SUNAT no
+publica por adelantado, así que un depósito del 26/11 nace con el cambio del día en que entró la
+reserva — y hasta ese día se quedaba así para siempre, incluso si la reserva se movía. Ahora:
+
+```
+nace / la reserva se mueve → venta(fecha del depósito)  — si es futura, el último conocido
+cron 08:40 (tipo-cambio)   → PmsPagoOtaAutomaticoService::resellarCambio(hoy - (dias-1), hoy)
+                             a los automáticos NO intervenidos cuyo cambio ≠ el de su día
+```
+
+Para corregir los antiguos: `app:pms:tipo-cambio:sincronizar --resellar-desde=2026-01-01
+--simular` dice cuáles cambiaría, y sin `--simular` los corrige. Va por el ORM, así que el rollup
+en soles se recalcula solo.
 
 ⚠️ **El importe NO es `totalCargos`, y el cambio está pagado.** El primer diseño cuadraba el
 total entero de la cabecera, asumiendo "en una reserva de Airbnb todo lo cobra Airbnb". El caso
@@ -6536,9 +6558,7 @@ Airbnb para noviembre pidió `month=11` y la consulta siguiente salió «frenada
 `TipocambioManager::esFutura()` la manda directa a `findLastAvailableInDb()`: la última cotización
 conocida, que es lo que acababa devolviendo igual.
 
-⚠️ **Y ese cambio se queda congelado.** El depósito nace con el cambio del día en que entra la
-reserva y nadie lo vuelve a mirar cuando llega su fecha —ni siquiera si la reserva se mueve:
-`PmsPagoOtaAutomaticoService` actualiza importe y fecha, no el cambio—. Pendiente de decidir.
+Ese cambio provisional se corrige cuando llega la fecha del depósito: ver §12.4.5.
 
 ### El cron, que es lo que faltaba de verdad
 
@@ -6890,6 +6910,7 @@ contra la base local: mismos veredictos que antes.
 | Cerrar el ciclo de un DELETE manual (§12.12.5) | `BookingsPushHandler` | `handleSuccess()` → `markSyncedDeleted()` |
 | Cambiar cuándo la SPA ofrece borrar (§12.12.6b) | `util/src/types/pmsReservaModel.ts` **y** `PmsEventoCalendario` | `puedeBorrarseYa()` / `getSyncStatus()` — son espejo, hay que tocar **los dos** |
 | Añadir canal de pago total | `PmsChannel` | `CANAL_PAGO_TOTAL` — también decide qué canales generan depósito automático (§12.4.5) |
+| Cuándo se corrige el tipo de cambio del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` + `TipoCambioSincronizarCommand` | `resellarCambio()` / `resellarDepositos()`; la salvedad del candado en `assertTipoCambioNoBloqueado()` |
 | Cambiar el importe/fecha del depósito de OTA (§12.4.5) | `PmsPagoOtaAutomaticoService` + `PmsInformacionFinanciera` | `sincronizar()` / `fechaDeposito()` — el alcance del importe vive en `getTotalCargosDelCanal()` |
 | Cambiar cuándo se puede editar el depósito automático (§12.4.5) | `PmsPagoFinanciero` | `isGestionadoPorElSistema()` — fuente única; la consultan el listener, el sincronizador y la SPA |
 | Cambiar el mensaje del veto o los campos vetados (§12.4.5) | `PmsInformacionFinancieraCoherenciaListener` | `assertPagoAutomaticoNoEditable()` → `$camposBloqueados` |

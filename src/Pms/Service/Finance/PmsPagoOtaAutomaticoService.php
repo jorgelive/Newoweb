@@ -10,6 +10,7 @@ use App\Pms\Entity\PmsPagoFinanciero;
 use App\Pms\Enum\PmsMedioPago;
 use App\Pms\Service\Finance\TipoCambioDelDia;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -33,6 +34,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *    Si algún día se quiere reflejar el neto que llega al banco (descontada la comisión de
  *    la OTA), hay que cambiar esto Y aceptar que ese saldo deje de ser cero.
  *  · **Fecha = llegada + 1 día.** Es cuando la OTA libera el depósito.
+ *  · **Tipo de cambio = el de esa fecha**, y como casi siempre es futura, nace PROVISIONAL (el
+ *    último conocido) y se vuelve a poner cuando el día llega: {@see self::resellarCambio()}.
  *  · **Medio = transferencia bancaria**, que es como entra.
  *  · **Moneda = la de la cabecera**, así no necesita tipo de cambio y no depende de §12.2.
  *
@@ -184,6 +187,11 @@ final class PmsPagoOtaAutomaticoService
             $this->sincronizando = true;
             try {
                 $pago->setMonto($objetivo);
+                // La reserva se movió: el cambio era el de la fecha vieja. El de la nueva, que si
+                // es futura vuelve a ser provisional hasta que llegue (`resellarCambio()`).
+                if ($pago->getFechaPago()?->format('Y-m-d') !== $fecha->format('Y-m-d')) {
+                    $pago->setTipoCambio($this->tipoCambioDelDia->venta($fecha));
+                }
                 $pago->setFechaPago($fecha);
                 $tocado = true;
             } finally {
@@ -192,6 +200,73 @@ final class PmsPagoOtaAutomaticoService
         }
 
         return $tocado;
+    }
+
+    /**
+     * Pone a los depósitos automáticos de esas fechas el tipo de cambio de SU día. **Hace flush.**
+     *
+     * El depósito va fechado el día después de la llegada, casi siempre en el futuro, y SUNAT no
+     * publica cambios por adelantado: nace con el último conocido, que es un provisional, no una
+     * foto. Hasta el 19/10/2026 se quedaba así para siempre. Lo llama el cron diario del tipo de
+     * cambio (`app:pms:tipo-cambio:sincronizar`) con los días recién pasados.
+     *
+     * Sólo los que gestiona el sistema: uno INTERVENIDO lo fijó el operador y manda él. Y sólo
+     * hasta hoy: para una fecha futura no hay nada mejor que el provisional que ya tiene.
+     *
+     * ⚠️ El candado del tipo de cambio (`PmsInformacionFinancieraCoherenciaListener`) prohíbe
+     * cambiar el de un pago que ya lo tenía, y aquí se deja pasar porque el flush va dentro de
+     * `sincronizando`: es la misma excepción que ya tienen el importe y la fecha del depósito.
+     *
+     * @return list<array{pago: string, fecha: string, antes: ?string, ahora: string}>
+     */
+    public function resellarCambio(DateTimeInterface $desde, DateTimeInterface $hasta, bool $aplicar = true): array
+    {
+        /** @var list<PmsPagoFinanciero> $pagos */
+        $pagos = $this->em->createQueryBuilder()
+            ->select('p')
+            ->from(PmsPagoFinanciero::class, 'p')
+            ->where('p.esAutomatico = true')
+            ->andWhere('p.intervenido = false')
+            ->andWhere('p.fechaPago >= :desde')
+            ->andWhere('p.fechaPago <= :hasta')
+            ->setParameter('desde', $desde->format('Y-m-d'))
+            ->setParameter('hasta', $hasta->format('Y-m-d'))
+            ->getQuery()
+            ->getResult();
+
+        $cambios = [];
+
+        foreach ($pagos as $pago) {
+            $fecha = $pago->getFechaPago();
+            $ahora = $fecha === null ? null : $this->tipoCambioDelDia->venta($fecha);
+
+            // Sin cotización para ese día no hay con qué corregir: se queda el provisional.
+            if ($fecha === null || $ahora === null || (float) $ahora === (float) $pago->getTipoCambio()) {
+                continue;
+            }
+
+            $cambios[] = [
+                'pago' => (string) $pago->getId(),
+                'fecha' => $fecha->format('Y-m-d'),
+                'antes' => $pago->getTipoCambio(),
+                'ahora' => $ahora,
+            ];
+
+            if ($aplicar) {
+                $pago->setTipoCambio($ahora);
+            }
+        }
+
+        if ($aplicar && $cambios !== []) {
+            $this->sincronizando = true;
+            try {
+                $this->em->flush();
+            } finally {
+                $this->sincronizando = false;
+            }
+        }
+
+        return $cambios;
     }
 
     /**

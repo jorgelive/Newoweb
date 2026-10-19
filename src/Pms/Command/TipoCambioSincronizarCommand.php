@@ -10,6 +10,7 @@ use App\Entity\Maestro\MaestroTipocambio;
 use App\Message\Service\Aviso\AvisoAlEquipo;
 use App\Message\Command\MessageCrearAvisoTecnicoGenericoCommand;
 use App\Message\Service\Aviso\AvisoAlEquipoService;
+use App\Pms\Service\Finance\PmsPagoOtaAutomaticoService;
 use App\Service\TipocambioManager;
 use App\Service\WebPushNotificationService;
 use App\Security\Roles;
@@ -80,6 +81,7 @@ final class TipoCambioSincronizarCommand extends Command
         private readonly UserRepository $usuarios,
         private readonly RoleHierarchyInterface $jerarquia,
         private readonly LoggerInterface $logger,
+        private readonly PmsPagoOtaAutomaticoService $depositosOta,
     ) {
         parent::__construct();
     }
@@ -94,7 +96,15 @@ final class TipoCambioSincronizarCommand extends Command
                 'Cuántos días hacia atrás asegurarse de tener. Sirve para tapar huecos tras una caída.',
                 '1'
             )
-            ->addOption('sin-aviso', null, InputOption::VALUE_NONE, 'No manda el push. Para probar a mano.');
+            ->addOption('sin-aviso', null, InputOption::VALUE_NONE, 'No manda el push. Para probar a mano.')
+            ->addOption(
+                'resellar-desde',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Desde qué fecha (Y-m-d) volver a poner a los depósitos automáticos de OTA el cambio de su día. '
+                . 'Por defecto, los mismos días que --dias.'
+            )
+            ->addOption('simular', null, InputOption::VALUE_NONE, 'Dice qué depósitos cambiaría, sin tocarlos.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -120,6 +130,8 @@ final class TipoCambioSincronizarCommand extends Command
                 $encontrada?->getFecha()?->format('Y-m-d') ?? 'sin dato'
             ));
         }
+
+        $this->resellarDepositos($io, $input, $hoy, $dias);
 
         $ultima = $this->ultimaCotizacion();
 
@@ -148,6 +160,48 @@ final class TipoCambioSincronizarCommand extends Command
         $io->success(sprintf('Tipo de cambio al día (última cotización: %s).', $ultima->format('Y-m-d')));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Los depósitos automáticos de OTA cuya fecha ya llegó, con el cambio de SU día.
+     *
+     * Nacen con un cambio provisional porque van fechados el día después de la llegada, en el
+     * futuro (ver `PmsPagoOtaAutomaticoService::resellarCambio()`). Va aquí porque es el único
+     * sitio que sabe que la cotización del día acaba de entrar. Un fallo no tumba el comando: lo
+     * que importa de él es la alarma de abajo.
+     */
+    private function resellarDepositos(SymfonyStyle $io, InputInterface $input, DateTimeImmutable $hoy, int $dias): void
+    {
+        $desdeTexto = EntradaDeConsola::textoOpcional($input->getOption('resellar-desde'), 'resellar-desde');
+        $desde = $desdeTexto !== null
+            ? new DateTimeImmutable($desdeTexto, $hoy->getTimezone())
+            : $hoy->modify(sprintf('-%d days', $dias - 1));
+        $simular = (bool) $input->getOption('simular');
+
+        try {
+            $cambios = $this->depositosOta->resellarCambio($desde, $hoy, !$simular);
+        } catch (Throwable $e) {
+            $this->logger->error('[TipoCambio] No se pudo volver a sellar los depósitos de OTA: ' . $e->getMessage());
+            $io->warning('No se pudo volver a sellar los depósitos de OTA: ' . $e->getMessage());
+
+            return;
+        }
+
+        foreach ($cambios as $c) {
+            $io->text(sprintf('  depósito %s (%s): %s → %s', $c['pago'], $c['fecha'], $c['antes'] ?? '—', $c['ahora']));
+        }
+
+        $resumen = sprintf(
+            '%s %d depósito(s) de OTA con el cambio de su día (desde %s).',
+            $simular ? 'Cambiaría' : 'Corregidos',
+            count($cambios),
+            $desde->format('Y-m-d')
+        );
+        $io->text($resumen);
+
+        if ($cambios !== [] && !$simular) {
+            $this->logger->info('[TipoCambio] ' . $resumen, ['depositos' => $cambios]);
+        }
     }
 
     /**
