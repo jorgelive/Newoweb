@@ -241,6 +241,14 @@ final readonly class ConsultarDisponibilidadSkill implements SkillInterface, Ski
 
         $datos['casitas'] = $casitas;
 
+        // 🔗 La indicación va JUNTO al dato (19/10/2026). Estaba sólo en la descripción, a mitad
+        // de un párrafo larguísimo, y el modelo ofreció la Casita 7 a un huésped con precio,
+        // habitaciones y baños… y sin el enlace que esta misma respuesta le daba.
+        if (array_filter(array_column($casitas, 'enlace')) !== [] && !$restriccion->ocultaImportes()) {
+            $datos['al_ofrecerla'] = 'Cuando ofrezcas una casita, cierra con su «enlace» tal cual: es '
+                . 'donde ve las fotos y los detalles, y lo que le ayuda a decidirse.';
+        }
+
         if (!$restriccion->ocultaImportes()) {
             return SkillResult::ok($datos);
         }

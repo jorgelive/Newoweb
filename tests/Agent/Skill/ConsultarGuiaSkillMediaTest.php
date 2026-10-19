@@ -96,15 +96,28 @@ final class ConsultarGuiaSkillMediaTest extends TestCase
     }
 
     #[Test]
-    public function el_mapa_y_los_widgets_siguen_borrandose(): void
+    public function el_mapa_viaja_como_enlace_y_los_widgets_siguen_borrandose(): void
     {
-        // Eso sí es maquetación: sin navegador que los pinte no queda nada que contar, y leerlos
-        // en voz alta es peor que callarlos.
-        $salida = $this->resolver('Estamos aquí {{ map: -13.5,-71.9 }} y {{ widget: wifi }} listo.');
+        // El mapa se borraba como maquetación hasta el 19/10/2026: una huésped que no encontraba la
+        // calle no recibió el pin que tenía en su guía. Unas coordenadas se convierten en el enlace
+        // de Google Maps; un widget sigue sin nada que contar.
+        $salida = $this->resolver('Estamos aquí {{ map: -13.5, -71.9 }} y {{ widget: wifi }} listo.');
 
         self::assertStringNotContainsString('{{', $salida);
-        self::assertStringNotContainsString('map', $salida);
-        self::assertStringNotContainsString('-13.5', $salida);
+        self::assertStringNotContainsString('widget', $salida);
+        self::assertStringContainsString('(ubicación en el mapa que puedes enviarle: https://www.google.com/maps?q=-13.5,-71.9)', $salida);
+    }
+
+    #[Test]
+    public function el_enlace_de_google_maps_viaja_tal_cual_y_un_mapa_sin_url_se_borra(): void
+    {
+        $salida = $this->resolver('{{ map: https://www.google.com/maps/place/-13.511305,-71.984414 }}');
+        self::assertStringContainsString('https://www.google.com/maps/place/-13.511305,-71.984414', $salida);
+        self::assertStringNotContainsString(self::HOST, $salida);
+
+        $basura = $this->resolver('Aquí {{ map: el centro }} fin.');
+        self::assertStringNotContainsString('centro', $basura);
+        self::assertStringNotContainsString('mapa', $basura);
     }
 
     #[Test]

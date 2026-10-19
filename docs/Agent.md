@@ -51,6 +51,13 @@ canal: es **si hay alguien esperando** y **qué se hace con la salida**.
 para no romper la caché del prompt). Con sólo la fecha, a las 00:10 redactó para una huésped que
 salía a las 10:00 «confirme que ya dejó la casita esta mañana».
 
+✍️ **Las skills que escriben enseñan ellas el borrador** (regla del prompt del panel, 19/10/2026).
+`GuardiaDeSkills` sólo ejecuta lo que la skill previsualizó con `confirmado=false`, comparando una
+huella de esa previsualización. Si el modelo redacta él el borrador en el chat y el operador dice
+«sí», no hay huella que case: la guardia enseña la previsualización de verdad y hace falta un
+segundo «sí». Pasó en un envío a una huésped. La salida de fondo es un botón «Aprobar» en el panel
+que ejecute la previsualización guardada sin otro turno del modelo.
+
 ### 1.1 La cuarta es distinta, y conviene tenerlo escrito
 
 Las tres primeras son conversaciones: alguien pregunta, el agente contesta, la respuesta se

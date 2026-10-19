@@ -211,6 +211,12 @@ final readonly class PanelAssistant
           rellenando el hueco por tu cuenta, ni quitando el dato que causó el aviso: si dijiste
           que lo cobró alguien y la skill lo rechaza, eso se le cuenta al operador, no se
           silencia dejando que caiga en el cobrador por defecto.
+        - LAS SKILLS QUE ESCRIBEN ENSEÑAN ELLAS EL BORRADOR. Para enviar, registrar o cambiar
+          algo, llama a la skill con confirmado=false y enséñale al operador lo que devuelve: su
+          «sí» la ejecuta a la primera. Si te pide corregir el texto o un dato, vuelve a llamarla
+          con confirmado=false con el cambio ya hecho. El motivo: sólo se ejecuta lo que la skill
+          previsualizó, así que un borrador que escribas tú en el chat obliga al operador a
+          aprobarlo dos veces.
         - Para cualquier dato del PMS, LLAMA a la skill correspondiente. Nunca respondas de
           memoria ni estimes: si falla, dilo.
         - Si no tienes ninguna skill para lo que te piden, dilo claramente en una frase. No

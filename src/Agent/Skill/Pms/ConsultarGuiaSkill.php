@@ -232,7 +232,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             $limpio[$clave] = match (true) {
                 is_array($valor) => self::sinEnlaces($valor),
                 is_string($valor) => (string) preg_replace(
-                    '~\((?:imagen|vídeo) que puedes enviarle: [^)]*\)|https?://\S+~u',
+                    '~\((?:imagen|vídeo|ubicación en el mapa) que puedes enviarle: [^)]*\)|https?://\S+~u',
                     '(en este canal no se pueden mandar enlaces ni imágenes)',
                     $valor,
                 ),
@@ -1131,6 +1131,28 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                 $m[1] === 'video' ? 'vídeo' : 'imagen',
                 $this->enlaceAbsoluto($m[2])
             ),
+            $texto
+        );
+
+        // 📍 Y el MAPA, desde el 19/10/2026. Se borraba como maquetación —«sin navegador que lo
+        // pinte no queda nada que contar»—, y para unas coordenadas sueltas era verdad. Pero lo
+        // que hay publicado es un enlace de Google Maps, y por WhatsApp eso es justo lo que sirve:
+        // una huésped que no encontraba la calle (no hay números visibles) recibió la dirección
+        // tres veces y cuatro escaladas, con el pin en su guía. Unas coordenadas se convierten en
+        // ese mismo enlace; cualquier otra cosa sigue borrándose abajo.
+        $texto = (string) preg_replace_callback(
+            '/\{\{\s*map\s*:\s*(.*?)\s*\}\}/is',
+            static function (array $m): string {
+                $valor = trim($m[1]);
+
+                if (preg_match('/^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/', $valor) === 1) {
+                    $valor = 'https://www.google.com/maps?q=' . (string) preg_replace('/\s+/', '', $valor);
+                }
+
+                return preg_match('#^https?://\S+$#i', $valor) === 1
+                    ? sprintf(' (ubicación en el mapa que puedes enviarle: %s) ', $valor)
+                    : ' ';
+            },
             $texto
         );
 

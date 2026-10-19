@@ -2458,6 +2458,22 @@ subir un archivo nuevo cambia la guía sola.
 (`PmsGuiaInterpolador::resolverMediaDeLaCasita()`). Por eso `{{ video_ingreso }}` puede ir en las
 siete desde ya: cada vídeo aparece el día que se sube.
 
+⚠️ **Y lo que va en el texto publicado NO llega al agente si no está también en su texto.**
+`agenteContenido` sustituye al cuerpo publicado, y las siete fichas de puerta llevaban ahí el
+croquis pero no el vídeo; «Llaves» tampoco tenía el de la caja. El 19/10/2026 una huésped que no
+encontraba su casita recibió el croquis y cuatro escaladas, con el vídeo del recorrido en su guía.
+`app:pms:guia:medios-para-el-agente` (idempotente, `--dry-run`) añade al texto del agente
+`{{ video_ingreso }}` en las puertas que lo publican y `{{ video_caja_llaves }}` en «Llaves»
+—«si no consigue abrir la caja, mándale este vídeo»—, y cambia el `{{ unit_name }}` que quedaba en
+ese texto por `{{ room_name }}`: `PmsGuiaRenombrarMarcadoresCommand` renombró los marcadores del cuerpo publicado
+pero no los del agente, y salía «Cómo llegar a  :». Los vídeos siguen con su nivel: a quien aún no le
+toca, le llegan como bloqueados.
+
+📍 **El mapa también llega al agente** desde el mismo día (`ConsultarGuiaSkill`): `{{ map: … }}` se
+borraba como maquetación, y el pin de «Ubicación» era justo lo que necesitaba esa huésped. Una URL
+viaja tal cual; unas coordenadas se convierten en enlace de Google Maps; cualquier otra cosa se
+borra.
+
 Lo hizo `app:pms:guia:medios-por-marcador` (archivado), tocando sólo el español: las traducciones se
 quedan **sin imágenes dentro** para siempre, que es la mitad del valor del cambio.
 

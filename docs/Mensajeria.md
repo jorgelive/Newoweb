@@ -9931,7 +9931,9 @@ son el alojamiento — el calefactor (ficha `calefactor`, visibilidad `cliente`)
 el precio del alojamiento; los extras son nuestros y se pueden contar.
 
 **El enlace de cada casita** lo resuelve `EnlaceDeCasita::para()` y lo devuelve
-`consultar_disponibilidad` como `enlace`:
+`consultar_disponibilidad` como `enlace`, con un `al_ofrecerla` al lado que le pide cerrar con él
+(19/10/2026: la indicación sólo estaba en la descripción y el modelo ofreció la Casita 7 con precio,
+habitaciones y baños, sin el enlace que tenía en la respuesta):
 
 | Escribe desde | Enlace |
 |---|---|
