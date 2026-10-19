@@ -864,6 +864,25 @@ class OperacionOrdenServicio
                     $que, $confirmada, $servicio->getHoraRecojo() ?? '—');
             }
 
+            // La hora VENDIDA que se imprimió y ahora es otra. Es la otra mitad de la hora de la
+            // línea —`desdeServicio()` pone la pactada si la hay y, si no, la vendida— y no la
+            // vigilaba nadie: el diff de abajo copia la hora del congelado porque «la vigila
+            // otro», y ese otro sólo miraba la confirmada.
+            //
+            // 🔥 El 19/10/2026 la OS-20261019-976 (EG95UF) se emitió con dos traslados a las 08:00
+            // —la hora por defecto con la que nace un componente—; doce minutos después se
+            // corrigieron a 20:45 y 15:15 en la cotización, La Biblia los recibió, y la orden
+            // siguió diciendo 08:00 sin ningún aviso: el conductor iba a ir al aeropuerto doce
+            // horas antes.
+            //
+            // ⚠️ Sólo cuando la línea NO tiene recojo pactado ni lo tiene La Biblia: si aparece uno,
+            // es el proveedor confirmando —cambio menor, `getCambiosMenores()`— y manda sobre esto.
+            if ($confirmada === null && $servicio->getHoraRecojo() === null
+                && $item->getHora() !== null && $item->getHora() !== $servicio->getHoraComponente()) {
+                $avisos[] = sprintf('«%s»: se pidió a las %s y ahora es a las %s',
+                    $que, $item->getHora(), $servicio->getHoraComponente() ?? '—');
+            }
+
             // ── El SITIO de recojo y entrega ────────────────────────────────
             //
             // ⚠️ Sólo se compara con el override del operador, no con el catálogo. Volver a

@@ -2940,6 +2940,11 @@ no enseñarla salvo que se pida.
 Ahora hay un chip por estado con su contador, y **las canceladas empiezan apagadas**. El rótulo
 dice lo que se está viendo: «Órdenes vigentes» o «Órdenes» a secas si se encienden.
 
+Desde el 19/10/2026 **las completadas también empiezan apagadas**: el servicio ya se hizo y no
+queda nada que mover, y mezcladas con las vivas alargaban la lista con lo que ya no pide atención.
+⚠️ Ojo con lo que eso esconde: completada no es pagada (`saldada` es otro eje, §4), así que una
+completada con el proveedor por pagar se ve encendiendo su chip.
+
 ⚠️ Se guardan los estados **visibles**, no los ocultos: el día que se añada un estado al enum,
 aparece solo. Con una lista de excluidos, un estado nuevo se colaría sin que nadie lo decidiera.
 
@@ -4129,6 +4134,16 @@ guardan igual (`setNotasPrestador()`): una lista vacía persistida seguiría con
 y taparía los detalles del componente para siempre con algo que no dice nada.
 
 ### Después de emitir: completar sí, cambiar no
+
+🔥 **La hora VENDIDA no la vigilaba nadie (19/10/2026).** La hora de la línea es la pactada si la
+hay y, si no, la vendida (`desdeServicio()`). La vigilancia miraba sólo la pactada
+(`horaRecojoConfirmada`) y el diff de texto copia la hora del congelado «porque la vigila otro»: así
+que cambiar la hora vendida tras emitir **no avisaba**. La OS-20261019-976 (EG95UF) salió con dos
+traslados a las 08:00 —la hora por defecto de un componente nuevo—, se corrigieron a 20:45 y 15:15
+y la orden siguió diciendo 08:00 en silencio. Ahora `getDivergencias()` lo dice —«se pidió a las
+08:00 y ahora es a las 20:45»— cuando ni la línea ni La Biblia tienen recojo pactado; si aparece
+uno, es el proveedor confirmando y va por `getCambiosMenores()`. Medido antes de desplegar: sólo
+esa orden lo enciende.
 
 Misma asimetría que la hora y los puntos, y por la misma razón:
 

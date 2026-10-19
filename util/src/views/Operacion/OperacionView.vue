@@ -2538,7 +2538,7 @@ const guardarEdicion = async () => {
     }
 };
 /**
- * Qué estados de Orden se ven. **Las canceladas quedan fuera por defecto.**
+ * Qué estados de Orden se ven. **Las canceladas y las completadas quedan fuera por defecto.**
  *
  * La pestaña se llama «Órdenes vigentes» y enseñaba las canceladas mezcladas con las demás: el
  * rótulo mentía y, peor, una orden anulada se lee igual de vigente que las otras a la velocidad
@@ -2549,7 +2549,9 @@ const guardarEdicion = async () => {
  * ⚠️ Se guardan las **visibles** y no las ocultas: el día que se añada un estado nuevo al enum,
  * aparece solo. Con una lista de excluidos, un estado nuevo se colaría sin que nadie lo decidiera.
  */
-const ESTADOS_OS_POR_DEFECTO: EstadoOsValue[] = ['borrador', 'emitida', 'confirmada', 'completada'];
+// Las completadas, desde el 19/10/2026: el servicio ya se hizo y no queda nada que mover en ellas;
+// mezcladas con las vivas alargaban la lista con lo que ya no pide atención. Su chip las trae.
+const ESTADOS_OS_POR_DEFECTO: EstadoOsValue[] = ['borrador', 'emitida', 'confirmada'];
 const estadosOsVisibles = ref<EstadoOsValue[]>([...ESTADOS_OS_POR_DEFECTO]);
 
 const alternarEstadoOs = (estado: EstadoOsValue): void => {

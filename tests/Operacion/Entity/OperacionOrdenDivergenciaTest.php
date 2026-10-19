@@ -254,6 +254,27 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertFalse($orden->hasCambiosMenores());
     }
 
+    /**
+     * Cambiar la hora VENDIDA de una línea sin recojo pactado también es modificar el encargo.
+     *
+     * 🔥 OS-20261019-976: dos traslados emitidos a las 08:00, corregidos después a 20:45 y 15:15,
+     * y la orden seguía diciendo 08:00 sin un solo aviso.
+     */
+    #[Test]
+    public function cambiarLaHoraVendidaYaEmitidaSiEnsucia(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-10-19', 2, '60.00')->setHoraComponente('08:00');
+        $orden = $this->ordenCon($servicio);
+        $this->emision()->emitir($orden);
+
+        self::assertFalse($orden->isSucia(), 'Recién emitida no hay nada que vigilar.');
+
+        $servicio->setHoraComponente('20:45');
+
+        self::assertTrue($orden->isSucia());
+        self::assertStringContainsString('se pidió a las 08:00 y ahora es a las 20:45', $orden->getDivergencias()[0]);
+    }
+
     /** Aplicar el menor actualiza el documento y la orden deja de tener nada pendiente. */
     #[Test]
     public function aplicarElMenorActualizaElDocumentoSinReemitir(): void
