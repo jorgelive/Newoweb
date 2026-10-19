@@ -376,6 +376,10 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
      * Sólo aquí, no en las reglas comunes: el prompt lleva meses afinado con Gemini, que no lo
      * necesita, y no se toca a ciegas el motor de producción. Se enciende con
      * `ANTHROPIC_AJUSTES_CHAT=1` (ver `AnthropicClientFactory::ajustesDeChat()`).
+     *
+     * ⚠️ Se probó también un marco delante («atiendes el chat de atención al cliente…», cómo leer
+     * las mayúsculas de las reglas) y NO mejoró: a esfuerzo bajo y medio puntuó por debajo de estas
+     * dos frases solas. Ver docs/Agent.md §5.5, tercera comparativa.
      */
     private const string AJUSTES_DE_CHAT = <<<'PROMPT'
         Una vez que has contestado algo, esa respuesta está hecha. En los mensajes siguientes piensa

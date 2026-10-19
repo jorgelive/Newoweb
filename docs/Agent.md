@@ -655,6 +655,40 @@ fallan todos los motores: anticipar costes y negativas no preguntados (recargo d
 puedo prometer»), y desdecirse de servicios que existen (Western Union, la custodia de equipaje).
 Eso es contenido y prompt, no motor. Diferencias de 0,1–0,3 con 52 turnos son orientativas.
 
+**Tercera ronda: esfuerzo × prompt por separado** (9 versiones a ciegas, Gemini de ancla). Además de
+las dos frases de `AJUSTES_DE_CHAT` («reglas») se probó un **marco** delante, sólo para clientes:
+«atiendes el chat de atención al cliente de un alojamiento…», cómo leer las mayúsculas de las reglas,
+que lo confirmado por una herramienta sigue en pie, y que costes y limitaciones se cuentan cuando
+la pregunta va de eso.
+
+| Media global de Sonnet | sin ajustes | reglas | marco + reglas |
+|---|---|---|---|
+| `high` (defecto) | 4,04 | — | 4,42 |
+| `medium` | 3,67 | 4,37 | 4,19 |
+| `low` | 4,13 | 4,33 (1 nota ≤ 2; cierres 4,80) | 4,12 |
+
+Gemini, en la misma ronda: 4,04.
+
+- **El prompt pesa más que el esfuerzo.** Con las reglas se sube unas cuatro décimas (de 3,95 a
+  4,35 de media). Cambiar el esfuerzo, en cambio, mueve la nota entre 0,1 y 0,15 sin una dirección
+  clara.
+- **`medium` sin reglas sale el peor en las dos rondas** (3,71 y 3,67). Con las reglas se recupera,
+  porque el razonamiento extra es justo lo que le lleva a volver sobre lo ya contestado.
+- **El marco no aportó** sobre las reglas: a esfuerzo `low` y `medium` restó. El único buen
+  resultado (`high` + marco) no se repite en los otros dos esfuerzos y cuesta más: 2,0¢ por turno
+  frente a 1,6¢. **Se quitó del código.** El contexto de «chat con un huésped» ya lo da el prompt
+  común; lo que fallaba era otra cosa.
+- **La configuración elegida para Claude es `ANTHROPIC_EFFORT=low` + `ANTHROPIC_AJUSTES_CHAT=1`.**
+  Es la más estable de las dos rondas (4,44 y 4,33; 2 y 1 notas ≤ 2) y la que mejor cierra los
+  «gracias».
+- **Lo que siguen fallando todas, Gemini incluido:**
+  - retractarse del almacén de equipaje ante un «gracias» (el turno c7-t2 lo fallan casi todas);
+  - escalar dudas de pago que podía explicar;
+  - la hora de salida «04:00»;
+  - el enlace `wa.me/921166466` sin el prefijo 51.
+
+  Gemini además se inventa el piso de la casita.
+
 Para atribuir el coste, cada motor deja en el log una línea por turno con su MODELO: la de
 Anthropic no lo llevaba hasta el 18/10/2026, y con Sonnet y Haiku en el mismo proveedor un coste
 sin modelo no se podía repartir. Tras una prueba, los avisos que quedaron en cola en la base local
@@ -1005,7 +1039,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
-| Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; ver la comparativa del 18/10/2026 |
+| Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; para el chat, `low` + `1` (comparativa del 18/10/2026, tercera ronda) |
 | Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
 | Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
