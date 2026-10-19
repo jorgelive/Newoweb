@@ -3499,8 +3499,9 @@ que no tenerlo.
 
 #### El panel de resolución: la ambigüedad se enseña, no se resuelve sola (09/09/2026)
 
-Botón **«Sin dueño»** en la cabecera de la bóveda. Va ahí y no en el manifiesto porque el problema
-es del archivo —«¿de quién es esto?»— y no de la persona.
+Botón **«Asignar o crear»** en la cabecera de la bóveda (se llamó «Sin dueño» hasta el 19/10/2026:
+describía el problema sin decir que ahí se resuelve). Va ahí y no en el manifiesto porque el
+problema es del archivo —«¿de quién es esto?»— y no de la persona.
 
 `GET /cotizacion/user/documentos-sueltos/{id}` da el plan; `POST …/{id}/resolver` resuelve uno.
 

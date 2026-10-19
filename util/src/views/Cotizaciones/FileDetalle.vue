@@ -4276,11 +4276,17 @@ const eliminarDocumento = async (iri?: string) => {
                 <i class="fas text-[10px] text-slate-300 group-hover:text-slate-500 transition-colors"
                    :class="bovedaAbierta ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </button>
-              <div v-if="bovedaAbierta" class="flex items-center gap-1 shrink-0 ml-auto">
+              <!-- `flex-wrap` y sin `shrink-0`: con cuatro botones, en el móvil se salían por la
+                   derecha de la tarjeta. Ahora bajan a su renglón cuando no caben. -->
+              <div v-if="bovedaAbierta" class="flex flex-wrap items-center gap-1 ml-auto min-w-0">
                 <!-- Los documentos que no son de nadie. Va aquí y no en el manifiesto porque el
                      problema es del archivo —«¿de quién es esto?»— y no de la persona. -->
-                <button @click="abrirPanelSueltos" class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-200">
-                  <i class="fas fa-user-slash mr-0.5"></i> Sin dueño
+                <!-- «Asignar o crear» y no «Sin dueño»: el botón se pulsa para HACER algo —colgar
+                     cada documento de su persona o crearla en el manifiesto—, y «sin dueño»
+                     describía el problema sin decir que aquí se resuelve. -->
+                <button @click="abrirPanelSueltos" class="bg-amber-100 text-amber-700 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-200"
+                        title="Documentos sin persona: asignarlos a alguien del manifiesto o crear su ficha">
+                  <i class="fas fa-user-plus mr-0.5"></i> Asignar o crear
                 </button>
                 <!-- Va aquí porque es la misma pregunta que la bóveda: qué documentos hay en
                      este expediente. La diferencia es que esto decide los que FALTAN. -->
@@ -6068,6 +6074,27 @@ const eliminarDocumento = async (iri?: string) => {
           </div>
 
           <div class="grid grid-cols-2 gap-3">
+            <!-- Nombres y apellidos POR SEPARADO, cada uno con su botón: los formularios de
+                 aerolínea, tren y migraciones los piden en dos casillas, y copiar el nombre entero
+                 obligaba a partirlo a mano. El botón de arriba sigue copiando los dos juntos. -->
+            <div v-for="campo in [
+                   { clave: 'nombres', etiqueta: 'Nombres', valor: paxEnFoco.nombre },
+                   { clave: 'apellidos', etiqueta: 'Apellidos', valor: paxEnFoco.apellido },
+                 ]" :key="campo.clave" class="min-w-0">
+              <p class="text-[10px] font-bold text-slate-400 uppercase">{{ campo.etiqueta }}</p>
+              <p class="text-sm font-bold text-slate-700 flex items-start gap-2">
+                <span class="min-w-0 break-words">{{ campo.valor || '—' }}</span>
+                <button v-if="campo.valor" type="button"
+                        @click="copiar(campo.valor, campo.clave)"
+                        :title="copiado === campo.clave ? 'Copiado' : `Copiar ${campo.etiqueta.toLowerCase()}`"
+                        class="w-6 h-6 shrink-0 rounded border text-[10px] transition-colors"
+                        :class="copiado === campo.clave
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                          : 'border-slate-200 text-slate-300 hover:text-indigo-500 hover:border-indigo-200'">
+                  <i class="fas" :class="copiado === campo.clave ? 'fa-check' : 'fa-copy'"></i>
+                </button>
+              </p>
+            </div>
             <div>
               <p class="text-[10px] font-bold text-slate-400 uppercase">Nacionalidad</p>
               <p class="text-sm font-bold text-slate-700">{{ paxEnFoco.pais?.nombre || '—' }}</p>
@@ -6904,7 +6931,7 @@ const eliminarDocumento = async (iri?: string) => {
       <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <div class="bg-amber-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
           <h3 class="font-black text-sm uppercase tracking-widest">
-            <i class="fas fa-user-slash mr-2"></i> Documentos sin dueño
+            <i class="fas fa-user-plus mr-2"></i> Asignar o crear desde documentos
             <span v-if="sueltos.length" class="font-bold normal-case tracking-normal opacity-80">· {{ sueltos.length }}</span>
           </h3>
           <button @click="capas.cerrar('sueltos')" class="text-amber-100 hover:text-white"><i class="fas fa-times"></i></button>
