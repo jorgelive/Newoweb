@@ -892,8 +892,9 @@ async function moverCargosDelGrupo(grupo: GrupoCargos): Promise<void> {
             await finanzas.patchCargo(cargo.id, {
                 evento: destino ? pmsEventoIri(destino) : null,
                 // Sin esto la sincronización lo devuelve a la estancia cancelada Y le pone el
-                // importe que mande el canal, que en lo cancelado suele ser 0.00.
-                fijadoPorOperador: true,
+                // importe que mande el canal, que en lo cancelado suele ser 0.00. Un manual no:
+                // nada lo sobrescribe.
+                fijadoPorOperador: cargo.manual !== true,
                 // Mover no toca los textos: `false` para NO pisar las traducciones que ya tenga.
                 sobreescribirTraduccion: false,
             });
@@ -922,6 +923,28 @@ async function soltarCandado(id: string): Promise<void> {
         error.value = err instanceof Error ? err.message : 'No se pudo soltar el candado.';
     }
 }
+
+/**
+ * 🔥 Corregir la estancia o el IMPORTE de un cargo del canal enciende el candado.
+ *
+ * La sincronización de Beds24 pisa las dos cosas en cada pull —cada 3–10 minutos—, así que una
+ * corrección sin candado se deshacía sola y sin un error. Con la estancia ya pasaba; con el
+ * importe no, y era el mismo caso (20/10/2026).
+ *
+ * Se enciende en la CASILLA, no a escondidas en el PATCH: lo que se guarda es lo que el operador
+ * ve, y si de verdad quiere que el canal mande, la apaga antes de guardar.
+ */
+watch(
+    () => [cargoForm.value.evento, cargoForm.value.totalLinea] as const,
+    ([evento, importe]) => {
+        const original = cargosVista.value.find(c => c.id === cargoEditandoId.value);
+        if (!original || original.manual === true) return;
+
+        const otraEstancia = (idDeIri(original.evento) ?? '') !== (evento || '');
+        const otroImporte = Number(importe || 0) !== Number(original.totalLinea ?? original.monto ?? 0);
+        if (otraEstancia || otroImporte) cargoForm.value.fijado = true;
+    },
+);
 
 /**
  * Los cuadros de estancia cancelada nacen PLEGADOS.
@@ -1012,6 +1035,8 @@ const cargoForm = ref({
     tipoCambio: '', moneda: '', evento: '',
     // Fuerza la RE-traducción de `descripcionClienteEs` al guardar. Ver `toggleTraduccion`.
     sobreescribirTraduccion: false,
+    // El candado del cargo, a la vista y editable (sólo en los del canal). Ver `fijarSiSeCorrige`.
+    fijado: false,
 });
 
 /**
@@ -1053,6 +1078,7 @@ function empezarEdicionCargo(c: PmsCargoFinanciero): void {
         // Arranca apagado siempre: forzar la traducción es una decisión de ESTE guardado,
         // no un ajuste del cargo. El backend lo devuelve en false tras usarlo.
         sobreescribirTraduccion: false,
+        fijado: c.manual !== true && c.fijadoPorOperador === true,
     };
 
     // Al abrir un cargo que se guardó sin TC, se ofrece ya el del día: es el caso
@@ -1082,6 +1108,7 @@ function abrirNuevoCargo(): void {
         evento: estancias.length === 1 ? estancias[0].eventoId : '',
         // En un cargo NUEVO no hay traducciones que pisar: el modo seguro ya las crea todas.
         sobreescribirTraduccion: false,
+        fijado: false,
     };
     // El TC se consulta de entrada, coincida o no la moneda (ver `tcSiempre`).
     void autocompletarTipoCambioCargo();
@@ -1226,16 +1253,10 @@ async function guardarCargoOrThrow(): Promise<void> {
             sobreescribirTraduccion: cargoForm.value.sobreescribirTraduccion,
             totalLinea: cargoForm.value.totalLinea || null,
             evento: cargoForm.value.evento ? pmsEventoIri(cargoForm.value.evento) : null,
-            // 🔥 Si el operador CAMBIÓ la estancia, se fija: si no, la sincronización de Beds24
-            // devuelve el cargo a la de antes en el siguiente pull —cada 3–10 minutos— y sin un
-            // solo error. Se pregunta al cargo ORIGINAL, no al formulario.
-            //
-            // ⚠️ Y si no la cambió, se conserva lo que ya tuviera: mandar `false` por defecto
-            // soltaría el candado de un cargo movido hace semanas sólo por editarle la descripción.
-            fijadoPorOperador: original !== undefined
-                && idDeIri(original.evento) !== (cargoForm.value.evento || null)
-                ? true
-                : (original?.fijadoPorOperador ?? false),
+            // Lo que dice la casilla, que `fijarSiSeCorrige` enciende sola al cambiar la estancia
+            // o el importe. Un manual no se fija: nada lo sobrescribe (lo impide también la
+            // entidad, `PmsCargoFinanciero::setFijadoPorOperador()`).
+            fijadoPorOperador: original !== undefined && original.manual !== true && cargoForm.value.fijado,
             ...(original && !original.tipoCambio && cargoForm.value.tipoCambio
                 ? { tipoCambio: cargoForm.value.tipoCambio }
                 : {}),
@@ -2404,7 +2425,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     <!-- El candado se VE y se puede soltar: si no, un cargo movido
                                          por error deja de recibir los importes del canal para
                                          siempre y nadie sabe por qué. -->
-                                    <button v-if="c.fijadoPorOperador && !readOnly && c.id" type="button"
+                                    <button v-if="c.fijadoPorOperador && !c.manual && !readOnly && c.id" type="button"
                                         @click="soltarCandado(c.id)" :disabled="finanzas.isSaving"
                                         title="El canal no toca este cargo. Pulsa para devolvérselo."
                                         class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-[#376875]/10 text-[#376875] hover:bg-[#376875]/20 transition-colors">
@@ -2575,6 +2596,19 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <span v-else class="mt-1 block text-[10px] font-bold text-amber-600">
                                     Guárdalo aunque el cargo esté en la moneda de la reserva: si mañana se
                                     cambia la moneda base, sin él este cargo dejaría de sumar.
+                                </span>
+                            </label>
+                            <!-- El candado, con su llave: el chip «Fijado» lo suelta y aquí se vuelve a
+                                 poner. Sólo en los cargos del canal: a un manual no lo pisa nadie. -->
+                            <label v-if="c.manual !== true" class="col-span-2 flex items-start gap-2 cursor-pointer">
+                                <input type="checkbox" v-model="cargoForm.fijado"
+                                    class="mt-0.5 w-4 h-4 accent-[#376875] cursor-pointer" />
+                                <span class="text-[11px] font-bold text-slate-600 leading-snug">
+                                    <i class="fas fa-lock mr-0.5 text-[#376875]"></i>Fijado: Beds24 no toca este cargo
+                                    <span class="block text-[10px] font-bold text-slate-400">
+                                        Ni su estancia ni su importe. Se marca solo al corregir cualquiera de los dos;
+                                        sin él, la próxima lectura de Beds24 los devuelve a lo que diga el canal.
+                                    </span>
                                 </span>
                             </label>
                             <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600">

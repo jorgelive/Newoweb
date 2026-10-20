@@ -5461,6 +5461,15 @@ O sea que mover los 239.40 y volver media hora después podía dejarlos **en la 
 describe la mitad de lo que hace es peor que uno genérico — el siguiente lector daría por hecho que
 los importes se siguen sincronizando.
 
+#### Quién lleva candado, y cómo se pone y se quita (20/10/2026)
+
+| | |
+|---|---|
+| **Sólo los cargos del canal** | Un manual no tiene `beds24ItemId` y no lo pisa nadie. `PmsCargoFinanciero::setFijadoPorOperador()` no deja fijarlo, venga de donde venga (formulario, mover cargos, comando); `Version20261020120000` se lo quitó a los 2 que lo tenían. El panel los enseñaba como «Fijado» sin que protegiera nada |
+| **Se pone solo al corregir la estancia o el IMPORTE** | La sincronización pisa las dos. Con la estancia ya pasaba; con el importe no, y una corrección del alojamiento volvía al valor del canal en el siguiente pull |
+| **Se ve y se cambia en el formulario** | Casilla «Fijado: Beds24 no toca este cargo» al editar un cargo del canal. La corrección la marca en la CASILLA, no a escondidas en el PATCH: lo que se guarda es lo que el operador ve |
+| **Se suelta con el chip** | El chip «Fijado» de la fila lo suelta; para volver a ponerlo, la casilla. Antes no había vuelta atrás |
+
 ⚠️ **Lo que sí sigue entrando en un cargo fijado es el relleno de huecos** (`tipoCargo`, `moneda`,
 `tipoCambio` cuando están a `null`). Por eso `aplicarCambiosVolatiles()` se partió en dos: aquello
 **pisa** y `rellenarHuecos()` **rellena**. Escribir donde no había nada no deshace la decisión de

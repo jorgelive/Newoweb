@@ -349,7 +349,19 @@ class PmsCargoFinanciero
 
     public function isFijadoPorOperador(): bool { return $this->fijadoPorOperador; }
 
-    public function setFijadoPorOperador(bool $fijado): self { $this->fijadoPorOperador = $fijado; return $this; }
+    /**
+     * Sólo se fija lo que viene del canal. Un cargo manual no lo toca ninguna sincronización —no
+     * tiene `beds24ItemId`—, así que el candado ahí no protege nada y sólo confunde: el panel lo
+     * enseñaba, el operador lo soltaba y no había forma de volver a ponerlo (Jorge, 20/10/2026).
+     * La regla vive aquí para que la cumplan todos los caminos: el formulario, mover cargos de
+     * una cancelada y el comando que hace lo mismo.
+     */
+    public function setFijadoPorOperador(bool $fijado): self
+    {
+        $this->fijadoPorOperador = $fijado && $this->beds24ItemId !== null;
+
+        return $this;
+    }
     public function setEvento(?PmsEventoCalendario $evento): self { $this->evento = $evento; return $this; }
 
     public function getBeds24ItemId(): ?string { return $this->beds24ItemId; }
