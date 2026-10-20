@@ -2166,11 +2166,6 @@ async function ejecutarBorrado(): Promise<void> {
                                              detrás de las fechas. -->
                                         <span class="text-slate-700 font-bold text-xs whitespace-nowrap">
                                             {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}
-                                            <!-- Compacto, con la luna: en el móvil «· 13 noches» recortaba la
-                                                 casita a «C…». La palabra entera va en el resumen de abajo. -->
-                                            <span v-if="nochesDe(entry)" class="text-slate-500 font-bold" :title="nochesTexto(entry)">
-                                                · <i class="fas fa-moon text-[9px]"></i> {{ nochesDe(entry) }}
-                                            </span>
                                             <span class="text-slate-500 font-bold">· {{ paxTotal(entry) }} pax</span>
                                         </span>
                                         <span v-if="!entry.eventoId" class="text-emerald-600 text-[10px] font-black uppercase shrink-0">Nuevo</span>
