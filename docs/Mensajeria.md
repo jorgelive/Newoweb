@@ -5069,28 +5069,27 @@ panel. Una fórmula, no tres.
 `PmsEstablecimiento::getHoraCheckIn()` / `getHoraCheckOut()`. Codificar 14:00 y 10:00 en la skill
 habría creado una segunda verdad que se rompe el día que un establecimiento cambie su horario.
 
-##### 🔑 Con hora nunca se bloquea la noche
+##### 🔑 Bloquear la noche es OPCIONAL, y con la noche vendida es imposible
 
 Marcar la casilla retira de la venta la noche **anterior** a la entrada —o la **posterior** a la
-salida—. Con una hora eso es perder una noche vendible por unas horas: *«es dinero perdido»*
-(Jorge, 19/10/2026). Así que:
+salida— para tener margen de limpieza. Es una decisión del operador, no una consecuencia
+automática de apuntar una hora:
 
-| Lo que se pide | Qué hace la skill |
+| Estado de esa noche | Qué hace la skill |
 |---|---|
-| **Con hora**, dentro o fuera del horario | Apunta la hora. Si la excede, dice que es horario extra. **No bloquea nada**, ni con la noche libre |
-| **Sin hora** («márcale salida tardía»), noche libre | Marca la casilla: la noche se retira de la venta y se abre la línea de cargo |
-| **Sin hora**, noche ya vendida | No hace nada y pide la hora |
+| **Libre** | Pregunta si bloquearla: *«¿Bloqueo también la noche anterior a la entrada (08/08)? Se retira de la venta en todos los portales»* |
+| **Ya vendida** | **No pregunta nada**: no se puede bloquear. Registra la hora y avisa de que la limpieza tendrá menos margen esa mañana |
 
-Hasta ese día, con hora y la noche libre, **preguntaba** si bloquearla, y la respuesta viajaba en
-el parámetro `bloquear`. Además de ofrecer perder dinero, esa respuesta no entraba en la huella
-de la confirmación (`GuardiaDeSkills`): el modelo podía cambiarla entre la propuesta y el «sí».
+Antes preguntaba lo contrario y en todo-o-nada: *«¿Aplico igual (marca y bloquea, con el solape)
+o prefieres que NO haga nada?»*. Un solape no llega a ocurrir nunca —con la noche vendida ya no
+se bloquea— y «no hacer nada» tampoco es la alternativa: la hora se registra igual.
 
-⚠️ **Sin casilla tampoco se abre la línea de cargo**, porque cuelga de ella
+⚠️ **Con la noche vendida tampoco se abre la línea de cargo**, porque cuelga de la misma casilla
 (`PmsCargosAutomaticosService::sincronizarExtras()` mira `isSalidaTardia()`). Lo que se le quiera
 cobrar por ese horario se añade a mano en el panel. Decisión consciente, no un olvido.
 
 ⚠️ **`$bloquea` y `$vaABloquear` son variables distintas y no se pueden fusionar.** `$bloquea`
-significa «esta hora es horario extra»; `$vaABloquear`, «y además se bloquea» —sólo sin hora—. Al
+significa «esta hora es horario extra»; `$vaABloquear` añade «y además se puede bloquear». Al
 pisar la primera con la segunda, registrar una entrada a las 08:00 sobre una noche vendida se
 anunciaba como *«cabe dentro del horario (14:00)»* — y las 08:00 son entrada temprana de manual.
 
