@@ -2435,8 +2435,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     @change="alternarCargoAMover(c.id)"
                                     class="w-4 h-4 accent-[#376875] cursor-pointer" />
                             </label>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 flex-wrap">
+                            <!-- Rejilla y no dos columnas: sólo la PRIMERA línea comparte fila con el
+                                 importe y los botones; fecha, TC y lo demás van debajo a todo el ancho.
+                                 Con dos columnas, la de la derecha le quitaba media fila a la izquierda
+                                 y en el móvil «20/10/2026 · TC 3.447» se partía en dos (20/10/2026). -->
+                            <div class="min-w-0 flex-1 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 items-start">
+                                <div class="flex items-center gap-2 flex-wrap pt-1">
                                     <span v-if="tipoCargoOpt(c.tipoCargo)"
                                         class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide"
                                         :class="clasesTipoCargo(tipoCargoOpt(c.tipoCargo)?.color)">
@@ -2470,12 +2474,25 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                      estaba explicado o llegaba como una cifra suelta. En cursiva
                                      y con comillas para que no se confunda con `descripcion`,
                                      que es la interna y viene del canal. -->
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-sm font-black text-slate-800">{{ importeCargo(c) }}</span>
+                                    <button v-if="puedeEditarCargo(c)" type="button" @click="empezarEdicionCargo(c)"
+                                        title="Editar cargo"
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#376875] hover:bg-slate-100">
+                                        <i class="fas fa-pen text-[11px]"></i>
+                                    </button>
+                                    <button v-if="puedeBorrarCargo(c)" type="button" @click="borrarCargo(c)"
+                                        title="Eliminar cargo"
+                                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50">
+                                        <i class="fas fa-trash text-[11px]"></i>
+                                    </button>
+                                </div>
                                 <p v-if="c.descripcionClienteEs"
-                                    class="text-[10px] font-bold text-[#376875] italic mt-1 leading-snug">
+                                    class="col-span-2 text-[10px] font-bold text-[#376875] italic mt-1 leading-snug">
                                     <i class="fas fa-comment-dots mr-1 not-italic" title="Descripción que ve el huésped"></i>
                                     «{{ c.descripcionClienteEs }}»
                                 </p>
-                                <p class="text-[10px] font-bold text-slate-400 mt-1">
+                                <p class="col-span-2 text-[10px] font-bold text-slate-400 mt-1">
                                     {{ fechaLegible(c.fechaCreacionBeds24) }}
                                     <template v-if="c.tipoCambio"> · TC {{ c.tipoCambio }}</template>
                                     <!-- El equivalente «≈» en la otra moneda se retiró: era la vista dual.
@@ -2484,24 +2501,11 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                          convierte, y va etiquetado como tal. -->
                                 </p>
                                 <p v-if="cargoSinTipoCambio(c)"
-                                    class="text-[10px] font-black text-amber-600 mt-1 leading-snug">
+                                    class="col-span-2 text-[10px] font-black text-amber-600 mt-1 leading-snug">
                                     <i class="fas fa-triangle-exclamation mr-1"></i>
                                     Sin tipo de cambio: este cargo <b>no suma</b> al total en
                                     {{ monedaCabecera?.id }}. Edítalo para completarlo.
                                 </p>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <span class="text-sm font-black text-slate-800">{{ importeCargo(c) }}</span>
-                                <button v-if="puedeEditarCargo(c)" type="button" @click="empezarEdicionCargo(c)"
-                                    title="Editar cargo"
-                                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#376875] hover:bg-slate-100">
-                                    <i class="fas fa-pen text-[11px]"></i>
-                                </button>
-                                <button v-if="puedeBorrarCargo(c)" type="button" @click="borrarCargo(c)"
-                                    title="Eliminar cargo"
-                                    class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50">
-                                    <i class="fas fa-trash text-[11px]"></i>
-                                </button>
                             </div>
                         </div>
 
