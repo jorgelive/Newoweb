@@ -2367,9 +2367,14 @@ Enviar por WhatsApp, ventana cerrada
 - `{{guest_name}}` es `OperacionOrdenDocumento::nombreParaSaludo()` —«Gabriel Ayme» o «equipo de
   Tunupa», la regla de `esPersona`— y `{{resumen}}` es `resumenParaAviso()`: «2 servicios, del 19 al
   24 de octubre», en una línea porque Meta no admite saltos en una variable.
-- **Sin la plantilla aprobada en español, se sigue negando** con el motivo, y el panel lo avisa
-  antes de elegir canal (`whatsappEnEspera` en la previsualización: azul si sale en espera, ámbar
-  si no se puede).
+- **Sin la plantilla aprobada en el idioma del hilo, se sigue negando** con el motivo, y el panel
+  lo avisa antes de elegir canal (`whatsappEnEspera` en la previsualización: azul si sale en
+  espera, ámbar si no se puede). ⚠️ Hasta el 19/10/2026 se comprobaba siempre en `es`, pero
+  `MensajeEnEsperaDeVentana::retener()` la manda en `idiomaDePlantilla()` del hilo: con un proveedor
+  cuyo hilo no estuviera en español, el panel prometía el aviso y el mensaje caía en rojo.
+- **Si ya hay un aviso sin contestar, no sale otro**: el texto espera con lo anterior
+  (`avisoVigente()`). La previsualización trae `whatsappAvisoYaPedido` y el recuadro azul lo dice
+  así en vez de prometer el enlace (`MensajeEnEsperaDeVentana::hayAvisoVigente()`).
 - La crea `msg:plantillas:solicitud-proveedor`; se sube con `msg:meta:push solicitud_servicio_proveedor
   --idiomas=es` y se sincroniza con `app:whatsapp:sync-templates` cuando Meta la apruebe.
 

@@ -110,7 +110,9 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
             // 🔒 Un tope, como los otros dos motores (16/10/2026). Sin él `BetaToolRunner` gira
             // SIN LÍMITE: un modelo en bucle llamando a la misma skill no paraba nunca.
             maxIterations: ControlDeVueltas::MAX_VUELTAS,
-            extraParams: ['system' => $this->bloquesDeSistema($peticion), ...$this->esfuerzo()],
+            // Los ajustes de chat, sólo con clientes: el panel habla con un compañero y su prompt lo
+            // dice, y las dos frases («el huésped sólo lee tu último mensaje») le contradecían.
+            extraParams: ['system' => $this->bloquesDeSistema($peticion, conAjustesDeChat: !$peticion->actor->esDelEquipo()), ...$this->esfuerzo()],
         );
 
         $cerrando = false;
@@ -299,7 +301,9 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
                 ['role' => 'user', 'content' => $peticion->mensaje],
             ],
             'model' => $peticion->modelo ?? $this->anthropic->modelo(),
-            'system' => $this->bloquesDeSistema($peticion),
+            // Sin ajustes de chat: un turno directo es un clasificador o un paso auxiliar con salida
+            // estructurada, y ahí las frases de chat sólo son ruido en el prefijo.
+            'system' => $this->bloquesDeSistema($peticion, conAjustesDeChat: false),
         ];
 
         // Structured outputs: el proveedor obliga a que la salida case con el esquema, así que
@@ -337,14 +341,28 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
         }
 
         $uso = $mensaje->usage ?? null;
+        $corte = (string) ($mensaje->stopReason ?? '');
         $this->logger->info(sprintf(
-            'Agent (anthropic): turno directo · %s · entrada %d · caché leído %d · caché escrito %d · salida %d tokens.',
+            'Agent (anthropic): turno directo · %s · entrada %d · caché leído %d · caché escrito %d · salida %d tokens · corte %s.',
             $peticion->modelo ?? $this->anthropic->modelo(),
             $uso->inputTokens ?? 0,
             $uso->cacheReadInputTokens ?? 0,
             $uso->cacheCreationInputTokens ?? 0,
-            $uso->outputTokens ?? 0
+            $uso->outputTokens ?? 0,
+            $corte !== '' ? $corte : '—',
         ));
+
+        // ⚠️ En Claude 5.5 el razonamiento no se apaga y sus tokens cuentan contra `maxTokens`. Los
+        // topes de los turnos directos —el triaje pide 900— se calcularon con Gemini, que no razona:
+        // si se agotan, el JSON llega a medias, quien llama lo da por indeterminado y el turno se
+        // va por el camino largo SIN error. Esta línea es la que lo delata (revisión del 19/10/2026).
+        if ($corte === 'max_tokens') {
+            $this->logger->warning(sprintf(
+                'Agent (anthropic): turno directo cortado por el tope de %d tokens para %s; la salida puede venir incompleta.',
+                $peticion->maxTokens,
+                $peticion->actor->etiqueta(),
+            ));
+        }
 
         if ($mensaje->stopReason === 'refusal') {
             return null;
@@ -410,14 +428,14 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
      *
      * @return list<array{type: 'text', text: string, cacheControl?: array{type: 'ephemeral', ttl: '1h'}}>
      */
-    private function bloquesDeSistema(ConversationRequest $peticion): array
+    private function bloquesDeSistema(ConversationRequest $peticion, bool $conAjustesDeChat): array
     {
         // Los ajustes de chat van DENTRO del bloque estable: son texto fijo, así que no rompen la
         // caché, y como cambian el prefijo sólo cuando se encienden, encenderlos es un cambio de
         // caché de una vez. Ver AJUSTES_DE_CHAT.
         $bloques = [[
             'type' => 'text',
-            'text' => $peticion->systemPrompt . ($this->anthropic->ajustesDeChat() ? "\n\n" . self::AJUSTES_DE_CHAT : ''),
+            'text' => $peticion->systemPrompt . ($conAjustesDeChat && $this->anthropic->ajustesDeChat() ? "\n\n" . self::AJUSTES_DE_CHAT : ''),
             'cacheControl' => ['type' => 'ephemeral', 'ttl' => '1h'],
         ]];
 

@@ -4293,9 +4293,19 @@ onMounted(async () => {
                         <p v-if="!documento.ventanaWhatsappAbierta && documento.whatsappEnEspera"
                            class="text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 leading-snug">
                             <i class="fas fa-hourglass-half mr-1"></i>
-                            La ventana de 24 h de WhatsApp está cerrada. Por WhatsApp le llegará un aviso con
-                            el enlace a la solicitud y un botón «Envíenmelo aquí»; este texto saldrá solo en
-                            cuanto responda.
+                            <!-- Con un aviso anterior sin contestar no sale otro: el texto se queda
+                                 esperando con lo demás. Prometer el enlace ahí era prometer algo que
+                                 no iba a llegar (revisión del 19/10/2026). -->
+                            <template v-if="documento.whatsappAvisoYaPedido">
+                              La ventana de 24 h de WhatsApp está cerrada y ya se le pidió permiso con un aviso
+                              que todavía no ha contestado. Este texto esperará con lo anterior y saldrá solo en
+                              cuanto responda; no le llegará un aviso nuevo.
+                            </template>
+                            <template v-else>
+                              La ventana de 24 h de WhatsApp está cerrada. Por WhatsApp le llegará un aviso con
+                              el enlace a la solicitud y un botón «Envíenmelo aquí»; este texto saldrá solo en
+                              cuanto responda.
+                            </template>
                         </p>
                         <p v-else-if="!documento.ventanaWhatsappAbierta"
                            class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">

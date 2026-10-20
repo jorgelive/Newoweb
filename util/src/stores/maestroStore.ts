@@ -29,7 +29,10 @@ export const useMaestroStore = defineStore('maestroStore', () => {
             // Ejecución de promesas en paralelo para optimizar la carga de red
             const [paisesRes, idiomasRes] = await Promise.all([
                 apiClient.get('/platform/maestro/paises'),
-                apiClient.get('/platform/maestro/idiomas')
+                // Sólo los idiomas de TRABAJO (prioridad > 0): son los únicos en que se le escribe a
+                // nadie. Ofrecer el hebreo era dejar elegir algo que `IdiomaDeTrabajoListener` guarda
+                // como inglés sin decirlo (revisión del 19/10/2026). Ver docs/Mensajeria.md.
+                apiClient.get('/platform/maestro/idiomas?prioridad[gt]=0&order[prioridad]=desc')
             ]);
 
             paises.value = paisesRes.data['hydra:member'] || paisesRes.data['member'] || [];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Service\Ensayo\ModoEnsayo;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,7 +39,8 @@ class WebPushNotificationService
         LoggerInterface $logger,
         #[Autowire('%env(VAPID_PUBLIC_KEY)%')] string $publicKey,
         #[Autowire('%env(VAPID_PRIVATE_KEY)%')] string $privateKey,
-        #[Autowire('%env(VAPID_SUBJECT)%')] string $subject
+        #[Autowire('%env(VAPID_SUBJECT)%')] string $subject,
+        private readonly ModoEnsayo $ensayo,
     ) {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
@@ -69,6 +71,14 @@ class WebPushNotificationService
      */
     public function sendToUser(User $user, array $payload): void
     {
+        // Un ensayo (`app:agent:replay`) no avisa a nadie: su transacción deshace las colas, pero un
+        // push sale por HTTP en el acto y no vuelve. Ver ModoEnsayo.
+        if ($this->ensayo->activo()) {
+            $this->logger->info('[WebPush] En modo ensayo: no se envía a ' . $user->getUserIdentifier() . '.');
+
+            return;
+        }
+
         $this->logger->info("🚀 [WebPush] Iniciando envío para el usuario: " . $user->getUserIdentifier());
 
         $subscriptions = $this->entityManager->getRepository(PushSubscription::class)->findBy(['user' => $user]);

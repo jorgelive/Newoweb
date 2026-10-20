@@ -380,6 +380,21 @@ final readonly class MensajeEnEsperaDeVentana
     }
 
     /**
+     * ¿Hay algo esperando en el hilo con un aviso que ya salió y no ha contestado?
+     *
+     * Para que quien va a mandar sepa que lo suyo esperará con eso y no saldrá un aviso nuevo: el
+     * panel de órdenes prometía «le llegará un aviso con el enlace» cuando no iba a llegar (revisión
+     * del 19/10/2026). Mira el número principal del hilo, que es al que sale un envío sin elegir.
+     */
+    public function hayAvisoVigente(MessageConversation $hilo): bool
+    {
+        $nuevo = new Message();
+        $nuevo->setDirection(Message::DIRECTION_OUTGOING);
+
+        return $this->avisoVigente($hilo, $nuevo) !== null;
+    }
+
+    /**
      * El aviso que ya pidió permiso por lo que espera en el hilo, si salió.
      *
      * No basta con que haya algo esperando: si su aviso falló, nadie le ha preguntado nada al

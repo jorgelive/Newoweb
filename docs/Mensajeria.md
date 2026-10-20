@@ -2630,6 +2630,15 @@ MessageTranslator (Google) ───┴─▶ LongitudParaIdioma::basta()  + «f
    de la reserva. El agente, que contesta «SIEMPRE en el idioma de la conversación», respondía en
    hebreo, y el acuse de recibo, sin hebreo en su tabla, caía al **español**.
 
+   ⚠️ **Y la causa de fondo se cortó el mismo día** (revisión): `upsertFromContext()` ya no
+   reescribe el idioma en cada llamada, sólo **al nacer el hilo o cuando el idioma del asunto
+   cambia de verdad** (el equipo lo corrigió en la reserva o el expediente). El último aplicado
+   queda en `contextData.idioma_asunto`; los hilos de antes lo apuntan sin aplicar, para no deshacer
+   de golpe lo que la detección decidió. Entre medias mandan los mensajes del huésped y «Fijado».
+   Límite conocido: un hilo con varios asuntos en idiomas distintos (una agencia) sigue oyendo el
+   del último recalculado, como antes. Los selectores de idioma del panel (`maestroStore`, los CRUD
+   de reserva y conversación) sólo ofrecen ya los siete de trabajo.
+
    ```
    en origen ─┬─ BookingPullPersister::resolveIdioma()   (prioridad 0 → inglés, como «no existe»)
               ├─ las tres detecciones de arriba          (al hilo, para(); el mensaje, su código)

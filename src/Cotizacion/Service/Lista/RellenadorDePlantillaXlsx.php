@@ -197,7 +197,7 @@ final class RellenadorDePlantillaXlsx
         }
 
         return is_string($celda->valor)
-            ? sprintf('<c r="%s"%s t="str">%s<v>%s</v></c>', $ref, $atributos, $f[0], htmlspecialchars($celda->valor, ENT_XML1 | ENT_QUOTES, 'UTF-8'))
+            ? sprintf('<c r="%s"%s t="str">%s<v>%s</v></c>', $ref, $atributos, $f[0], TextosCompartidos::paraXml($celda->valor))
             : sprintf('<c r="%s"%s>%s<v>%s</v></c>', $ref, $atributos, $f[0], $this->numero($celda->valor));
     }
 

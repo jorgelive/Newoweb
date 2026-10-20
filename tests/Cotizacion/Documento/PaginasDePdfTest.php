@@ -103,6 +103,26 @@ final class PaginasDePdfTest extends TestCase
         self::assertLessThan(5 * $altoUna, $altoSeis);
     }
 
+    /**
+     * Una página de 14 400 pt —el máximo del formato— a 110 ppp serían ~22 000 px de lado. Se pinta
+     * a menos resolución: la vista sale, conserva su forma y no pasa por un PNG de gigabytes.
+     */
+    public function testUnaPaginaGiganteSePintaEncogida(): void
+    {
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml('<h1>Enorme</h1>');
+        $dompdf->setPaper([0, 0, 14400, 14400]);
+        $dompdf->render();
+        $ruta = $this->carpeta . '/gigante.pdf';
+        file_put_contents($ruta, (string) $dompdf->output());
+
+        $inicio = microtime(true);
+        [$ancho, $alto] = self::medidas((new PaginasDePdf())->vista($ruta));
+
+        self::assertLessThanOrEqual(2000, max($ancho, $alto));
+        self::assertLessThan(20, microtime(true) - $inicio);
+    }
+
     /** Girar 90° deja la página apaisada, tira la vista vieja y no rasteriza: sigue siendo un PDF. */
     public function testGirarCambiaElGiroDeLaPaginaSinRasterizar(): void
     {

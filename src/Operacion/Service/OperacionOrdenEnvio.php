@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Operacion\Service;
 
+use App\Message\Service\Queue\MensajeEnEsperaDeVentana;
 use App\Message\Command\MessageCrearSolicitudProveedorCommand;
 use App\Message\Entity\Message;
 use App\Message\Entity\MessageConversation;
@@ -49,6 +50,7 @@ final readonly class OperacionOrdenEnvio
         private AperturaDeHilo $apertura,
         private CanalesDisponibles $canales,
         private UrlGeneratorInterface $urls,
+        private MensajeEnEsperaDeVentana $espera,
     ) {
     }
 
@@ -86,7 +88,7 @@ final readonly class OperacionOrdenEnvio
             return false;
         }
 
-        if ($this->plantillaFueraDeVentanaAprobada()) {
+        if ($this->plantillaFueraDeVentanaAprobada($hilo)) {
             return true;
         }
 
@@ -97,13 +99,22 @@ final readonly class OperacionOrdenEnvio
         );
     }
 
-    /** ¿Está la plantilla de fuera de ventana creada y aprobada en español? */
-    private function plantillaFueraDeVentanaAprobada(): bool
+    /**
+     * ¿Está la plantilla de fuera de ventana creada y aprobada en el idioma en que saldrá?
+     *
+     * ⚠️ En el del HILO, con la regla de `MaestroIdioma::idiomaDePlantilla()`, que es la que aplica
+     * `MensajeEnEsperaDeVentana::retener()` al mandarla. Aquí se miraba siempre `es`: con el hilo de un
+     * proveedor en otro idioma —una respuesta suya lo corrige— el panel prometía «le llegará el
+     * aviso», `enviar()` daba éxito y el mensaje caía en rojo al persistirse (revisión del
+     * 19/10/2026).
+     */
+    private function plantillaFueraDeVentanaAprobada(MessageConversation $hilo): bool
     {
         $plantilla = $this->em->getRepository(MessageTemplate::class)
             ->findOneBy(['code' => MessageCrearSolicitudProveedorCommand::CODIGO]);
 
-        return $plantilla instanceof MessageTemplate && $plantilla->hasWhatsappMetaOfficialData('es');
+        return $plantilla instanceof MessageTemplate
+            && $plantilla->hasWhatsappMetaOfficialData($hilo->getIdioma()->idiomaDePlantilla());
     }
 
     /**
@@ -141,6 +152,7 @@ final readonly class OperacionOrdenEnvio
                 'enlace' => $this->enlace($orden),
                 'ventanaWhatsappAbierta' => false,
                 'whatsappEnEspera' => false,
+                'whatsappAvisoYaPedido' => false,
                 // El motivo REDACTADO, para enseñarlo tal cual: dice qué falta y qué hacer.
                 'motivoSinCanal' => $e->getMessage(),
             ];
@@ -155,7 +167,10 @@ final readonly class OperacionOrdenEnvio
             'ventanaWhatsappAbierta' => $hilo->isWhatsappSessionActive(),
             // Con la ventana cerrada, si la plantilla está aprobada, WhatsApp sigue sirviendo:
             // sale el aviso con el enlace y el texto espera a que responda.
-            'whatsappEnEspera' => !$hilo->isWhatsappSessionActive() && $this->plantillaFueraDeVentanaAprobada(),
+            'whatsappEnEspera' => !$hilo->isWhatsappSessionActive() && $this->plantillaFueraDeVentanaAprobada($hilo),
+            // Si ya se le pidió permiso con un aviso que no ha contestado, el texto espera con lo
+            // demás y NO sale otro aviso con el enlace: el panel tiene que decirlo así.
+            'whatsappAvisoYaPedido' => !$hilo->isWhatsappSessionActive() && $this->espera->hayAvisoVigente($hilo),
             'motivoSinCanal' => null,
         ];
     }

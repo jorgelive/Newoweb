@@ -172,13 +172,16 @@ final class TipoCambioSincronizarCommand extends Command
      */
     private function resellarDepositos(SymfonyStyle $io, InputInterface $input, DateTimeImmutable $hoy, int $dias): void
     {
-        $desdeTexto = EntradaDeConsola::textoOpcional($input->getOption('resellar-desde'), 'resellar-desde');
-        $desde = $desdeTexto !== null
-            ? new DateTimeImmutable($desdeTexto, $hoy->getTimezone())
-            : $hoy->modify(sprintf('-%d days', $dias - 1));
         $simular = (bool) $input->getOption('simular');
 
+        // El parseo de la fecha va DENTRO del `try`: un `--resellar-desde 2026-13-01` tecleado a mano
+        // tumbaba el comando antes de llegar a la alarma de desfase, que es lo que importa de él
+        // (revisión del 19/10/2026).
         try {
+            $desdeTexto = EntradaDeConsola::textoOpcional($input->getOption('resellar-desde'), 'resellar-desde');
+            $desde = $desdeTexto !== null
+                ? new DateTimeImmutable($desdeTexto, $hoy->getTimezone())
+                : $hoy->modify(sprintf('-%d days', $dias - 1));
             $cambios = $this->depositosOta->resellarCambio($desde, $hoy, !$simular);
         } catch (Throwable $e) {
             $this->logger->error('[TipoCambio] No se pudo volver a sellar los depósitos de OTA: ' . $e->getMessage());

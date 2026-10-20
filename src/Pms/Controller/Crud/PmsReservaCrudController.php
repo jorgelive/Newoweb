@@ -583,7 +583,8 @@ TXT;
             ->setColumns(6)
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
-            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
+            // Sólo idiomas de trabajo: otro se guardaría como inglés (IdiomaDeTrabajoListener).
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'));
 
         yield BooleanField::new('datosLocked', 'Bloquear Datos')
             ->setHelp('Protege los datos contra sobrescritura por sincronización.');

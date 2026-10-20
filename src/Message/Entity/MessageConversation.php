@@ -839,6 +839,22 @@ class MessageConversation
     #[Groups(['conversation:read'])]
     public function getContextRotulo(): ?string { return $this->textoDeContexto('rotulo'); }
 
+    /**
+     * El idioma del asunto (la reserva, el expediente) que se aplicó al hilo la última vez. Sirve
+     * para que `MessageConversationFactory::upsertFromContext()` sólo lo vuelva a aplicar cuando
+     * CAMBIA —el equipo lo corrigió en la reserva—, y no en cada recálculo, que deshacía el idioma
+     * que la detección había sacado de los mensajes del huésped.
+     */
+    public function getContextIdiomaAsunto(): ?string { return $this->textoDeContexto('idioma_asunto'); }
+
+    public function setContextIdiomaAsunto(?string $idioma): self
+    {
+        $this->initContextData();
+        $this->contextData['idioma_asunto'] = $idioma;
+
+        return $this;
+    }
+
     public function setContextRotulo(?string $rotulo): self
     {
         $this->initContextData();

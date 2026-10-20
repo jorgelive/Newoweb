@@ -633,8 +633,21 @@ se ejecutan de verdad y escriben: `confirmar_hora` dejó «salida 04:00» en la 
 porque un huésped del guion dijo «nos retiraremos a las 4 am», y las conversaciones siguientes lo
 leyeron como dato — la comparativa castigó a los modelos por una hora que no inventaron. Ahora la
 hora, las peticiones anotadas y los avisos en cola (Messenger y `msg_*_send_queue` viven en la
-misma base) se van con el rollback. Lo que no vuelve es lo que sale de la base en el momento: un
-push, una llamada HTTP directa.
+misma base) se van con el rollback.
+
+🧪 **Lo que sale de la base en el momento lo corta `ModoEnsayo`** (revisión del 19/10/2026): el
+replay lo enciende y `WebPushNotificationService::sendToUser()` y `MercureBroadcaster` no envían.
+`confirmar_hora` avisa por **push** cuando no consigue avisar por WhatsApp —justo cuando no hay
+guardia con móvil, la condición «segura» del replay—, así que los ensayos mandaban notificaciones
+reales al equipo; y cada mensaje que una skill persistía aparecía en el panel por Mercure y
+desaparecía con el rollback. Comprobado: en el log queda «[WebPush] En modo ensayo: no se envía a
+jorge.gomez». Un envío directo por HTTP que se añada tiene que consultar ese interruptor.
+
+⚠️ **Contra producción, sólo con `--en-produccion`**: la transacción dura el ensayo entero, con las
+llamadas al modelo dentro, y retiene los bloqueos de lo que toquen las skills; un webhook de Beds24
+o de Meta sobre esa reserva espera, agota `innodb_lock_wait_timeout` y falla. Partirla por turno
+divergiría de producción, donde el turno 3 sí ve lo que escribió el 1. Y un `flush()` que revienta
+cierra el EntityManager: los savepoints no salvan lo que venga después.
 
 #### Lo que salió de la primera comparativa (18/10/2026)
 
@@ -650,7 +663,9 @@ que Gemini, y **la causa era de configuración**, descrita en la guía de migrac
 | ~500 tokens de salida por turno para textos de 50–100 | razonamiento | el esfuerzo |
 
 Las dos frases van en `AnthropicEngine::AJUSTES_DE_CHAT`, sólo para Claude (el prompt está afinado
-con Gemini), detrás de `ANTHROPIC_AJUSTES_CHAT=1`; el esfuerzo, en `ANTHROPIC_EFFORT`. Las dos vienen
+con Gemini) y **sólo en `conversar()` con un cliente**: ni en los turnos directos (triaje, resumen,
+prerouter, que son clasificadores) ni en el panel, cuyo prompt dice que habla con un compañero
+(revisión del 19/10/2026). Detrás de `ANTHROPIC_AJUSTES_CHAT=1`; el esfuerzo, en `ANTHROPIC_EFFORT`. Las dos vienen
 APAGADAS y tienen su valor por defecto en `services_agent.yaml` (`env(default:…)`), así que no
 existir en el servidor no tumba el contenedor.
 
@@ -702,6 +717,11 @@ Gemini, en la misma ronda: 4,04.
   sin volcar. Antes de volcar se comparó el volcado nuevo con el viejo (no se perdía ninguna
   variable); copia en `.env.local.php.bak-antes-claude-20261018`. Volver a Gemini es poner los
   dos tramos en `google:gemini-3.8-flash` en `.env.local` y repetir el volcado.
+- ⚠️ **El triaje va ahora por Claude, y en Claude 5.5 el razonamiento cuenta contra `maxTokens`.**
+  Los topes de los turnos directos (el triaje pide 900) se calcularon con Gemini, que no razona: si
+  se agotan, el JSON llega a medias y el turno se va por el camino largo sin error. Desde el
+  19/10/2026 la línea de consumo de `turnoDirecto()` lleva `corte` (`stopReason`) y un `max_tokens`
+  deja un warning. Medido el primer día: 145–192 tokens de salida, lejos del tope.
 - **La configuración elegida para Claude es `ANTHROPIC_EFFORT=low` + `ANTHROPIC_AJUSTES_CHAT=1`.**
   Es la más estable de las dos rondas (4,44 y 4,33; 2 y 1 notas ≤ 2) y la que mejor cierra los
   «gracias».

@@ -9,6 +9,7 @@ use ImagickException;
 use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 /**
  * Lo que se le hace a un PDF subido —girarlo y enseñarlo—, **en el servidor y sin tocar su contenido**.
@@ -47,6 +48,12 @@ final readonly class PaginasDePdf
 
     /** Un A4 a 110 ppp sale a ~900 px de ancho: se lee la letra del pasaporte sin pesar un mundo. */
     private const int RESOLUCION = 110;
+
+    /**
+     * El lado más largo que se deja pintar, en píxeles. Un A4 a 110 ppp son 1 286: no se toca.
+     * Ver `resolucionPara()`.
+     */
+    private const int MAX_PIXELES = 2000;
 
     private const int ANCHO_MAXIMO = 1400;
 
@@ -127,7 +134,7 @@ final readonly class PaginasDePdf
                 '-dNOPAUSE',
                 '-dQUIET',
                 '-sDEVICE=png16m',
-                '-r' . self::RESOLUCION,
+                '-r' . $this->resolucionPara($ruta),
                 '-dTextAlphaBits=4',
                 '-dGraphicsAlphaBits=4',
                 '-dFirstPage=1',
@@ -166,6 +173,12 @@ final readonly class PaginasDePdf
         $temporal = $destino . '.' . bin2hex(random_bytes(4)) . '.tmp';
 
         try {
+            // Topes de Imagick, que reserva fuera del `memory_limit` de PHP: si algo se cuela por
+            // encima del lienzo fijo de `vista()`, falla aquí en vez de tumbar el servidor.
+            Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY, 256 * 1024 * 1024);
+            Imagick::setResourceLimit(Imagick::RESOURCETYPE_MAP, 512 * 1024 * 1024);
+            Imagick::setResourceLimit(Imagick::RESOURCETYPE_DISK, 1024 * 1024 * 1024);
+
             $pila = new Imagick();
             foreach ($paginas as $i => $pagina) {
                 if ($i > 0) {
@@ -200,6 +213,81 @@ final readonly class PaginasDePdf
                 unlink($temporal);
             }
         }
+    }
+
+    /**
+     * La resolución a la que se pinta: la de siempre, salvo que una página sea tan grande que la
+     * imagen pasaría de {@see self::MAX_PIXELES} de lado (revisión del 19/10/2026).
+     *
+     * ⚠️ Un PDF subido por un pasajero puede declarar páginas de 14 400 pt —el máximo del formato—:
+     * a 110 ppp son ~22 000 px de lado, PNG de gigabytes en /tmp y luego Imagick cargando cuatro.
+     * El tamaño se lee de las páginas con `qpdf`, que no rasteriza nada. No se fija un lienzo en
+     * Ghostscript porque la vista tiene que conservar la forma de la página: es lo que se mira al
+     * girarla. Si no se puede leer, se pinta a la resolución de siempre y quedan de red los topes de
+     * Imagick de `escribirWebp()`.
+     */
+    private function resolucionPara(string $ruta): int
+    {
+        $lado = $this->ladoMayorEnPuntos($ruta);
+
+        if ($lado === null || $lado <= 0.0 || $lado * self::RESOLUCION / 72 <= self::MAX_PIXELES) {
+            return self::RESOLUCION;
+        }
+
+        return max(10, (int) floor(self::MAX_PIXELES * 72 / $lado));
+    }
+
+    /** El lado más largo de las páginas que se van a pintar, en puntos; null si no se sabe. */
+    private function ladoMayorEnPuntos(string $ruta): ?float
+    {
+        try {
+            $salida = $this->salidaDe([$this->binario('qpdf'), '--json=2', '--json-key=pages', '--json-key=qpdf', $ruta]);
+            $json = json_decode($salida, true, 64, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        $qpdf = is_array($json) && is_array($json['qpdf'] ?? null) ? $json['qpdf'] : [];
+        $objetos = is_array($qpdf[1] ?? null) ? $qpdf[1] : [];
+        $paginas = is_array($json) && is_array($json['pages'] ?? null) ? array_slice($json['pages'], 0, self::MAX_PAGINAS) : [];
+        $valor = static function (mixed $ref) use ($objetos): mixed {
+            return is_string($ref) && is_array($objetos['obj:' . $ref] ?? null) ? ($objetos['obj:' . $ref]['value'] ?? null) : $ref;
+        };
+
+        $mayor = null;
+        foreach ($paginas as $pagina) {
+            $nodo = $valor(is_array($pagina) ? ($pagina['object'] ?? null) : null);
+
+            // El /MediaBox se hereda: si la página no lo trae, lo tiene algún /Pages de arriba.
+            for ($nivel = 0; is_array($nodo) && !isset($nodo['/MediaBox']) && $nivel < 10; ++$nivel) {
+                $nodo = $valor($nodo['/Parent'] ?? null);
+            }
+
+            $caja = is_array($nodo) ? $valor($nodo['/MediaBox'] ?? null) : null;
+            if (!is_array($caja) || \count($caja) !== 4) {
+                continue;
+            }
+
+            $n = array_map(static fn (mixed $v): float => is_numeric($v) ? (float) $v : 0.0, array_values($caja));
+            $mayor = max($mayor ?? 0.0, abs($n[2] - $n[0]), abs($n[3] - $n[1]));
+        }
+
+        return $mayor;
+    }
+
+    /** @param list<string> $comando */
+    private function salidaDe(array $comando): string
+    {
+        $proceso = new Process($comando);
+        $proceso->setTimeout(self::SEGUNDOS);
+        $proceso->run();
+
+        // qpdf sale con 3 cuando avisa de algo y aun así entrega el JSON.
+        if (!in_array($proceso->getExitCode(), [0, 3], true)) {
+            throw new RuntimeException('qpdf no pudo leer el PDF.');
+        }
+
+        return $proceso->getOutput();
     }
 
     /**

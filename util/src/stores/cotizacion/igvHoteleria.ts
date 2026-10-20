@@ -47,9 +47,12 @@ export const avisoIgvDeHotel = (
         return null;
     }
 
+    // De dónde sale cada señal, dicho: el manifiesto es el del EXPEDIENTE entero (no sólo los de
+    // esta propuesta o subgrupo) y una sola tarifa nacional basta para todos los hoteles. Puede
+    // avisar de más, nunca de menos; con la fuente a la vista, quien cotiza decide.
     const quien = peruanos.pasajeros > 0
-        ? `${peruanos.pasajeros} ${peruanos.pasajeros === 1 ? 'pasajero peruano' : 'pasajeros peruanos'}`
-        : 'peruanos (hay tarifas de procedencia nacional)';
+        ? `${peruanos.pasajeros} ${peruanos.pasajeros === 1 ? 'pasajero peruano' : 'pasajeros peruanos'} en el expediente`
+        : 'peruanos (hay tarifas de procedencia nacional en la cotización)';
 
     return `Viajan ${quien}: el hotel les cobra IGV (18 %, o 10,5 % si es MYPE). `
         + 'Cotiza su habitación con la tarifa con IGV que dé el hotel. '

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Agent\Command;
 
 use App\Agent\Access\AgentActorFactory;
+use App\Service\Ensayo\ModoEnsayo;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\PotenciaRequerida;
@@ -50,14 +52,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * veces seguidas sin que una pasada contamine a la siguiente, que es lo que pasaba: un «nos
  * retiraremos a las 4 am» del guion dejaba la salida de la reserva de prueba en 04:00.
  *
- * ### ⚠️ Lo que sí sale: lo que no pasa por la base
+ * ### ⚠️ Lo que no pasa por la base
  *
- * Las skills se ejecutan de verdad. Lo que escriben en la base se deshace, pero lo que sale de
- * ella en el momento no vuelve (un push, una llamada HTTP directa). Con el actor de huésped **dos**
- * avisan a personas reales —hoy por cola, que se deshace, pero el día que una mande directo, sale:
+ * Las skills se ejecutan de verdad. Lo que escriben en la base se deshace; lo que sale de ella en
+ * el momento no volvería, y por eso el ensayo enciende {@see ModoEnsayo}: ni push web ni Mercure.
+ * `confirmar_hora` avisa por PUSH cuando no consigue avisar por WhatsApp —justo cuando no hay
+ * guardia con móvil—, y las skills que persisten mensajes los publicaban en el panel para que
+ * desaparecieran al deshacerse. Cualquier otro envío directo por HTTP que se añada tiene que
+ * consultar ese interruptor. Las skills que avisan a personas reales, todas por cola o por push:
  *
  * - `escalar_al_equipo` → WhatsApp a quien tenga `ROLE_CUSTOMER_SUPPORT` y móvil.
  * - `enviarme_plantilla` → un mensaje **al propio huésped**, por su canal.
+ * - `confirmar_hora` → WhatsApp al equipo, y push si no llega.
  *
  * Las dos sobreviven al filtro de `permitirEscritura: false` porque son `NivelRiesgo::Interna`,
  * que es justo el matiz que las deja llegar al chat del huésped ({@see NivelRiesgo}).
@@ -98,6 +104,9 @@ final class AgentReplayCommand extends Command
         private readonly AgentActorFactory $actores,
         private readonly AgentEngineRegistry $motores,
         private readonly EnlacesDeConversacion $enlaces,
+        private readonly ModoEnsayo $ensayo,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $entorno,
     ) {
         parent::__construct();
     }
@@ -116,6 +125,8 @@ final class AgentReplayCommand extends Command
         ?string $modelo = null,
         #[Option('Archivo JSON donde dejar cada turno, para comparar motores lado a lado.')]
         ?string $salida = null,
+        #[Option('Correr contra la base de PRODUCCIÓN. La transacción del ensayo bloquea las filas que toque hasta el final.')]
+        bool $enProduccion = false,
     ): int {
         // El motor fijo se resuelve ANTES de nada: descubrir que no tiene clave a mitad de la
         // conversación es haber gastado el triaje de los turnos anteriores para nada.
@@ -180,20 +191,34 @@ final class AgentReplayCommand extends Command
             trim($reserva->getNombreCliente() . ' ' . $reserva->getApellidoCliente())
         ));
 
+        // ⚠️ Contra producción, sólo si se pide. La transacción dura el ensayo entero —minutos, con
+        // las llamadas al modelo dentro— y retiene los bloqueos de lo que escriban las skills: un
+        // webhook de Beds24 o de Meta sobre esa reserva o ese hilo espera, agota el
+        // `innodb_lock_wait_timeout` y falla. Partirla por turno divergiría de producción, donde el
+        // turno 3 sí ve lo que escribió el 1.
+        if ($this->entorno === 'prod' && !$enProduccion) {
+            $io->error('Esto es PRODUCCIÓN: el ensayo bloquea las filas que toque mientras dura y puede hacer esperar a un webhook. Repite con --en-produccion si lo asumes.');
+
+            return Command::FAILURE;
+        }
+
         // 🔒 TODO lo que escriban las skills se deshace al terminar (18/10/2026). El historial ya
         // vivía en memoria, pero las skills `Interna` escriben de verdad: `confirmar_hora` dejó
         // «salida 04:00» en la reserva de prueba porque un huésped del guion dijo «nos retiraremos
         // como a las 4 am», y las conversaciones siguientes lo leyeron como dato. Las peticiones
         // anotadas y los avisos en cola (Messenger y las colas de envío viven en esta misma base)
-        // también se van. Lo que no vuelve es lo que sale de la base en el momento: un push.
+        // también se van. Lo que sale de la base en el momento —push, Mercure— lo corta ModoEnsayo.
         //
         // Con savepoints, porque DBAL 3 no los usa por defecto: sin ellos, una skill que falla y
         // deshace SU transacción marca la de fuera como «sólo rollback», y todas las escrituras
         // posteriores del ensayo fallarían — un resultado que no tiene nada que ver con el motor.
+        // ⚠️ Cubre el rollback de una transacción anidada, no un `flush()` que revienta: ése además
+        // CIERRA el EntityManager, y lo que venga después falla con «EntityManager is closed».
         $conexion = $this->em->getConnection();
         $conSavepoints = $conexion->getNestTransactionsWithSavepoints();
         $conexion->setNestTransactionsWithSavepoints(true);
         $conexion->beginTransaction();
+        $this->ensayo->activar();
 
         try {
         foreach ($mensajes as $i => $mensaje) {
@@ -298,6 +323,7 @@ final class AgentReplayCommand extends Command
             $historial[] = ['rol' => 'asistente', 'texto' => (string) $respuesta];
         }
         } finally {
+            $this->ensayo->desactivar();
             while ($conexion->isTransactionActive()) {
                 $conexion->rollBack();
             }

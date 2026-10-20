@@ -182,7 +182,8 @@ class MessageConversationCrudController extends BaseCrudController implements So
         yield TextField::new('guestPhone', 'Teléfono / WhatsApp')->setColumns(4);
 
         yield AssociationField::new('idioma', 'Idioma')
-            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'))
+            // Sólo idiomas de trabajo: otro se guardaría como inglés (IdiomaDeTrabajoListener).
+            ->setQueryBuilder(fn (QueryBuilder $qb) => $qb->andWhere('entity.prioridad > 0')->orderBy('entity.prioridad', 'DESC')->addOrderBy('entity.nombre', 'ASC'))
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
             ->setColumns(2);

@@ -96,6 +96,8 @@ export interface DocumentoDeOrden {
      * `OperacionOrdenEnvio::exigirVentanaAbierta()`.
      */
     whatsappEnEspera?: boolean;
+    /** Ya se le pidió permiso con un aviso sin contestar: el texto espera con lo demás y no sale otro aviso. */
+    whatsappAvisoYaPedido?: boolean;
     /**
      * Por qué no hay ningún canal, ya redactado. `null` cuando sí los hay.
      *

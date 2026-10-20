@@ -21,6 +21,12 @@ use Doctrine\ORM\Events;
  * detecciones por mensaje, la fusión de hilos, crear y modificar reserva, el panel…) y el siguiente
  * que se escriba se olvidaría de la regla. Las fuentes automáticas la aplican ya en origen, para que
  * la lectura de Beds24 de cada cinco minutos no reescriba la reserva con el mismo valor.
+ *
+ * ⚠️ Si lo que llega es un idioma de prioridad 0 y lo que había ya era inglés, el changeset queda
+ * `[en → en]` pero Doctrine ejecuta el `UPDATE` igual (con el mismo valor) y dispara los
+ * `postUpdate`, Mercure incluido. Inofensivo, y hoy sólo puede pasar desde un formulario: las
+ * fuentes automáticas normalizan y comparan antes de asignar, y los selectores del panel ya sólo
+ * ofrecen idiomas de trabajo.
  */
 #[AsDoctrineListener(event: Events::prePersist)]
 #[AsDoctrineListener(event: Events::preUpdate)]

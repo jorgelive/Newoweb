@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Service\Mercure;
 
+use App\Service\Ensayo\ModoEnsayo;
 use ApiPlatform\Metadata\IriConverterInterface; // API Platform 3.x (en 2.x: ApiPlatform\Api\IriConverterInterface)
 use App\Message\Dto\Mercure\MercureConversationDto;
 use App\Message\Dto\Mercure\MercureMessageDto;
@@ -26,11 +27,17 @@ class MercureBroadcaster
     public function __construct(
         private readonly HubInterface $hub,
         private readonly IriConverterInterface $iriConverter, // FIX
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ModoEnsayo $ensayo,
     ) {}
 
     public function broadcastMessage(Message $message): void
     {
+        // En un ensayo lo que se publique describe filas que el rollback va a borrar. Ver ModoEnsayo.
+        if ($this->ensayo->activo()) {
+            return;
+        }
+
         try {
             $topic = sprintf('https://openperu.pe/conversations/%s', $message->getConversationOrFail()->getId());
 
@@ -47,6 +54,11 @@ class MercureBroadcaster
 
     public function broadcastConversationUpdate(MessageConversation $conversation, string $eventType = 'conversation_updated'): void
     {
+        // En un ensayo lo que se publique describe filas que el rollback va a borrar. Ver ModoEnsayo.
+        if ($this->ensayo->activo()) {
+            return;
+        }
+
         try {
             // FIX: IRI real del recurso
             $dto = new MercureConversationDto($conversation, $eventType, $this->resolveIri($conversation));

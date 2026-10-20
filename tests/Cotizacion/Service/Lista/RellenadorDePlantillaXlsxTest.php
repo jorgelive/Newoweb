@@ -104,4 +104,13 @@ final class RellenadorDePlantillaXlsxTest extends TestCase
         self::assertSame('08606559', $hoja->getCell('K4')->getValue(), 'Con el cero delante: es texto.');
         self::assertSame(184, (int) $hoja->getCell('F4')->getOldCalculatedValue());
     }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function unCaracterDeControlNoRompeElXml(): void
+    {
+        $xml = '<t>' . \App\Cotizacion\Service\Lista\TextosCompartidos::paraXml("Ana\x07 Pérez & <Ñ>\x0B") . '</t>';
+
+        self::assertNotFalse(simplexml_load_string($xml), 'tiene que ser XML válido');
+        self::assertSame('Ana Pérez & <Ñ>', (string) simplexml_load_string($xml));
+    }
 }

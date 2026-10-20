@@ -72,10 +72,48 @@ final class ListaParaProveedorController extends AbstractController
         return new Response($archivo->contenido, Response::HTTP_OK, [
             'Content-Type' => $archivo->tipoMime,
             'Content-Disposition' => sprintf('attachment; filename="%s"', $archivo->nombre),
-            'X-Avisos' => rawurlencode((string) json_encode($archivo->avisos, JSON_UNESCAPED_UNICODE)),
+            'X-Avisos' => self::avisosParaCabecera($archivo->avisos),
             'Cache-Control' => 'no-store',
         ]);
     }
+
+    /**
+     * Los avisos que caben en una cabecera, y si no caben todos, «y N más».
+     *
+     * ⚠️ Iban enteros, y en URL una tilde ocupa nueve bytes. En un grupo de 133 al que le falte un
+     * dato común —el sexo, el código del Ministerio de un país— eran muchos KB de cabecera, y nginx
+     * corta la respuesta cuando pasan de `fastcgi_buffer_size` (4–8 KB por defecto): 502 y sin
+     * fichero, justo en la lista que más hace falta (revisión del 19/10/2026). Y son datos
+     * personales: una cabecera acaba en proxies y logs con más facilidad que un cuerpo.
+     *
+     * @param list<string> $avisos
+     */
+    private static function avisosParaCabecera(array $avisos): string
+    {
+        $codificar = static fn (array $lista): string => rawurlencode((string) json_encode($lista, JSON_UNESCAPED_UNICODE));
+        $caben = [];
+
+        foreach ($avisos as $i => $aviso) {
+            $resto = \count($avisos) - $i - 1;
+            $prueba = [...$caben, $aviso];
+            if ($resto > 0) {
+                $prueba[] = sprintf('y %d aviso(s) más: revisa los datos del manifiesto.', $resto);
+            }
+
+            if (\strlen($codificar($prueba)) > self::BYTES_DE_AVISOS) {
+                $caben[] = sprintf('y %d aviso(s) más: revisa los datos del manifiesto.', \count($avisos) - $i);
+
+                return $codificar($caben);
+            }
+
+            $caben[] = $aviso;
+        }
+
+        return $codificar($caben);
+    }
+
+    /** Muy por debajo de los 4 KB del búfer de cabeceras de nginx por defecto, que comparten todas. */
+    private const int BYTES_DE_AVISOS = 2000;
 
     /** @return list<CotizacionFilepasajero> */
     private function pasajeros(CotizacionFile $file, Request $peticion): array

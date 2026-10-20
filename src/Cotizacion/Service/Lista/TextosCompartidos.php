@@ -45,6 +45,22 @@ final class TextosCompartidos
         }
     }
 
+    /**
+     * El texto listo para ir dentro de un elemento XML del `.xlsx`.
+     *
+     * ⚠️ `htmlspecialchars()` escapa `<>&"'`, pero XML 1.0 **no admite** los caracteres de control
+     * (`\x00`–`\x08`, `\x0B`, `\x0C`, `\x0E`–`\x1F`), y un nombre que llegue así de un OCR o de un
+     * pegado deja un fichero que Excel declara dañado (revisión del 19/10/2026). Se quitan; y un
+     * byte que no sea UTF-8 válido se sustituye en vez de vaciar la celda entera, que es lo que
+     * hace `htmlspecialchars()` sin `ENT_SUBSTITUTE`.
+     */
+    public static function paraXml(string $texto): string
+    {
+        $limpio = (string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $texto);
+
+        return htmlspecialchars($limpio, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
     public function indice(string $texto): int
     {
         ++$this->nuevasReferencias;
@@ -54,7 +70,7 @@ final class TextosCompartidos
         }
 
         $espacio = $texto !== trim($texto) ? ' xml:space="preserve"' : '';
-        $this->si[] = sprintf('<t%s>%s</t>', $espacio, htmlspecialchars($texto, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
+        $this->si[] = sprintf('<t%s>%s</t>', $espacio, self::paraXml($texto));
 
         return $this->indices[$texto] = count($this->si) - 1;
     }

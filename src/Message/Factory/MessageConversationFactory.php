@@ -78,6 +78,7 @@ readonly class MessageConversationFactory
         ]);
 
         // 3. Si no existe, la instanciamos (NACIMIENTO)
+        $nace = $conversation === null;
         if (!$conversation) {
             $conversation = new MessageConversation(
                 $context->getContextType(),
@@ -109,12 +110,27 @@ readonly class MessageConversationFactory
         }
 
         // =====================================================================
-        // 🔥 GESTIÓN DE IDIOMA CON CERROJO (Sin redundancias)
+        // 🔥 IDIOMA: AL NACER, O CUANDO CAMBIA EL DEL ASUNTO
         // =====================================================================
-        if (!$conversation->isIdiomaFijado()) {
-            // Extraemos los 2 primeros caracteres directo del contrato (ej: de 'en_US' a 'en')
-            $langCode = substr($context->getContextLanguage(), 0, 2);
+        // ⚠️ Hasta el 19/10/2026 se reescribía en CADA llamada, y ésta corre en cada cambio de la
+        // reserva (`PmsReservaRecalculoListener`, y la lectura de Beds24 las toca cada cinco
+        // minutos). El idioma que la detección había sacado de los mensajes del huésped —escribe
+        // en francés con la reserva en inglés— volvía al de la reserva con el siguiente pago o
+        // evento, y lo programado salía en el idioma que no lee.
+        //
+        // Ahora se aplica al nacer y cuando el idioma DEL ASUNTO cambia de verdad —alguien lo
+        // corrigió en la reserva o en el expediente—, que es una decisión que sí debe llegar. Entre
+        // medias mandan los mensajes del huésped y el cerrojo «Fijado». Un idioma que no
+        // trabajamos lo pasa a inglés `IdiomaDeTrabajoListener` al guardar.
+        // Extraemos los 2 primeros caracteres directo del contrato (ej: de 'en_US' a 'en')
+        $langCode = substr($context->getContextLanguage(), 0, 2);
+        $cambioElDelAsunto = $conversation->getContextIdiomaAsunto() !== null
+            && $conversation->getContextIdiomaAsunto() !== $langCode;
+        // Los hilos de antes de este cambio no tienen el dato: se apunta sin aplicar, para no
+        // deshacer de golpe lo que la detección decidió en todos ellos.
+        $conversation->setContextIdiomaAsunto($langCode);
 
+        if (($nace || $cambioElDelAsunto) && !$conversation->isIdiomaFijado()) {
             // Inyectamos la referencia directamente sin ensuciar con llamadas extra
             // `getReference()` puede devolver null en Doctrine 3. Sin idioma no hay conversación
             // (la columna es NOT NULL): que lo diga aquí y no en el flush.

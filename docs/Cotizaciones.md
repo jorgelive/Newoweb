@@ -2299,6 +2299,11 @@ rellenan las plantillas oficiales que siguen en `public/templates/` (también es
 
 Con qué documento va cada uno lo decide `DocumentoParaLista`: el peruano con DNI, el resto con
 pasaporte. Los incompletos no paran la descarga: van en la cabecera `X-Avisos` y el panel los dice.
+⚠️ **Acotada a 2 000 bytes, con «y N aviso(s) más»** (`ListaParaProveedorController::avisosParaCabecera()`,
+revisión del 19/10/2026): enteros y en URL —una tilde son nueve bytes— un grupo de 133 al que le
+falte un dato común pasaba del búfer de cabeceras de nginx (4–8 KB) y la descarga era un 502 sin
+fichero. Los textos van al XML por `TextosCompartidos::paraXml()`, que quita los caracteres de
+control que XML no admite: un nombre con uno de un OCR dejaba un `.xlsx` que Excel da por dañado.
 
 🔑 **Cultura NO se escribe con PhpSpreadsheet.** El Ministerio empezó a detectar los archivos que
 no se llenaron a mano. Su plantilla lleva una consulta de Power Query (`customXml` + `connections.xml`),
@@ -3403,6 +3408,13 @@ servidor y sin tocar el contenido del documento:
 - 🔒 **La vista sólo con sesión del panel.** Generarla pasa el fichero por Ghostscript, que ha
   tenido fallos graves con PDF manipulados, y estos los sube cualquiera. Así nunca la dispara una
   petición pública. Además: `-dSAFER`, 4 páginas, 110 ppp y 30 s como máximo.
+- 🔒 **Y nunca más de 2 000 px de lado** (`PaginasDePdf::resolucionPara()`, revisión del
+  19/10/2026). Un PDF puede declarar páginas de 14 400 pt: a 110 ppp, ~22 000 px de lado, PNG de
+  gigabytes y Imagick —que reserva fuera del `memory_limit`— cargando cuatro. El tamaño se lee antes
+  con `qpdf --json` (el `/MediaBox`, heredado por `/Parent`), sin rasterizar, y se baja la
+  resolución lo justo; un A4 sale igual que siempre. No se fija un lienzo en Ghostscript porque la
+  vista tiene que conservar la forma de la página, que es lo que se mira al girarla. De red, topes
+  de memoria y disco de Imagick en `escribirWebp()`.
 - **Hacen falta `qpdf` y `gs`** en el servidor (`apt install qpdf`, el 19/10/2026; `gs` ya
   estaba). `PaginasDePdf` los busca también en `/opt/homebrew/bin`, que el php-fpm del Mac no tiene
   en el PATH. Sin ellos, girar da un error con nombre y la vista cae al enlace de «abrir».
