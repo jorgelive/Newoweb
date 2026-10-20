@@ -95,6 +95,14 @@ const error = ref<string | null>(null);
 const copiadoId = ref<string | null>(null);
 
 /** Enlace cuya respuesta cruda está abierta, y su contenido ya formateado. */
+/** Los enlaces con «Detalles» abierto (tarjeta, autorización, orden, respuesta). Nacen plegados. */
+const detallesAbiertos = ref<Set<string>>(new Set());
+function alternarDetalles(id: string): void {
+    const abiertos = new Set(detallesAbiertos.value);
+    if (abiertos.has(id)) abiertos.delete(id); else abiertos.add(id);
+    detallesAbiertos.value = abiertos;
+}
+
 const auditandoId = ref<string | null>(null);
 const auditoria = ref<string | null>(null);
 const cargandoAuditoria = ref(false);
@@ -445,45 +453,117 @@ function fechaCorta(iso: string | null): string {
 <template>
     <div>
         <div class="px-4 py-3">
-            <!-- El rótulo «Enlaces de pago» ya lo pone la cabecera del acordeón: repetirlo
-                 aquí era gastar el primer renglón en decir dónde estás. Lo que ocupa su sitio
-                 es la acción, a ancho completo — en móvil un botón de 3 palabras alineado a la
-                 derecha se lee como un adorno del título. -->
-            <button v-if="!formAbierto" type="button" @click="abrirForm()"
-                class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#376875] hover:bg-[#2d5660] text-white rounded-lg text-[11px] font-black">
-                <!-- ⚠️ «Crear enlace» y no «Cobrar con tarjeta»: este botón NO cobra, emite un
-                     enlace que el cliente pagará cuando quiera —o nunca—. El rótulo viejo
-                     prometía un cobro inmediato, y el operador que lo pulsaba esperando dejar la
-                     reserva pagada se encontraba con un formulario. La acción es la que dice el
-                     botón; el medio ya lo dice el icono. -->
-                <i class="fas fa-link"></i> Crear enlace
-            </button>
+            <p v-if="error" class="mb-2 text-[11px] font-bold text-rose-600">{{ error }}</p>
 
-            <!-- ===== ATAJOS DE IMPORTE =====
-                 Prellenan el formulario, no emiten: el operador sigue viendo vigencia,
-                 recargo y concepto antes de confirmar. Ver el bloque del script. -->
-            <div v-if="!formAbierto && presets.length" class="mt-2 flex flex-wrap gap-2">
-                <button v-for="preset in presets" :key="preset.clave" type="button"
-                    :title="preset.detalle"
-                    @click="preset.cobraElTotal ? emit('cobrarTotal') : abrirForm(preset)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-colors"
-                    :class="preset.destacado
-                        ? 'border-[#376875]/30 bg-[#376875]/8 text-[#376875] hover:bg-[#376875]/15'
-                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'">
-                    <i class="fas fa-bolt text-[9px]"></i>
-                    {{ preset.etiqueta }}
-                    <span class="font-black tabular-nums">{{ simboloDe(preset.moneda) }} {{ preset.monto }}</span>
-                </button>
-            </div>
+            <!-- ===== LISTA ===== -->
+            <ul v-if="store.enlaces.length" class="space-y-2">
+                <li v-for="enlace in store.enlaces" :key="enlace.id"
+                    class="p-2.5 rounded-lg border" :class="clasesEstadoEnlace(enlace.estado)">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-black uppercase tracking-wide">
+                            {{ enlace.estadoEtiqueta }}
+                            <!-- Por dónde entró: con dos conectores en paralelo es la primera
+                                 pregunta al conciliar contra el extracto de la pasarela. -->
+                            <span class="ml-1 font-bold opacity-60">· {{ enlace.pasarelaEtiqueta }}</span>
+                        </span>
+                        <span class="text-sm font-black">
+                            {{ enlace.monedaSimbolo }} {{ enlace.montoTotal }}
+                        </span>
+                    </div>
 
-            <p v-if="!haySaldo && !store.enlaces.length" class="mt-2 text-[11px] text-slate-400">
-                Sin saldo pendiente. Puedes emitir un enlace igualmente y teclear el importe.
-            </p>
+                    <p class="mt-0.5 text-[10px] opacity-80">
+                        Abona {{ enlace.monedaSimbolo }} {{ enlace.montoNeto }}
+                        <template v-if="Number(enlace.montoRecargo) > 0.005">
+                            · comisión {{ enlace.monedaSimbolo }} {{ enlace.montoRecargo }}
+                            ({{ enlace.recargoPorcentaje }}%)
+                        </template>
+                    </p>
 
-            <p v-if="error" class="mt-2 text-[11px] font-bold text-rose-600">{{ error }}</p>
+                    <!-- COBRADO: los datos que se piden cuando el cliente reclama —fecha,
+                         tarjeta, código de autorización y referencia en la pasarela— a la
+                         vista, sin tener que abrir la respuesta cruda. -->
+                    <div v-if="enlace.estado === 'pagado'" class="mt-1">
+                        <p class="text-[10px] font-black">
+                            <i class="fas fa-circle-check mr-1"></i>
+                            Cobrado el {{ fechaCorta(enlace.pagadoEn) }}
+                        </p>
+                    </div>
+                    <p v-else-if="enlace.expiraEn" class="mt-0.5 text-[10px] opacity-80">
+                        Caduca el {{ fechaCorta(enlace.expiraEn) }}
+                    </p>
+
+                    <!-- «Detalles», plegado: tarjeta, autorización, orden y la respuesta cruda son lo
+                         que se busca cuando el cliente reclama, no cada vez que se abre la reserva, y
+                         ocupaban media pantalla del móvil (Jorge, 20/10/2026). -->
+                    <button v-if="enlace.estado === 'pagado' || enlace.estado === 'fallido'" type="button"
+                        @click="alternarDetalles(enlace.id)" :aria-expanded="detallesAbiertos.has(enlace.id)"
+                        class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black opacity-70 hover:opacity-100">
+                        <i class="fas fa-chevron-right text-[8px] transition-transform"
+                            :class="detallesAbiertos.has(enlace.id) ? 'rotate-90' : ''"></i>
+                        Detalles
+                    </button>
+                    <div v-if="detallesAbiertos.has(enlace.id)" class="mt-1 pl-3 border-l-2 border-current/20">
+                        <dl v-if="enlace.estado === 'pagado'" class="grid grid-cols-[auto,1fr] gap-x-2 text-[10px] opacity-80">
+                            <template v-if="enlace.medioDetalle">
+                                <dt class="font-bold">Tarjeta</dt><dd>{{ enlace.medioDetalle }}</dd>
+                            </template>
+                            <template v-if="enlace.autorizacionCodigo">
+                                <dt class="font-bold">Autorización</dt><dd>{{ enlace.autorizacionCodigo }}</dd>
+                            </template>
+                            <template v-if="enlace.ordenId">
+                                <dt class="font-bold">Orden</dt><dd class="font-mono break-all">{{ enlace.ordenId }}</dd>
+                            </template>
+                        </dl>
+                        <!-- ===== AUDITORÍA: la respuesta tal cual la mandó la pasarela =====
+                             Sin interpretar ni mapear. Cuando una transacción se discute meses
+                             después, los campos que mapeamos nunca son los que hacen falta. -->
+                        <button type="button" @click="alternarAuditoria(enlace)"
+                            class="mt-2 text-[10px] font-black underline decoration-dotted opacity-70 hover:opacity-100">
+                            <i class="fas" :class="auditandoId === enlace.id ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                            Respuesta de {{ enlace.pasarelaEtiqueta }}
+                        </button>
+
+                        <div v-if="auditandoId === enlace.id" class="mt-1.5">
+                            <p v-if="cargandoAuditoria" class="text-[10px] opacity-70">Cargando…</p>
+                            <pre v-else
+                                class="max-h-64 overflow-auto p-2 rounded bg-white/70 border border-current/20
+                                       text-[9px] leading-relaxed font-mono whitespace-pre-wrap break-all"
+                            >{{ auditoria }}</pre>
+                        </div>
+                    </div>
+
+                    <!-- La URL en un input de solo lectura, no en un <p>: si el portapapeles
+                         está bloqueado, esto es lo que permite seleccionarla a mano.
+
+                         La URL sola en su renglón y las acciones debajo: en un móvil los tres
+                         en línea dejaban el campo en dos centímetros —justo el que hay que
+                         poder seleccionar cuando el portapapeles falla— y empujaban «Anular»
+                         fuera de la tarjeta. -->
+                    <div v-if="enlace.vigente" class="mt-2 space-y-1.5">
+                        <input :value="enlace.url" readonly
+                            class="w-full min-w-0 px-2 py-1 bg-white/70 border border-current/20 rounded text-[10px] font-mono truncate" />
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button type="button" @click="copiar(enlace)"
+                                class="px-2 py-1 bg-white/80 hover:bg-white border border-current/20 rounded text-[10px] font-black">
+                                <i class="fas" :class="copiadoId === enlace.id ? 'fa-check' : 'fa-copy'"></i>
+                                {{ copiadoId === enlace.id ? 'Copiado' : 'Copiar' }}
+                            </button>
+                            <!-- Con su palabra, no sólo el icono: un 🚫 al lado de «Copiar» se
+                                 lee como «no se puede copiar». Y es la acción que cierra un
+                                 cobro pedido por error, así que tiene que encontrarse. -->
+                            <button type="button" @click="anular(enlace)" :disabled="store.isSaving"
+                                class="px-2 py-1 bg-white/60 hover:bg-white border border-current/20 rounded
+                                       text-[10px] font-black opacity-70 hover:opacity-100 disabled:opacity-40">
+                                <i class="fas fa-ban"></i> Anular
+                            </button>
+                        </div>
+                    </div>
+
+                </li>
+            </ul>
 
             <!-- ===== FORMULARIO DE EMISIÓN ===== -->
-            <div v-if="formAbierto" class="mt-3 p-3 rounded-lg bg-[#376875]/5 border border-[#376875]/20 space-y-3">
+            <div v-if="formAbierto" :class="store.enlaces.length ? 'mt-3' : ''" class="p-3 rounded-lg bg-[#376875]/5 border border-[#376875]/20 space-y-3">
                 <p v-if="hayPendiente" class="text-[11px] font-bold text-amber-700">
                     <i class="fas fa-triangle-exclamation mr-1"></i>
                     Ya hay un enlace vigente. Al emitir este, el anterior se anula: cada reserva tiene un solo enlace que se pueda pagar.
@@ -571,100 +651,38 @@ function fechaCorta(iso: string | null): string {
                 </div>
             </div>
 
-            <!-- ===== LISTA ===== -->
-            <ul v-if="store.enlaces.length" class="mt-3 space-y-2">
-                <li v-for="enlace in store.enlaces" :key="enlace.id"
-                    class="p-2.5 rounded-lg border" :class="clasesEstadoEnlace(enlace.estado)">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-[10px] font-black uppercase tracking-wide">
-                            {{ enlace.estadoEtiqueta }}
-                            <!-- Por dónde entró: con dos conectores en paralelo es la primera
-                                 pregunta al conciliar contra el extracto de la pasarela. -->
-                            <span class="ml-1 font-bold opacity-60">· {{ enlace.pasarelaEtiqueta }}</span>
-                        </span>
-                        <span class="text-sm font-black">
-                            {{ enlace.monedaSimbolo }} {{ enlace.montoTotal }}
-                        </span>
-                    </div>
+            <!-- ===== ATAJOS DE IMPORTE =====
+                 Prellenan el formulario, no emiten: el operador sigue viendo vigencia,
+                 recargo y concepto antes de confirmar. Ver el bloque del script. -->
+            <div v-if="!formAbierto && presets.length" class="mt-3 flex flex-wrap gap-2">
+                <button v-for="preset in presets" :key="preset.clave" type="button"
+                    :title="preset.detalle"
+                    @click="preset.cobraElTotal ? emit('cobrarTotal') : abrirForm(preset)"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black transition-colors"
+                    :class="preset.destacado
+                        ? 'border-[#376875]/30 bg-[#376875]/8 text-[#376875] hover:bg-[#376875]/15'
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'">
+                    <i class="fas fa-bolt text-[9px]"></i>
+                    {{ preset.etiqueta }}
+                    <span class="font-black tabular-nums">{{ simboloDe(preset.moneda) }} {{ preset.monto }}</span>
+                </button>
+            </div>
 
-                    <p class="mt-0.5 text-[10px] opacity-80">
-                        Abona {{ enlace.monedaSimbolo }} {{ enlace.montoNeto }}
-                        <template v-if="Number(enlace.montoRecargo) > 0.005">
-                            · comisión {{ enlace.monedaSimbolo }} {{ enlace.montoRecargo }}
-                            ({{ enlace.recargoPorcentaje }}%)
-                        </template>
-                    </p>
+            <p v-if="!haySaldo && !store.enlaces.length" class="mt-2 text-[11px] text-slate-400">
+                Sin saldo pendiente. Puedes emitir un enlace igualmente y teclear el importe.
+            </p>
 
-                    <!-- COBRADO: los datos que se piden cuando el cliente reclama —fecha,
-                         tarjeta, código de autorización y referencia en la pasarela— a la
-                         vista, sin tener que abrir la respuesta cruda. -->
-                    <div v-if="enlace.estado === 'pagado'" class="mt-1">
-                        <p class="text-[10px] font-black">
-                            <i class="fas fa-circle-check mr-1"></i>
-                            Cobrado el {{ fechaCorta(enlace.pagadoEn) }}
-                        </p>
-                        <dl class="mt-1 grid grid-cols-[auto,1fr] gap-x-2 text-[10px] opacity-80">
-                            <template v-if="enlace.medioDetalle">
-                                <dt class="font-bold">Tarjeta</dt><dd>{{ enlace.medioDetalle }}</dd>
-                            </template>
-                            <template v-if="enlace.autorizacionCodigo">
-                                <dt class="font-bold">Autorización</dt><dd>{{ enlace.autorizacionCodigo }}</dd>
-                            </template>
-                            <template v-if="enlace.ordenId">
-                                <dt class="font-bold">Orden</dt><dd class="font-mono">{{ enlace.ordenId }}</dd>
-                            </template>
-                        </dl>
-                    </div>
-                    <p v-else-if="enlace.expiraEn" class="mt-0.5 text-[10px] opacity-80">
-                        Caduca el {{ fechaCorta(enlace.expiraEn) }}
-                    </p>
-
-                    <!-- La URL en un input de solo lectura, no en un <p>: si el portapapeles
-                         está bloqueado, esto es lo que permite seleccionarla a mano.
-
-                         La URL sola en su renglón y las acciones debajo: en un móvil los tres
-                         en línea dejaban el campo en dos centímetros —justo el que hay que
-                         poder seleccionar cuando el portapapeles falla— y empujaban «Anular»
-                         fuera de la tarjeta. -->
-                    <div v-if="enlace.vigente" class="mt-2 space-y-1.5">
-                        <input :value="enlace.url" readonly
-                            class="w-full min-w-0 px-2 py-1 bg-white/70 border border-current/20 rounded text-[10px] font-mono truncate" />
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <button type="button" @click="copiar(enlace)"
-                                class="px-2 py-1 bg-white/80 hover:bg-white border border-current/20 rounded text-[10px] font-black">
-                                <i class="fas" :class="copiadoId === enlace.id ? 'fa-check' : 'fa-copy'"></i>
-                                {{ copiadoId === enlace.id ? 'Copiado' : 'Copiar' }}
-                            </button>
-                            <!-- Con su palabra, no sólo el icono: un 🚫 al lado de «Copiar» se
-                                 lee como «no se puede copiar». Y es la acción que cierra un
-                                 cobro pedido por error, así que tiene que encontrarse. -->
-                            <button type="button" @click="anular(enlace)" :disabled="store.isSaving"
-                                class="px-2 py-1 bg-white/60 hover:bg-white border border-current/20 rounded
-                                       text-[10px] font-black opacity-70 hover:opacity-100 disabled:opacity-40">
-                                <i class="fas fa-ban"></i> Anular
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- ===== AUDITORÍA: la respuesta tal cual la mandó la pasarela =====
-                         Sin interpretar ni mapear. Cuando una transacción se discute meses
-                         después, los campos que mapeamos nunca son los que hacen falta. -->
-                    <button v-if="enlace.estado === 'pagado' || enlace.estado === 'fallido'"
-                        type="button" @click="alternarAuditoria(enlace)"
-                        class="mt-2 text-[10px] font-black underline decoration-dotted opacity-70 hover:opacity-100">
-                        <i class="fas" :class="auditandoId === enlace.id ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                        Respuesta de {{ enlace.pasarelaEtiqueta }}
-                    </button>
-
-                    <div v-if="auditandoId === enlace.id" class="mt-1.5">
-                        <p v-if="cargandoAuditoria" class="text-[10px] opacity-70">Cargando…</p>
-                        <pre v-else
-                            class="max-h-64 overflow-auto p-2 rounded bg-white/70 border border-current/20
-                                   text-[9px] leading-relaxed font-mono whitespace-pre-wrap break-all"
-                        >{{ auditoria }}</pre>
-                    </div>
-                </li>
-            </ul>
         </div>
+
+        <!-- Mismo botón que «Agregar cargo manual» y «Registrar un pago», abajo y a todo el ancho:
+             eran tres secciones iguales con tres formas de añadir (Jorge, 20/10/2026).
+             ⚠️ «Crear enlace» y no «Cobrar con tarjeta»: este botón NO cobra, emite un enlace que
+             el cliente pagará cuando quiera —o nunca—. El rótulo viejo prometía un cobro
+             inmediato, y el operador que lo pulsaba esperando dejar la reserva pagada se
+             encontraba con un formulario. -->
+        <button v-if="!formAbierto" type="button" @click="abrirForm()"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-t border-slate-100 text-xs font-black text-slate-400 hover:text-[#376875] hover:bg-slate-50 transition-colors">
+            <i class="fas fa-plus"></i> Crear enlace de pago
+        </button>
     </div>
 </template>

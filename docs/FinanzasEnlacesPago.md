@@ -75,6 +75,14 @@ El botón que abre el formulario **no cobra**: emite un enlace que el cliente pa
 reserva pagada se encontraba con un formulario. La acción es la que nombra el botón; el medio ya lo
 dice el icono.
 
+**Desde el 20/10/2026 va abajo y con la forma de los de al lado** («+ Crear enlace de pago», como
+«+ Agregar cargo manual» y «+ Registrar un pago»): eran tres secciones iguales con tres formas de
+añadir. Los atajos de importe y el formulario salen encima de él, tras la lista.
+
+Y en la tarjeta de cada enlace quedan a la vista estado, importe, lo que abona y «Cobrado el…»; la
+tarjeta, la autorización, la orden y la respuesta cruda de la pasarela van en **«Detalles»**,
+plegado. Es lo que se busca cuando el cliente reclama, no cada vez que se abre la reserva.
+
 
 ## 🔥 El tope antifraude de la pasarela, comprobado al EMITIR (08/09/2026)
 

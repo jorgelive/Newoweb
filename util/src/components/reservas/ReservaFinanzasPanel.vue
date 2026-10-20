@@ -2909,7 +2909,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 <!-- Sin enlace, el propio medio de pago es el que despliega el detalle. -->
                                 <button v-if="!enlaceDePago(p.id) && tieneDetallePago(p)" type="button"
                                     @click="alternarDetallePago(p.id)" :aria-expanded="detalleAbierto(p.id)"
-                                    class="inline-flex items-center gap-1 hover:text-[#376875]">
+                                    class="inline-flex items-center gap-1 whitespace-nowrap hover:text-[#376875]">
                                     {{ medioPagoOpt(p.medioPago)?.label ?? p.medioPago }}
                                     <i class="fas fa-chevron-right text-[8px] text-slate-400 transition-transform"
                                         :class="detalleAbierto(p.id) ? 'rotate-90' : ''"></i>
@@ -2922,7 +2922,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                      despliega el detalle del cobro (Jorge, 20/10/2026). -->
                                 <button v-if="enlaceDePago(p.id)" type="button"
                                     @click="alternarDetallePago(p.id)" :aria-expanded="detalleAbierto(p.id)"
-                                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#376875]/10 hover:bg-[#376875]/20 text-[#376875] text-[9px] font-black uppercase tracking-wide transition-colors">
+                                    class="inline-flex items-center gap-1 whitespace-nowrap px-1.5 py-0.5 rounded bg-[#376875]/10 hover:bg-[#376875]/20 text-[#376875] text-[9px] font-black uppercase tracking-wide transition-colors">
                                     <i class="fas fa-link"></i>
                                     Enlace · {{ enlaceDePago(p.id)?.pasarelaEtiqueta }}
                                     <i class="fas fa-chevron-right text-[8px] transition-transform"
