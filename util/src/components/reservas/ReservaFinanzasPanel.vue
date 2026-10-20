@@ -1295,6 +1295,20 @@ async function borrarCargo(c: PmsCargoFinanciero): Promise<void> {
 // ALTA / EDICIÓN DE PAGOS
 // ============================================================================
 const pagoFormAbierto = ref(false);
+
+/** Los cobros con su detalle desplegado (TC, recargo, referencia), por id. Nacen plegados. */
+const pagosConDetalle = ref<Set<string>>(new Set());
+const detalleAbierto = (id?: string | null): boolean => !!id && pagosConDetalle.value.has(id);
+function alternarDetallePago(id?: string | null): void {
+    if (!id) return;
+    const abiertos = new Set(pagosConDetalle.value);
+    if (abiertos.has(id)) abiertos.delete(id); else abiertos.add(id);
+    pagosConDetalle.value = abiertos;
+}
+/** Sin nada que desplegar no hay flecha: sería un botón que no hace nada. */
+function tieneDetallePago(p: PmsPagoFinanciero): boolean {
+    return !!p.tipoCambio || Number(p.comisionPorcentaje ?? 0) > 0 || !!p.referencia;
+}
 const pagoEditandoId = ref<string | null>(null);
 
 /**
@@ -2886,16 +2900,28 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <div class="min-w-0 flex-1">
                             <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5 flex-wrap">
                                 <i class="fas text-slate-400" :class="medioPagoOpt(p.medioPago)?.icono ?? 'fa-money-bill'"></i>
-                                {{ medioPagoOpt(p.medioPago)?.label ?? p.medioPago }}
+                                <!-- Sin enlace, el propio medio de pago es el que despliega el detalle. -->
+                                <button v-if="!enlaceDePago(p.id) && tieneDetallePago(p)" type="button"
+                                    @click="alternarDetallePago(p.id)" :aria-expanded="detalleAbierto(p.id)"
+                                    class="inline-flex items-center gap-1 hover:text-[#376875]">
+                                    {{ medioPagoOpt(p.medioPago)?.label ?? p.medioPago }}
+                                    <i class="fas fa-chevron-right text-[8px] text-slate-400 transition-transform"
+                                        :class="detalleAbierto(p.id) ? 'rotate-90' : ''"></i>
+                                </button>
+                                <template v-else>{{ medioPagoOpt(p.medioPago)?.label ?? p.medioPago }}</template>
                                 <!-- Marca de origen: este pago no lo tecleó nadie, lo generó
                                      un enlace al cobrarse. Sin ella, un pago de US$ 311 junto
                                      a un enlace de US$ 328.11 parece un descuadre, cuando la
-                                     diferencia es el recargo de la pasarela. -->
-                                <span v-if="enlaceDePago(p.id)"
-                                    class="px-1.5 py-0.5 rounded bg-[#376875]/10 text-[#376875] text-[9px] font-black uppercase tracking-wide">
-                                    <i class="fas fa-link mr-0.5"></i>
+                                     diferencia es el recargo de la pasarela. Y es el botón que
+                                     despliega el detalle del cobro (Jorge, 20/10/2026). -->
+                                <button v-if="enlaceDePago(p.id)" type="button"
+                                    @click="alternarDetallePago(p.id)" :aria-expanded="detalleAbierto(p.id)"
+                                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#376875]/10 hover:bg-[#376875]/20 text-[#376875] text-[9px] font-black uppercase tracking-wide transition-colors">
+                                    <i class="fas fa-link"></i>
                                     Enlace · {{ enlaceDePago(p.id)?.pasarelaEtiqueta }}
-                                </span>
+                                    <i class="fas fa-chevron-right text-[8px] transition-transform"
+                                        :class="detalleAbierto(p.id) ? 'rotate-90' : ''"></i>
+                                </button>
                                 <!-- El depósito del canal se distingue a simple vista, y con qué
                                      manda: mientras lo cuadra el sistema, corregirlo es tarea de
                                      los CARGOS; una vez intervenido, la cifra es la del operador
@@ -2915,17 +2941,21 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </p>
                             <p class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
                                 <span>{{ fechaLegible(p.fechaPago) }}</span>
+                                <!-- Quién lo cobró: es el dato que permite cuadrar la caja de
+                                     cada persona, así que se ve sin abrir nada. -->
+                                <span v-if="p.cobradorNombre" class="text-slate-500">
+                                    <i class="fas fa-user text-[9px] mr-0.5"></i>{{ p.cobradorNombre }}
+                                </span>
+                            </p>
+                            <!-- El detalle del cobro, plegado: TC, recargo y referencia ocupaban
+                                 cuatro líneas en el móvil en cada pago de pasarela. -->
+                            <p v-if="detalleAbierto(p.id)" class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
                                 <span v-if="p.tipoCambio">TC {{ p.tipoCambio }}</span>
                                 <!-- Cobrado = neto + recargo; el neto es lo que abona la reserva. -->
                                 <span v-if="p.comisionPorcentaje && Number(p.comisionPorcentaje) > 0">
                                     +{{ p.comisionPorcentaje }}% · cobrado {{ importeConMoneda(p.montoTotalCobrado, p.moneda) }}
                                 </span>
-                                <span v-if="p.referencia">#{{ p.referencia }}</span>
-                                <!-- Quién lo cobró: es el dato que permite cuadrar la caja de
-                                     cada persona, así que se ve sin abrir el formulario. -->
-                                <span v-if="p.cobradorNombre" class="text-slate-500">
-                                    <i class="fas fa-user text-[9px] mr-0.5"></i>{{ p.cobradorNombre }}
-                                </span>
+                                <span v-if="p.referencia" class="break-all">#{{ p.referencia }}</span>
                             </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">

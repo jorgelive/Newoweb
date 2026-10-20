@@ -4268,6 +4268,11 @@ El de **pago**, igual: arriba **medio de pago y fecha**, luego neto y moneda (co
 depende de la moneda), comisión y total cobrado, y quién lo cobró; en «Más campos», **tipo de
 cambio, referencia y notas**. El resumen enseña el TC, en ámbar si en otra moneda sin él no suma.
 
+En la **lista de cobros**, cada fila enseña medio, fecha y quién lo cobró (es lo que cuadra la caja
+de cada persona); el TC, el recargo y la referencia van plegados. Despliega el chip «Enlace ·
+Culqui» —con su flecha— y, en un cobro sin enlace, el nombre del medio de pago. Sin nada que
+desplegar no hay flecha.
+
 #### Barras de acción pegadas (sticky) de los formularios
 
 Los formularios de pago y de cargo manual son largos (medio, fecha, comisión, TC, referencia,
