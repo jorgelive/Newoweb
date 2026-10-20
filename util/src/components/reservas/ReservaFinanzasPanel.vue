@@ -2899,10 +2899,12 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
 
                     <!-- 👉 Indentado respecto a su cabecera: es lo que hace visible que estas
                          filas cuelgan del bloque de arriba y no de la sección entera. -->
+                    <!-- Rejilla, como la fila de cargo: sólo la primera línea comparte fila con el
+                         importe y los botones (`col-start-2 row-start-1`); fecha, cobrador y el
+                         detalle van debajo a todo el ancho, sin partirse en el móvil. -->
                     <div v-for="p in (bloqueAbierto(b) ? b.pagos : [])" :key="p.id ?? ''"
-                        class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0 flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                            <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5 flex-wrap">
+                        class="pl-6 pr-4 py-3 border-b border-slate-50 last:border-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 items-start">
+                            <p class="min-w-0 pt-1 text-xs font-bold text-slate-700 flex items-center gap-1.5 flex-wrap">
                                 <i class="fas text-slate-400" :class="medioPagoOpt(p.medioPago)?.icono ?? 'fa-money-bill'"></i>
                                 <!-- Sin enlace, el propio medio de pago es el que despliega el detalle. -->
                                 <button v-if="!enlaceDePago(p.id) && tieneDetallePago(p)" type="button"
@@ -2943,7 +2945,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     {{ p.intervenido ? 'Ajustado a mano' : 'Depósito del canal' }}
                                 </span>
                             </p>
-                            <p class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
+                            <p class="col-span-2 text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
                                 <span>{{ fechaLegible(p.fechaPago) }}</span>
                                 <!-- Quién lo cobró: es el dato que permite cuadrar la caja de
                                      cada persona, así que se ve sin abrir nada. -->
@@ -2953,7 +2955,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </p>
                             <!-- El detalle del cobro, plegado: TC, recargo y referencia ocupaban
                                  cuatro líneas en el móvil en cada pago de pasarela. -->
-                            <p v-if="detalleAbierto(p.id)" class="text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
+                            <p v-if="detalleAbierto(p.id)" class="col-span-2 text-[10px] font-bold text-slate-400 mt-1 flex flex-wrap gap-x-2">
                                 <span v-if="p.tipoCambio">TC {{ p.tipoCambio }}</span>
                                 <!-- Cobrado = neto + recargo; el neto es lo que abona la reserva. -->
                                 <span v-if="p.comisionPorcentaje && Number(p.comisionPorcentaje) > 0">
@@ -2961,8 +2963,7 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </span>
                                 <span v-if="p.referencia" class="break-all">#{{ p.referencia }}</span>
                             </p>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
+                        <div class="col-start-2 row-start-1 flex items-center gap-2 shrink-0">
                             <span class="text-sm font-black text-emerald-600">{{ importeConMoneda(p.monto, p.moneda) }}</span>
                             <template v-if="!readOnly">
                                 <!-- Volver al automático: sólo con el candado abierto, y sólo en
