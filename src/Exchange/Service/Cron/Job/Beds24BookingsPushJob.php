@@ -7,6 +7,7 @@ use App\Exchange\Entity\ExchangeEndpoint;
 use App\Exchange\Enum\ConnectivityProvider;
 use App\Exchange\Service\Cron\CronHorizonteInterface;
 use App\Exchange\Service\Cron\CronJobInterface;
+use App\Pms\Entity\PmsBookingsPushQueue;
 use App\Pms\Entity\PmsEventoBeds24Link;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Service\Queue\Beds24BookingsPushQueueCreator;
@@ -128,9 +129,14 @@ class Beds24BookingsPushJob implements CronJobInterface, CronHorizonteInterface
                         if (!$link->getUnidadBeds24Map()) continue;
                         if ($link->getStatus() === PmsEventoBeds24Link::STATUS_SYNCED_DELETED) continue;
 
-                        // Forzar cambio de hash para asegurar que el Creator genere una nueva tarea
+                        // Forzar cambio de hash para asegurar que el Creator genere una nueva tarea.
+                        // ⚠️ Menos a la que está EN VUELO: su worker compara la huella al terminar y,
+                        // con una falsa, creería que el evento cambió mientras se enviaba y lo
+                        // reenviaría sin motivo.
                         foreach ($link->getQueues() as $q) {
-                            $q->setPayloadHash('FORCE_SYNC_' . bin2hex(random_bytes(4)));
+                            if ($q->getStatus() !== PmsBookingsPushQueue::STATUS_PROCESSING) {
+                                $q->setPayloadHash('FORCE_SYNC_' . bin2hex(random_bytes(4)));
+                            }
                         }
 
                         $this->queueCreator->enqueueForLink($link, $postEndpoint, null);

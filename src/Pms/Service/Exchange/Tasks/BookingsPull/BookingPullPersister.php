@@ -795,8 +795,8 @@ final class BookingPullPersister implements ResetInterface
             // A hora de pared DEL ESTABLECIMIENTO, no del servidor. El DTO las entrega como
             // instante en UTC —que es como las manda Beds24, sin decirlo— y aquí se pasan al huso
             // del alojamiento, que es la convención de toda la base. Ver `zonaHoraria()`.
-            $evento->setFechaReservaCanal($this->aHoraDelEstablecimiento($booking->bookingTime, $evento));
-            $evento->setFechaModificacionCanal($this->aHoraDelEstablecimiento($booking->modifiedTime, $evento));
+            $evento->setFechaReservaCanal(self::instanteConservado($evento->getFechaReservaCanal(), $this->aHoraDelEstablecimiento($booking->bookingTime, $evento)));
+            $evento->setFechaModificacionCanal(self::instanteConservado($evento->getFechaModificacionCanal(), $this->aHoraDelEstablecimiento($booking->modifiedTime, $evento)));
             $evento->setComentariosHuesped($booking->comments);
 
 
@@ -984,6 +984,24 @@ final class BookingPullPersister implements ResetInterface
         }
 
         return $delCanal;
+    }
+
+    /**
+     * El objeto que ya había si dice la misma hora de pared, y el nuevo si no.
+     *
+     * Doctrine compara las fechas por IDENTIDAD (`===`), no por valor: un objeto nuevo con la misma
+     * hora es un cambio. Las dos fechas del canal se montaban nuevas en cada pull, así que cada
+     * pasada escribía un UPDATE de la estancia —con su `updated_at`— y recalculaba la reserva sin
+     * que nada hubiera cambiado. Se compara la hora de pared porque es lo que se guarda: la columna
+     * no lleva huso.
+     */
+    public static function instanteConservado(?DateTimeInterface $actual, ?DateTimeInterface $nuevo): ?DateTimeInterface
+    {
+        if ($actual !== null && $nuevo !== null && $actual->format('Y-m-d H:i:s') === $nuevo->format('Y-m-d H:i:s')) {
+            return $actual;
+        }
+
+        return $nuevo;
     }
 
     /**

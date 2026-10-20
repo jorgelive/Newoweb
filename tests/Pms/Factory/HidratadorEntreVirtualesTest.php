@@ -144,7 +144,9 @@ final class HidratadorEntreVirtualesTest extends TestCase
         $resultado = [$unidad];
         foreach ($codigos as $i => $codigo) {
             $virtual = (new PmsEstablecimientoVirtual())->setCodigo($codigo)->setEsPrincipal($i === 0);
-            $mapa = (new PmsUnidadBeds24Map())->setVirtualEstablecimiento($virtual)->setActivo(true);
+            // Cada virtual es su propia propiedad de Beds24, como en producción (INTI y SAPHY).
+            $mapa = (new PmsUnidadBeds24Map())->setVirtualEstablecimiento($virtual)->setActivo(true)
+                ->setBeds24PropertyId(crc32($codigo));
             $unidad->addBeds24Map($mapa);
             $resultado[] = $mapa;
         }

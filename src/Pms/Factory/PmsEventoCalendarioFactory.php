@@ -433,14 +433,21 @@ class PmsEventoCalendarioFactory
     }
 
     /**
-     * ¿El link está en el mismo establecimiento virtual que el mapa? Si a alguno le falta el
-     * código no se puede saber, y se le deja viajar como antes.
+     * ¿El link puede pasar a la habitación del mapa sin cambiar de PROPIEDAD de Beds24? Es la
+     * regla de Beds24: una reserva cambia de habitación dentro de su propiedad, no a otra.
+     *
+     * ⚠️ Comparaba el código del establecimiento virtual y, si a alguno le faltaba, dejaba viajar.
+     * Pero el virtual es anulable (`onDelete: SET NULL`) y la propiedad no: un mapa que perdiera su
+     * virtual volvía a mandar el principal a otra cuenta, que es justo lo que esto impide. Sólo
+     * un link sin mapa —nada que cruzar— viaja sin preguntar.
      */
     private static function mismoVirtual(PmsEventoBeds24Link $link, PmsUnidadBeds24Map $map): bool
     {
-        $actual = $link->getUnidadBeds24Map()?->getVirtualEstablecimiento()?->getCodigo();
-        $destino = $map->getVirtualEstablecimiento()?->getCodigo();
+        $actual = $link->getUnidadBeds24Map();
+        if ($actual === null) {
+            return true;
+        }
 
-        return $actual === null || $destino === null || $actual === $destino;
+        return $actual->getBeds24PropertyId() === $map->getBeds24PropertyId();
     }
 }

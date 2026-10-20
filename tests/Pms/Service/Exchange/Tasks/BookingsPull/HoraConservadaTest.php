@@ -42,4 +42,15 @@ final class HoraConservadaTest extends TestCase
         self::assertSame('2026-09-28 14:00', BookingPullPersister::horaConservada(null, new DateTimeImmutable('2026-09-28 14:00'))?->format('Y-m-d H:i'));
         self::assertNull(BookingPullPersister::horaConservada(new DateTime('2026-09-28 08:00'), null));
     }
+
+    #[Test]
+    public function lasFechasDelCanalIgualesConservanElMismoObjeto(): void
+    {
+        $guardada = new DateTime('2026-09-28 17:35:12');
+
+        self::assertSame($guardada, BookingPullPersister::instanteConservado($guardada, new DateTimeImmutable('2026-09-28 17:35:12')),
+            'El mismo objeto: si no, Doctrine ve un cambio en cada pull.');
+        self::assertSame('2026-09-28 17:36:00', BookingPullPersister::instanteConservado($guardada, new DateTimeImmutable('2026-09-28 17:36'))?->format('Y-m-d H:i:s'));
+        self::assertNull(BookingPullPersister::instanteConservado($guardada, null));
+    }
 }
