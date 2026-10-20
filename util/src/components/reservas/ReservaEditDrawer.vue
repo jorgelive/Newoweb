@@ -524,6 +524,28 @@ function paxTotal(entry: EventoEntry): number {
     return (entry.form.cantidadAdultos || 0) + (entry.form.cantidadNinos || 0);
 }
 
+/**
+ * Las noches de la estancia, o `null` si faltan fechas. Por días de CALENDARIO, sin las horas: una entrada a las
+ * 14:00 y una salida a las 10:00 del día siguiente es una noche aunque no sean 24 h. Es la regla de
+ * `PmsEventoCalendario::getNoches()`; en UTC para que un cambio de horario no reste un día.
+ */
+function nochesDe(entry: EventoEntry): number | null {
+    const dia = (v: string): number | null => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v ?? '');
+        return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+    };
+    const desde = dia(entry.form.inicio);
+    const hasta = dia(entry.form.fin);
+    if (desde === null || hasta === null || hasta <= desde) return null;
+
+    return Math.round((hasta - desde) / 86_400_000);
+}
+
+function nochesTexto(entry: EventoEntry): string {
+    const noches = nochesDe(entry);
+    return noches === null ? '' : `${noches} ${noches === 1 ? 'noche' : 'noches'}`;
+}
+
 /** Formato legible dd/mm/aaaa HH:mm para la vista de solo lectura (el form usa datetime-local crudo). */
 function formatFechaHora(datetimeLocal: string): string {
     if (!datetimeLocal) return '—';
@@ -2144,6 +2166,11 @@ async function ejecutarBorrado(): Promise<void> {
                                              detrás de las fechas. -->
                                         <span class="text-slate-700 font-bold text-xs whitespace-nowrap">
                                             {{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}
+                                            <!-- Compacto, con la luna: en el móvil «· 13 noches» recortaba la
+                                                 casita a «C…». La palabra entera va en el resumen de abajo. -->
+                                            <span v-if="nochesDe(entry)" class="text-slate-500 font-bold" :title="nochesTexto(entry)">
+                                                · <i class="fas fa-moon text-[9px]"></i> {{ nochesDe(entry) }}
+                                            </span>
                                             <span class="text-slate-500 font-bold">· {{ paxTotal(entry) }} pax</span>
                                         </span>
                                         <span v-if="!entry.eventoId" class="text-emerald-600 text-[10px] font-black uppercase shrink-0">Nuevo</span>
@@ -2187,6 +2214,7 @@ async function ejecutarBorrado(): Promise<void> {
                                 <div v-if="esMultiEvento" class="text-[11px] font-bold text-slate-500 mb-3">
                                     <i class="fas fa-home mr-1 text-slate-400"></i> {{ nombreUnidad(entry) }}
                                     · <span class="text-slate-700">{{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}</span>
+                                    <template v-if="nochesTexto(entry)">· {{ nochesTexto(entry) }}</template>
                                     · {{ paxTotal(entry) }} pax
                                 </div>
 
