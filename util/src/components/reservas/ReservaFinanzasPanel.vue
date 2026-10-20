@@ -80,6 +80,8 @@ const panelAnulado = computed(() => finanzas.info?.activa === false);
 
 /** 🔒 Candado: mientras esté cerrado, los cargos son de solo lectura. */
 const cargosDesbloqueados = ref(false);
+/** ¿Hay algún cargo que mande la OTA? Si no, no hay nada que «Edición importes OTA» abra. */
+const hayCargosDelCanal = computed(() => (finanzas.info?.cargos ?? []).some(c => c.manual === false));
 
 /**
  * 🔒 Su gemelo en la sección de pagos, y protege una sola cosa: el depósito automático
@@ -2186,25 +2188,25 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                 </button>
 
                 <div v-show="seccionAbierta === 'cargos'" class="border-t border-emerald-100">
-                    <!-- 🔒 Candado: sólo protege los cargos sincronizados desde el canal.
-                         Los manuales (reservas directas) se editan y borran sin candado. -->
-                    <div v-if="!readOnly" class="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
+                    <!-- Sólo protege los cargos que manda la OTA, así que sólo sale si hay alguno:
+                         en una directa no hay nada que desbloquear y la barra era ruido. Y sin
+                         candado en el texto: ya hay otro «Fijado» en los cargos, y dos candados
+                         con significados distintos no se distinguían (Jorge, 20/10/2026). -->
+                    <div v-if="!readOnly && hayCargosDelCanal" class="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-100">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" v-model="cargosDesbloqueados" class="rounded" />
                             <span class="text-[11px] font-black uppercase tracking-wide"
                                 :class="cargosDesbloqueados ? 'text-amber-700' : 'text-slate-500'">
-                                <i class="fas" :class="cargosDesbloqueados ? 'fa-lock-open' : 'fa-lock'"></i>
-                                {{ cargosDesbloqueados ? 'Edición habilitada' : 'Habilitar edición' }}
+                                Edición importes OTA
                             </span>
                         </label>
                         <!-- El párrafo pasó a la «i»: se lee una vez, y después son dos líneas
                              fijas donde se quiere ver la lista de cargos. -->
                         <InfoTooltip lado="izquierda" clase-icono="text-amber-500 hover:text-amber-700">
-                            Protege los cargos <b class="text-white">sincronizados desde el canal</b>: los manda
-                            Beds24 y el siguiente pull devolvería a su sitio cualquier cambio.
+                            Los cargos que manda la OTA vienen de Beds24, y la siguiente lectura devolvería a
+                            su sitio cualquier cambio: corregirlos los deja <b class="text-white">fijados</b>.
                             <span class="block mt-1.5 text-slate-400">
-                                Los cargos manuales —los de las reservas directas— se editan y se borran siempre,
-                                sin abrir esto.
+                                Los cargos manuales se editan y se borran siempre, sin marcar esto.
                             </span>
                         </InfoTooltip>
                     </div>
