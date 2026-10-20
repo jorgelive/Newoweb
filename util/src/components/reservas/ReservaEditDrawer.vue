@@ -2209,7 +2209,6 @@ async function ejecutarBorrado(): Promise<void> {
                                 <div v-if="esMultiEvento" class="text-[11px] font-bold text-slate-500 mb-3">
                                     <i class="fas fa-home mr-1 text-slate-400"></i> {{ nombreUnidad(entry) }}
                                     · <span class="text-slate-700">{{ fechaCorta(entry.form.inicio) }} → {{ fechaCorta(entry.form.fin) }}</span>
-                                    <template v-if="nochesTexto(entry)">· {{ nochesTexto(entry) }}</template>
                                     · {{ paxTotal(entry) }} pax
                                 </div>
 
@@ -2253,6 +2252,12 @@ async function ejecutarBorrado(): Promise<void> {
                                                 </span>
                                             </p>
                                             <p class="text-sm font-bold text-slate-800 mt-0.5">{{ formatFechaHora(entry.form.fin) }}</p>
+                                        </div>
+                                        <!-- Las noches debajo de las dos fechas, mismo chip que al editar. -->
+                                        <div v-if="nochesDe(entry)" class="col-span-2 -mt-1">
+                                            <span class="text-[10px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-sm">
+                                                <i class="fas fa-moon text-[9px]"></i> {{ nochesTexto(entry) }}
+                                            </span>
                                         </div>
                                         <div v-if="!isCreate || isCreateReserva">
                                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-wide">Estado</p>
@@ -2423,6 +2428,17 @@ async function ejecutarBorrado(): Promise<void> {
                                                 <span class="inline-flex items-center gap-px mr-1"><b class="font-black">[</b><i class="fas fa-clock"></i></span>
                                                 Entrada temprana: bloquea la noche ANTERIOR en Beds24 y abre su cargo en 0.00.
                                             </p>
+                                        </div>
+
+                                        <!-- Las noches ENTRE la entrada y la salida, como en la tarjeta del
+                                             cotizador (FECHA · ☾ 2 noches · HASTA): es el tramo que cuentan
+                                             y se lee de un vistazo (Jorge, 20/10/2026). En la cabecera
+                                             recortaban el nombre de la casita. -->
+                                        <div v-if="nochesDe(entry)" class="flex items-center gap-2 pl-4 -my-1">
+                                            <div class="w-px h-3 bg-slate-300"></div>
+                                            <span class="text-[10px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-sm">
+                                                <i class="fas fa-moon text-[9px]"></i> {{ nochesTexto(entry) }}
+                                            </span>
                                         </div>
 
                                         <div>

@@ -3245,15 +3245,6 @@ store.$onAction(({ name, args }) => {
                               title="Copia creada para repartir el servicio entre subgrupos. Se puede eliminar.">
                           <i class="fas fa-clone text-[7px]"></i> Copia
                         </span>
-                        <!-- IGV de hotel con peruanos: pastilla y no banda, porque es una alerta
-                             sobre el PRECIO de este componente y nada más. Sólo sale en hoteles y
-                             sólo si viajan peruanos; el detalle, al pasar por encima y dentro del
-                             componente, junto a sus tarifas. Ver `stores/cotizacion/igvHoteleria`. -->
-                        <span v-if="store.avisoIgvDe(comp)" v-tooltip-tactil
-                              class="text-[8px] font-black bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
-                              :title="store.avisoIgvDe(comp) ?? ''">
-                          <i class="fas fa-receipt text-[7px]"></i> IGV
-                        </span>
                       </span>
                       <!-- ⚠️ «Horario libre» es del COMPONENTE; «al final del día» es del
                            SERVICIO, y estaban pegados en la misma etiqueta. Un check-in sin hora
@@ -3302,6 +3293,25 @@ store.$onAction(({ name, args }) => {
                       {{ !comp.sinHorario ? 'INICIO: ' + formatDateTimeFromISO(comp.fechaHoraInicio) : 'FECHA: ' + formatDateOnlyFromISO(comp.fechaHoraInicio) }}
                     </span>
 
+
+                    <div v-if="comp.cantidad && comp.cantidad !== 1"
+                         class="flex items-center gap-2 pl-4">
+                      <div class="w-px h-3 bg-slate-300"></div>
+                      <!-- ⚠️ La luna y la palabra «noches» estaban clavadas aquí, y este mismo
+                           chip rotulaba un seguro de viaje que se cuenta por DÍAS. Ahora los pone
+                           la unidad del componente; ver `UnidadDeConteoEnum`. -->
+                      <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <i class="fas text-[8px]" :class="iconoDeUnidad(comp)"></i> {{ etiquetaDeCantidad(comp) }}
+                      </span>
+                    </div>
+
+                    <span v-if="!comp.sinHorario || (store.cantidadPorFechas(comp) ?? 1) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
+                      <i class="far fa-flag text-slate-400"></i>
+                      {{ !comp.sinHorario ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
+                    </span>
+
+                    <!-- Prestador y comprador DESPUÉS de las fechas: entre FECHA y HASTA partían el
+                         tramo en dos, con las noches colgando de otra cosa (Jorge, 20/10/2026). -->
                     <!--
                       Prestador: quién OPERA el componente, que no siempre es a quién se le
                       compra. Sólo aparece si está resuelto — un componente sin prestador es
@@ -3332,22 +3342,6 @@ store.$onAction(({ name, args }) => {
                       <i class="fas fa-cart-shopping text-violet-500 shrink-0"></i>
                       <span class="text-violet-500 shrink-0">COMPRADOR</span>
                       <span class="truncate">{{ comp.compradorNombreSnapshot }}</span>
-                    </span>
-
-                    <div v-if="comp.cantidad && comp.cantidad !== 1"
-                         class="flex items-center gap-2 pl-4">
-                      <div class="w-px h-3 bg-slate-300"></div>
-                      <!-- ⚠️ La luna y la palabra «noches» estaban clavadas aquí, y este mismo
-                           chip rotulaba un seguro de viaje que se cuenta por DÍAS. Ahora los pone
-                           la unidad del componente; ver `UnidadDeConteoEnum`. -->
-                      <span class="text-[9px] font-black text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                        <i class="fas text-[8px]" :class="iconoDeUnidad(comp)"></i> {{ etiquetaDeCantidad(comp) }}
-                      </span>
-                    </div>
-
-                    <span v-if="!comp.sinHorario || (store.cantidadPorFechas(comp) ?? 1) > 1" class="bg-slate-100 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-black shadow-sm flex items-center gap-2 w-max">
-                      <i class="far fa-flag text-slate-400"></i>
-                      {{ !comp.sinHorario ? 'FIN: ' + formatDateTimeFromISO(comp.fechaHoraFin) : 'HASTA: ' + formatDateOnlyFromISO(comp.fechaHoraFin) }}
                     </span>
 
                     <span v-if="store.isComponenteBloqueado(comp)" class="mt-1 text-[9px] font-bold text-teal-500 flex items-center gap-1">
@@ -3485,6 +3479,17 @@ store.$onAction(({ name, args }) => {
                   </div>
 
                   <div v-if="comp.cottarifas?.length" class="mt-auto pt-3 border-t border-slate-100 grid grid-cols-1 gap-2">
+                    <!-- IGV de hotel con peruanos: pastilla y no banda, porque es una alerta sobre
+                         el PRECIO de este componente y nada más — por eso va junto a sus tarifas y
+                         no en el título (Jorge, 20/10/2026). Sólo sale en hoteles y sólo si viajan
+                         peruanos; el detalle, al pasar por encima. Ver `stores/cotizacion/igvHoteleria`. -->
+                    <div v-if="store.avisoIgvDe(comp)" class="flex justify-end -mb-1">
+                      <span v-tooltip-tactil
+                            class="text-[8px] font-black bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded uppercase inline-flex items-center gap-1"
+                            :title="store.avisoIgvDe(comp) ?? ''">
+                        <i class="fas fa-receipt text-[7px]"></i> IGV
+                      </span>
+                    </div>
                     <div v-for="tarifa in comp.cottarifas" :key="tarifa.id"
                          class="flex items-center justify-between bg-slate-50 hover:bg-orange-50 p-2 rounded-lg border border-slate-200 transition-colors">
                       <div class="flex flex-col min-w-0 pr-2">

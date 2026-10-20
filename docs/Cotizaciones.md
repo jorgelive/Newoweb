@@ -705,7 +705,7 @@ El editor **avisa, no calcula**: la tasa la decide el hotel, así que el importe
 
 | Cuándo | Dónde |
 |---|---|
-| componente de tipo `alojamiento` **y** viajan peruanos | pastilla ámbar «IGV» en la tarjeta del componente (con el texto al pasar por encima) |
+| componente de tipo `alojamiento` **y** viajan peruanos | pastilla ámbar «IGV» en la tarjeta del componente, **encima de sus tarifas** (con el texto al pasar por encima). Iba junto al título; es un aviso sobre el precio y va donde está el precio (20/10/2026) |
 | lo mismo, con el componente abierto | una línea ámbar encima de «Tarifas / Costos», donde se decide el precio |
 
 «Viajan peruanos» si **cualquiera** de las dos: un pasajero del manifiesto del expediente con país
