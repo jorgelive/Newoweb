@@ -37,6 +37,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand(
     name: 'app:pms:guia:puerta-jalador',
     description: 'Puerta de la Casita 4: escalera «llave 4 + jalador» y el truco del jalador en la guía.',
+    // Corrió en producción el 20/10/2026. Se queda como receta y sigue ejecutable.
+    hidden: true,
 )]
 final class PmsGuiaPuertaJaladorCommand extends Command
 {
