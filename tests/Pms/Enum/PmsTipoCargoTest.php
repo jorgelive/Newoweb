@@ -10,8 +10,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Cómo se clasifica un invoiceItem de Beds24. El horario extra tiene tipo propio desde el
- * 20/10/2026 y va ANTES que «servicio»: «late check-out service» es un horario extra.
+ * Cómo se clasifica un invoiceItem de Beds24, con las cuatro descripciones que manda de verdad
+ * (medido el 20/10/2026 sobre 354 cargos).
  */
 final class PmsTipoCargoTest extends TestCase
 {
@@ -22,9 +22,6 @@ final class PmsTipoCargoTest extends TestCase
         yield 'cancel fee con subType 8' => ['Cancel Fee', 8, PmsTipoCargo::PENALIZACION];
         yield 'limpieza' => ['suplemento de limpieza', 11, PmsTipoCargo::LIMPIEZA];
         yield 'cargo por servicio' => ['cargo por servicio', 11, PmsTipoCargo::SERVICIO];
-        yield 'early check-in' => ['Early check in', null, PmsTipoCargo::ENTRADA_TEMPRANA];
-        yield 'late check-out service' => ['Late check-out service', 11, PmsTipoCargo::SALIDA_TARDIA];
-        yield 'salida tardía' => ['Salida tardía (noche bloqueada)', null, PmsTipoCargo::SALIDA_TARDIA];
         yield 'nada reconocible' => ['Propina', null, PmsTipoCargo::OTRO];
     }
 

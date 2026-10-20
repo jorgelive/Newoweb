@@ -2737,8 +2737,10 @@ viejas vía `aplicarCambiosVolatiles()`, sin pisar snapshots existentes):
   si falla, queda `null`. Se usa sobre todo para valorizar pagos en soles.
 - **Clasificación** → enum `PmsTipoCargo` (`ALOJAMIENTO`/`LIMPIEZA`/`SERVICIO`/`ENTRADA_TEMPRANA`/
   `SALIDA_TARDIA`/`PENALIZACION`/`OTRO`), fuente única `PmsTipoCargo::desdeBeds24($descripcion,
-  $subTipo)`: penalización primero, `subType 8 → ALOJAMIENTO`, luego por descripción (el horario
-  extra antes que «servicio»); resto `OTRO`. Expone `labelKey()` para i18n.
+  $subTipo)`: penalización primero, `subType 8 → ALOJAMIENTO`, luego por descripción; resto `OTRO`.
+  Expone `labelKey()` para i18n. Beds24 manda sólo cuatro descripciones (medido el 20/10/2026, 354
+  cargos): la plantilla de alojamiento, «cargo por servicio», «suplemento de limpieza» y «Cancel
+  Fee». El horario extra **no** llega nunca de Beds24, así que el clasificador no lo busca.
 
   **El horario extra tiene tipo propio desde el 20/10/2026** («Early check-in» / «Late check-out»).
   Iba como `servicio` el que abre `PmsCargosAutomaticosService::sincronizarExtras()` —había que leer

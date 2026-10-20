@@ -22,7 +22,8 @@ enum PmsTipoCargo: string
      * El horario extra, con tipo propio (20/10/2026). Iba como `servicio` con la descripción
      * «Entrada temprana (noche bloqueada)»: el tipo no decía qué era y había que leer el texto, y
      * se mezclaba con el cargo por servicio de la OTA, que es otra cosa —y `service_fee` en los
-     * mensajes—. Lo abre `PmsCargosAutomaticosService::sincronizarExtras()`.
+     * mensajes—. Lo abre `PmsCargosAutomaticosService::sincronizarExtras()` o se pone a mano:
+     * nunca llega de Beds24, así que `desdeBeds24()` no lo devuelve.
      */
     case ENTRADA_TEMPRANA = 'entrada_temprana';
     case SALIDA_TARDIA    = 'salida_tardia';
@@ -54,14 +55,10 @@ enum PmsTipoCargo: string
         }
 
         // 3. Desambiguamos el resto por descripción (el subType 11 mezcla limpieza y servicio).
-        //    El horario extra antes que «servicio»: «late check-out service» es un horario extra.
+        //    ⚠️ El horario extra NO se busca aquí: Beds24 no lo manda nunca —medido el 20/10/2026,
+        //    en 354 cargos sólo hay alojamiento, cargo por servicio, limpieza y Cancel Fee—. Lo
+        //    pactamos nosotros y su cargo lo abre `PmsCargosAutomaticosService`.
         if ($desc !== '') {
-            if (str_contains($desc, 'early check') || str_contains($desc, 'entrada temprana')) {
-                return self::ENTRADA_TEMPRANA;
-            }
-            if (str_contains($desc, 'late check') || str_contains($desc, 'salida tard')) {
-                return self::SALIDA_TARDIA;
-            }
             if (str_contains($desc, 'limpieza') || str_contains($desc, 'cleaning')) {
                 return self::LIMPIEZA;
             }
