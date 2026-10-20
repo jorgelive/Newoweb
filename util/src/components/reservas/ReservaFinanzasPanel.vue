@@ -409,7 +409,7 @@ interface BloquePagos {
 const bloquesPagos = computed<BloquePagos[]>(() => [
     {
         clave: 'manuales',
-        titulo: 'Cobros registrados',
+        titulo: 'Pagos registrados',
         icono: 'fas fa-hand-holding-dollar',
         pagos: gruposPagos.value.manuales,
         plegable: false,

@@ -4734,7 +4734,7 @@ Los cobros no son todos la misma cosa:
 
 | Bloque | Qué es | Estado inicial |
 |---|---|---|
-| **Cobros registrados** | Dinero que alguien recibió y anotó | Abierto |
+| **Pagos registrados** | Dinero que alguien recibió y anotó | Abierto |
 | **Depósito del canal** | Lo que el sistema cuadra contra los cargos, no una decisión de nadie | **Plegado** |
 
 Quien abre esta sección viene a ver o a registrar un cobro suyo. El depósito del canal ya está
