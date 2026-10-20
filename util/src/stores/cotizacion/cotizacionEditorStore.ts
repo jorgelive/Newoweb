@@ -1,4 +1,5 @@
 import { extractIdStr } from '@/utils/recurso';
+import { avisoIgvDeHotel, peruanosQueViajan } from './igvHoteleria';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import { comoCalculo, multiplicaPorCantidad, seProrratea, visibleParaCliente } from '@dominio/cotizacion/index.ts';
@@ -643,6 +644,21 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         }
         return false;
     };
+
+    /**
+     * ¿Viajan peruanos? Por el manifiesto del expediente (país PE) o por alguna tarifa de
+     * procedencia nacional en la cotización. De ello cuelga el aviso de IGV de los hoteles: ver
+     * `./igvHoteleria`.
+     */
+    const peruanosEnLaCotizacion = computed(() => peruanosQueViajan(
+        (fileActual.value?.filepasajeros ?? []).map((p) => p.pais?.id),
+        (cotizacion.value?.cotservicios ?? []).flatMap((s: CotServicio) =>
+            (s.cotcomponentes ?? []).flatMap((c) => (c.cottarifas ?? []).map((t: TarifaSnapshot) => t.procedenciaSnapshot))),
+    ));
+
+    /** El aviso de IGV de un componente de hotel, o null. Sólo avisa: no toca precios. */
+    const avisoIgvDe = (componente: Pick<ComponenteCompleto, 'tipo'>): string | null =>
+        avisoIgvDeHotel(componente.tipo, peruanosEnLaCotizacion.value);
 
     const isServicioConAlerta = (servicio: CotServicio): boolean => {
         if (!servicio.cotcomponentes || servicio.cotcomponentes.length === 0) return true;
@@ -6033,7 +6049,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         isMobileOpen, isSegmentEditorOpen, tipoCambioSugerido, todasLasTarifasMaestras,
         resumenFinanciero, gruposUpgrade, itinerarioDinamico, totalCostoNeto, ventaSugerida,
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, cantidadPorFechas,
-        isComponenteConAlerta, isServicioConAlerta, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
+        isComponenteConAlerta, isServicioConAlerta, avisoIgvDe, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
         updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente, duplicarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,

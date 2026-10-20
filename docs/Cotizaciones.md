@@ -694,6 +694,30 @@ Campos que mandan (todos `*Snapshot`):
 
 **Modalidad ≠ grupal.** Modalidad es privado/compartido; "grupal" es el flag `esGrupal`.
 
+### 🧾 IGV en hoteles cuando viajan peruanos (19/10/2026)
+
+El hospedaje a extranjeros no domiciliados está exonerado de IGV (con pasaporte o TAM); a los
+**peruanos y residentes** el hotel se lo cobra: 18 %, o 10,5 % si es una MYPE de hospedaje. Una
+cotización con hotel que no lo tenga en cuenta sale por debajo de lo que el hotel nos facturará, y
+no lo denuncia nada: la tarifa es la del hotel y el cálculo cuadra.
+
+El editor **avisa, no calcula**: la tasa la decide el hotel, así que el importe lo pone quien cotiza.
+
+| Cuándo | Dónde |
+|---|---|
+| componente de tipo `alojamiento` **y** viajan peruanos | pastilla ámbar «IGV» en la tarjeta del componente (con el texto al pasar por encima) |
+| lo mismo, con el componente abierto | una línea ámbar encima de «Tarifas / Costos», donde se decide el precio |
+
+«Viajan peruanos» si **cualquiera** de las dos: un pasajero del manifiesto del expediente con país
+`PE` (`fileActual.filepasajeros[].pais.id`), o alguna tarifa de la cotización con
+`procedenciaSnapshot = nacional` —que es como se cotiza antes de tener manifiesto—. La CAN no
+cuenta: un boliviano de turismo es extranjero no domiciliado. Los residentes extranjeros no se
+pueden detectar; el texto los nombra.
+
+Regla y textos en `util/src/stores/cotizacion/igvHoteleria.ts` (con su test);
+`cotizacionEditorStore.avisoIgvDe(componente)` la expone a la vista. Sin cerrar ni descartar: el
+aviso sólo existe mientras se cumple la condición, así que no hay un «ya lo sé» que guardar.
+
 Configs UI (iconos/labels): `MODALIDAD_CONFIG`, `CATEGORIA_CONFIG` y helper `modCatBadges(modalidad, categoria)` en `util/src/types/cotizacionEditorModel.ts`. En pax hay equivalentes locales (`MODALIDAD_UI`/`CATEGORIA_UI`/`modCatBadges`) en `PaxCotizacionGuiaView.vue`.
 
 ### Ítems del componente (`snapshotItems` / `SnapshotItem`)
@@ -9772,6 +9796,9 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 
 ## 9. "Quiero cambiar X — ¿dónde toco?"
 
+- **Cuándo sale el aviso de IGV de un hotel, y su texto** → `util/src/stores/cotizacion/igvHoteleria.ts`
+  (`peruanosQueViajan()` decide si viajan peruanos; `avisoIgvDeHotel()`, el tipo y el texto). Se
+  pinta en `CotizacionEditorView.vue` con `store.avisoIgvDe(comp)`. Ver §3, «IGV en hoteles».
 - **Qué campos lee el PATCH de un vuelo** → `App\Cotizacion\Dto\CuerpoDeVuelo::fromArray()`; el
   controlador sólo decide con `trae()`. Un campo nuevo va en los dos sitios.
 - **Cómo se lee una celda del padrón** → `PadronFormato::celda()`: el único sitio que convierte lo

@@ -3245,6 +3245,15 @@ store.$onAction(({ name, args }) => {
                               title="Copia creada para repartir el servicio entre subgrupos. Se puede eliminar.">
                           <i class="fas fa-clone text-[7px]"></i> Copia
                         </span>
+                        <!-- IGV de hotel con peruanos: pastilla y no banda, porque es una alerta
+                             sobre el PRECIO de este componente y nada más. Sólo sale en hoteles y
+                             sólo si viajan peruanos; el detalle, al pasar por encima y dentro del
+                             componente, junto a sus tarifas. Ver `stores/cotizacion/igvHoteleria`. -->
+                        <span v-if="store.avisoIgvDe(comp)" v-tooltip-tactil
+                              class="text-[8px] font-black bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded uppercase shrink-0 flex items-center gap-1"
+                              :title="store.avisoIgvDe(comp) ?? ''">
+                          <i class="fas fa-receipt text-[7px]"></i> IGV
+                        </span>
                       </span>
                       <!-- ⚠️ «Horario libre» es del COMPONENTE; «al final del día» es del
                            SERVICIO, y estaban pegados en la misma etiqueta. Un check-in sin hora
@@ -4318,6 +4327,13 @@ store.$onAction(({ name, args }) => {
                 </span>
                 <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
               </div>
+              <!-- Aquí, encima de las tarifas, porque es donde se decide el precio del hotel. Una
+                   línea y sin botón de cerrar: sólo existe mientras viajen peruanos, así que no
+                   hay un «ya lo sé» que guardar. -->
+              <p v-if="store.avisoIgvDe(store.componenteActivo)"
+                 class="mb-3 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                <i class="fas fa-receipt mr-1"></i>{{ store.avisoIgvDe(store.componenteActivo) }}
+              </p>
               <div class="space-y-3">
                 <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
                      class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
