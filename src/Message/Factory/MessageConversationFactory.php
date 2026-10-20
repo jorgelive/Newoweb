@@ -84,6 +84,11 @@ readonly class MessageConversationFactory
                 $context->getContextType(),
                 $context->getContextId()
             );
+            // 🔥 El idioma ANTES de `persist()`: Doctrine dispara `prePersist` en el mismo
+            // `persist()`, e `IdiomaDeTrabajoListener` lee el idioma ahí. Sin él, «typed property
+            // must not be accessed before initialization» y se caía el guardado entero —una
+            // reserva del panel, un booking de Beds24— desde el primer hilo nuevo del 20/10/2026.
+            $conversation->setIdioma($this->idiomaDelAsunto($context));
             $this->entityManager->persist($conversation);
         }
 
@@ -131,12 +136,7 @@ readonly class MessageConversationFactory
         $conversation->setContextIdiomaAsunto($langCode);
 
         if (($nace || $cambioElDelAsunto) && !$conversation->isIdiomaFijado()) {
-            // Inyectamos la referencia directamente sin ensuciar con llamadas extra
-            // `getReference()` puede devolver null en Doctrine 3. Sin idioma no hay conversación
-            // (la columna es NOT NULL): que lo diga aquí y no en el flush.
-            $idiomaRef = $this->entityManager->getReference(MaestroIdioma::class, $langCode)
-                ?? throw new \LogicException("No hay idioma «{$langCode}» para la conversación.");
-            $conversation->setIdioma($idiomaRef);
+            $conversation->setIdioma($this->idiomaDelAsunto($context));
         }
 
         // 3. Snapshot de contacto
@@ -422,5 +422,17 @@ readonly class MessageConversationFactory
         ]);
 
         return null;
+    }
+
+    /**
+     * El idioma del asunto, como referencia. `getReference()` puede devolver null en Doctrine 3, y
+     * sin idioma no hay conversación (la columna es NOT NULL): que lo diga aquí y no en el flush.
+     */
+    private function idiomaDelAsunto(MessageContextInterface $context): MaestroIdioma
+    {
+        $langCode = substr($context->getContextLanguage(), 0, 2);
+
+        return $this->entityManager->getReference(MaestroIdioma::class, $langCode)
+            ?? throw new \LogicException("No hay idioma «{$langCode}» para la conversación.");
     }
 }
