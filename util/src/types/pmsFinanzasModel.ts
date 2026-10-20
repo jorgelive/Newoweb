@@ -307,6 +307,7 @@ export const CLASES_COLOR_CARGO: Record<string, string> = {
     violet: 'bg-violet-100 text-violet-700',
     amber: 'bg-amber-100 text-amber-700',
     rose: 'bg-rose-100 text-rose-700',
+    teal: 'bg-teal-100 text-teal-700',
     slate: 'bg-slate-100 text-slate-600',
 };
 

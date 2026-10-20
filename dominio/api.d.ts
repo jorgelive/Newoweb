@@ -30146,7 +30146,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
              * @default false
@@ -30203,7 +30203,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30270,7 +30270,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description El operador movió este cargo de estancia **a mano**, y la sincronización no debe deshacerlo.
              * @default false
@@ -30326,7 +30326,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30398,7 +30398,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30469,7 +30469,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30541,7 +30541,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30613,7 +30613,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30685,7 +30685,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de
@@ -30756,7 +30756,7 @@ export interface components {
              * @description Clasificación estandarizada y traducible derivada de subTipo/descripción.
              * @enum {string|null}
              */
-            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "penalizacion" | "otro" | null;
+            tipoCargo?: "alojamiento" | "limpieza" | "servicio" | "entrada_temprana" | "salida_tardia" | "penalizacion" | "otro" | null;
             /**
              * @description Espejo contable de un canal que cobra al huésped por nosotros (Airbnb, VRBO:
              *     `PmsChannel::CANAL_PAGO_TOTAL`). Es la contraparte del `esAutomatico` de

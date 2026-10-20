@@ -307,11 +307,17 @@ final class PmsCargosAutomaticosService
         $this->crearCargo(
             info: $info,
             evento: $evento,
-            tipo: PmsTipoCargo::SERVICIO,
+            tipo: self::tipoDeExtra($descripcion),
             descripcion: $descripcion . ($casita ? ' · ' . $casita : ''),
             importe: '0.00',
             moneda: $info->getMoneda() ?? $this->monedaResolver->resolve(null),
         );
+    }
+
+    /** El tipo del cargo de horario extra: el suyo propio desde el 20/10/2026, no `servicio`. */
+    private static function tipoDeExtra(string $descripcion): PmsTipoCargo
+    {
+        return $descripcion === self::DESC_ENTRADA_TEMPRANA ? PmsTipoCargo::ENTRADA_TEMPRANA : PmsTipoCargo::SALIDA_TARDIA;
     }
 
     /**
@@ -331,7 +337,7 @@ final class PmsCargosAutomaticosService
             // Por PREFIJO: la descripción lleva la casita detrás (ver crearCargo).
             // Así los cargos creados antes de añadirla se siguen reconociendo.
             if ($cargo->getEvento() === $evento
-                && $cargo->getTipoCargo() === PmsTipoCargo::SERVICIO
+                && $cargo->getTipoCargo() === self::tipoDeExtra($descripcion)
                 && str_starts_with((string) $cargo->getDescripcion(), $descripcion)
                 && $cargo->getBeds24ItemId() === null
             ) {

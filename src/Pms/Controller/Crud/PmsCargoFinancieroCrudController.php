@@ -97,16 +97,19 @@ class PmsCargoFinancieroCrudController extends BaseCrudController
         yield AssociationField::new('informacionFinanciera', 'Reserva (Info)')->onlyOnDetail();
 
         yield ChoiceField::new('tipoCargo', 'Tipo')
-            ->setChoices([
-                'Alojamiento' => PmsTipoCargo::ALOJAMIENTO,
-                'Limpieza'    => PmsTipoCargo::LIMPIEZA,
-                'Servicio'    => PmsTipoCargo::SERVICIO,
-                'Otro'        => PmsTipoCargo::OTRO,
-            ])
+            // Del enum, no a mano: la lista escrita aquí se quedó sin Penalización y sin el
+            // horario extra. Un tipo nuevo aparece solo.
+            ->setChoices(array_combine(
+                array_map(static fn (PmsTipoCargo $t): string => $t->label(), PmsTipoCargo::cases()),
+                PmsTipoCargo::cases(),
+            ))
             ->renderAsBadges([
                 PmsTipoCargo::ALOJAMIENTO->value => 'primary',
                 PmsTipoCargo::LIMPIEZA->value    => 'info',
                 PmsTipoCargo::SERVICIO->value    => 'warning',
+                PmsTipoCargo::ENTRADA_TEMPRANA->value => 'success',
+                PmsTipoCargo::SALIDA_TARDIA->value    => 'success',
+                PmsTipoCargo::PENALIZACION->value => 'danger',
                 PmsTipoCargo::OTRO->value        => 'secondary',
             ]);
 

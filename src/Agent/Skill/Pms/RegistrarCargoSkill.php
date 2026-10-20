@@ -99,7 +99,8 @@ final readonly class RegistrarCargoSkill implements SkillInterface, SkillDominio
                 SkillParameter::texto('moneda', 'Moneda del importe indicado (PEN, USD…). Si se '
                     . 'omite, se asume la de la cuenta.', requerido: false),
                 SkillParameter::texto('tipo', 'Tipo de cargo: alojamiento, limpieza, servicio, '
-                    . 'penalizacion u otro. Por defecto "servicio".', requerido: false),
+                    . 'entrada_temprana, salida_tardia, penalizacion u otro. Por defecto "servicio". '
+                    . 'El horario extra NO se registra aquí: lo abre aplicar_cambio_horario.', requerido: false),
                 SkillParameter::texto('evento_id', 'Estancia (casita) a la que se imputa el '
                     . 'cargo, tal cual lo devuelve buscar_estancias_de_reserva. Omítelo: si la '
                     . 'reserva tiene una sola casita se elige sola, y si tiene varias la skill '

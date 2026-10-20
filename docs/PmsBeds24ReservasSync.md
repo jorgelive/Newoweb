@@ -2735,9 +2735,20 @@ viejas vía `aplicarCambiosVolatiles()`, sin pisar snapshots existentes):
   **venta** USD→PEN del día en cada cargo/pago (decimal 10,3). Se resuelve **una sola vez por
   llamada** a `upsertCargos()` (evita N+1 y golpes repetidos a SUNAT). Nunca rompe la persistencia:
   si falla, queda `null`. Se usa sobre todo para valorizar pagos en soles.
-- **Clasificación** → enum `PmsTipoCargo` (`ALOJAMIENTO`/`LIMPIEZA`/`SERVICIO`/`OTRO`), fuente única
-  `PmsTipoCargo::desdeBeds24($descripcion, $subTipo)`: `subType 8 → ALOJAMIENTO`; luego por
-  descripción; resto `OTRO`. Expone `labelKey()` para i18n.
+- **Clasificación** → enum `PmsTipoCargo` (`ALOJAMIENTO`/`LIMPIEZA`/`SERVICIO`/`ENTRADA_TEMPRANA`/
+  `SALIDA_TARDIA`/`PENALIZACION`/`OTRO`), fuente única `PmsTipoCargo::desdeBeds24($descripcion,
+  $subTipo)`: penalización primero, `subType 8 → ALOJAMIENTO`, luego por descripción (el horario
+  extra antes que «servicio»); resto `OTRO`. Expone `labelKey()` para i18n.
+
+  **El horario extra tiene tipo propio desde el 20/10/2026** («Early check-in» / «Late check-out»).
+  Iba como `servicio` el que abre `PmsCargosAutomaticosService::sincronizarExtras()` —había que leer
+  la descripción para saber qué era, y sumaba al `service_fee` de los mensajes, que es la tarifa de
+  la OTA— y como `otro` el que se escribía a mano. `Version20261020150000` pasó los cuatro que había.
+  `SERVICIO` se rotula **«Cargo por servicio»**: «Servicio» a secas se leía como un servicio vendido.
+
+  La fila del panel enseña la `descripcion` **sólo si el tipo es `otro` o no hay**: con tipo, repetía
+  lo mismo («Limpieza · suplemento de limpieza»). La descripción es la del canal tal cual —«cargo por
+  servicio» la manda Booking por Beds24— y se conserva como verdad histórica.
 
 ### 11.5 Pagos propios — `PmsPagoFinanciero`
 

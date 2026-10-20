@@ -2448,8 +2448,13 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     </span>
                                     <!-- La plantilla sin resolver de Beds24 se oculta: ver
                                          `descripcionVisible()`. Con el tipo de cargo al lado y la
-                                         casita en la barra de la estancia, la línea no queda coja. -->
-                                    <span v-if="descripcionVisible(c.descripcion)" class="text-xs font-bold text-slate-700 truncate">
+                                         casita en la barra de la estancia, la línea no queda coja.
+                                         Y sólo si el tipo no lo dice ya: «Limpieza · suplemento de
+                                         limpieza» o «Cargo por servicio · cargo por servicio»
+                                         repetían lo mismo (Jorge, 20/10/2026). Con «Otro», o sin
+                                         tipo, la descripción es lo único que explica el cargo. -->
+                                    <span v-if="descripcionVisible(c.descripcion) && (!c.tipoCargo || c.tipoCargo === 'otro')"
+                                        class="text-xs font-bold text-slate-700 truncate">
                                         {{ descripcionVisible(c.descripcion) }}
                                     </span>
                                     <span v-else-if="!tipoCargoOpt(c.tipoCargo)" class="text-xs font-bold text-slate-400 truncate">

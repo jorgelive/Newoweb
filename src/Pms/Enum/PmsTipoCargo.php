@@ -18,6 +18,14 @@ enum PmsTipoCargo: string
     case ALOJAMIENTO  = 'alojamiento';
     case LIMPIEZA     = 'limpieza';
     case SERVICIO     = 'servicio';
+    /**
+     * El horario extra, con tipo propio (20/10/2026). Iba como `servicio` con la descripción
+     * «Entrada temprana (noche bloqueada)»: el tipo no decía qué era y había que leer el texto, y
+     * se mezclaba con el cargo por servicio de la OTA, que es otra cosa —y `service_fee` en los
+     * mensajes—. Lo abre `PmsCargosAutomaticosService::sincronizarExtras()`.
+     */
+    case ENTRADA_TEMPRANA = 'entrada_temprana';
+    case SALIDA_TARDIA    = 'salida_tardia';
     case PENALIZACION = 'penalizacion';
     case OTRO         = 'otro';
 
@@ -46,7 +54,14 @@ enum PmsTipoCargo: string
         }
 
         // 3. Desambiguamos el resto por descripción (el subType 11 mezcla limpieza y servicio).
+        //    El horario extra antes que «servicio»: «late check-out service» es un horario extra.
         if ($desc !== '') {
+            if (str_contains($desc, 'early check') || str_contains($desc, 'entrada temprana')) {
+                return self::ENTRADA_TEMPRANA;
+            }
+            if (str_contains($desc, 'late check') || str_contains($desc, 'salida tard')) {
+                return self::SALIDA_TARDIA;
+            }
             if (str_contains($desc, 'limpieza') || str_contains($desc, 'cleaning')) {
                 return self::LIMPIEZA;
             }
@@ -76,7 +91,11 @@ enum PmsTipoCargo: string
         return match ($this) {
             self::ALOJAMIENTO  => 'Alojamiento',
             self::LIMPIEZA     => 'Limpieza',
-            self::SERVICIO     => 'Servicio',
+            // «Cargo por servicio» y no «Servicio»: es la tarifa de servicio (la de la OTA o la
+            // del tarifario), y «Servicio» a secas se confundía con un servicio vendido.
+            self::SERVICIO     => 'Cargo por servicio',
+            self::ENTRADA_TEMPRANA => 'Early check-in',
+            self::SALIDA_TARDIA    => 'Late check-out',
             self::PENALIZACION => 'Penalización',
             self::OTRO         => 'Otro',
         };
@@ -89,6 +108,7 @@ enum PmsTipoCargo: string
             self::ALOJAMIENTO  => 'sky',
             self::LIMPIEZA     => 'violet',
             self::SERVICIO     => 'amber',
+            self::ENTRADA_TEMPRANA, self::SALIDA_TARDIA => 'teal',
             self::PENALIZACION => 'rose',
             self::OTRO         => 'slate',
         };
