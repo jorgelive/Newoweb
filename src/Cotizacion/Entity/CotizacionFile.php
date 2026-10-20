@@ -21,6 +21,7 @@ use App\Cotizacion\ApiPlatform\State\CotizacionFileItemProvider;
 use App\Api\Provider\Cotizacion\CotizacionFilePublicProvider;
 use App\Cotizacion\ApiPlatform\Filter\CotizacionFileNombreFilter;
 use App\Cotizacion\Enum\ArchivoTipoEnum;
+use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Contract\VinculoComercial;
 use App\Cotizacion\ApiPlatform\State\CotizacionFileBorradoProcessor;
 use App\Cotizacion\Dto\ComoReservar;
@@ -37,6 +38,7 @@ use App\Entity\Trait\LocatorTrait;
 use App\Entity\Trait\TimestampTrait;
 use App\Security\Roles;
 use App\Service\Phone\PhoneSanitizer;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Criteria;
@@ -689,6 +691,39 @@ class CotizacionFile
         $this->estado = $estado;
 
         return $this;
+    }
+
+    /**
+     * El primer día del viaje: el primer servicio de lo vendido (confirmada, operativa u
+     * operada) y, si aún no hay venta, de las propuestas vivas. `null` si nada tiene fecha.
+     *
+     * Las propuestas de un mismo expediente suelen diferir en días, no en meses: para la edad de
+     * un pasajero en las listas de proveedores basta.
+     */
+    public function fechaDeInicioDelViaje(): ?DateTimeImmutable
+    {
+        $vendidas = [CotizacionEstadoEnum::CONFIRMADO, CotizacionEstadoEnum::OPERATIVA, CotizacionEstadoEnum::OPERADO];
+        $vivas = [CotizacionEstadoEnum::PENDIENTE, CotizacionEstadoEnum::ENVIADO];
+
+        foreach ([$vendidas, $vivas] as $estados) {
+            $primera = null;
+            foreach ($this->cotizaciones as $cotizacion) {
+                if (!in_array($cotizacion->getEstado(), $estados, true)) {
+                    continue;
+                }
+                foreach ($cotizacion->getCotservicios() as $servicio) {
+                    $fecha = $servicio->getFechaInicioAbsoluta();
+                    if ($fecha !== null && ($primera === null || $fecha < $primera)) {
+                        $primera = $fecha;
+                    }
+                }
+            }
+            if ($primera !== null) {
+                return $primera;
+            }
+        }
+
+        return null;
     }
 
     /**

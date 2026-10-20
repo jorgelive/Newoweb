@@ -8,6 +8,7 @@ use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Enum\DocumentoTipoEnum;
 use App\Enum\SexoEnum;
+use DateTimeImmutable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -72,9 +73,12 @@ final readonly class ListaParaCultura implements ListaParaProveedorInterface
 
         $avisos = [];
         $filas = [];
+        // La edad del día del viaje: la tarifa del Ministerio es por edad, y la entrada se compra
+        // con meses de antelación.
+        $viaje = $file->fechaDeInicioDelViaje() ?? new DateTimeImmutable('today');
 
         foreach ($pasajeros as $pasajero) {
-            $edad = $pasajero->getEdad();
+            $edad = $pasajero->edadAl($viaje);
             if ($edad === null) {
                 $avisos[] = sprintf('%s: falta la fecha de nacimiento — no se sabe qué tarifa le toca, va sin tarifa', $this->nombre($pasajero));
             } elseif ($edad < 3) {
@@ -88,7 +92,7 @@ final readonly class ListaParaCultura implements ListaParaProveedorInterface
         foreach (array_chunk($filas, self::FILAS) ?: [[]] as $tanda) {
             $celdas = [];
             foreach ($tanda as $i => $pasajero) {
-                $faltan = $this->fila($pasajero, self::PRIMERA_FILA + $i, (string) $file->getLocalizador(), $tablas, $paisPorId, $celdas);
+                $faltan = $this->fila($pasajero, self::PRIMERA_FILA + $i, (string) $file->getLocalizador(), $pasajero->edadAl($viaje), $tablas, $paisPorId, $celdas);
                 if ($faltan !== []) {
                     $avisos[] = sprintf('%s: falta %s', $this->nombre($pasajero), implode(', ', $faltan));
                 }
@@ -106,7 +110,7 @@ final readonly class ListaParaCultura implements ListaParaProveedorInterface
      *
      * @return list<string>
      */
-    private function fila(CotizacionFilepasajero $pasajero, int $fila, string $codFile, array $tablas, array $paisPorId, array &$celdas): array
+    private function fila(CotizacionFilepasajero $pasajero, int $fila, string $codFile, ?int $edad, array $tablas, array $paisPorId, array &$celdas): array
     {
         $faltan = [];
         $documento = DocumentoParaLista::de($pasajero);
@@ -132,8 +136,7 @@ final readonly class ListaParaCultura implements ListaParaProveedorInterface
             $faltan[] = 'el país (sin código del Ministerio)';
         }
 
-        // 3. Tarifa: por edad y procedencia. Promocional para peruanos, CAN y residentes.
-        $edad = $pasajero->getEdad();
+        // 3. Tarifa: por edad —la del viaje— y procedencia. Promocional para peruanos, CAN y residentes.
         if ($edad !== null) {
             $promocional = $procedencia !== 'Extranjero';
             $tarifa = $edad >= 18

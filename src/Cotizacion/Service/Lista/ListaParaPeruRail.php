@@ -7,6 +7,7 @@ namespace App\Cotizacion\Service\Lista;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Enum\DocumentoTipoEnum;
+use DateTimeImmutable;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -49,12 +50,14 @@ final readonly class ListaParaPeruRail implements ListaParaProveedorInterface
     {
         $avisos = [];
         $partes = [];
+        // Adulto o niño según la edad del día del viaje, no la de hoy: el billete se compra antes.
+        $viaje = $file->fechaDeInicioDelViaje() ?? new DateTimeImmutable('today');
 
         foreach (array_chunk($pasajeros, self::FILAS) as $tanda) {
             $celdas = [];
             foreach ($tanda as $i => $pasajero) {
                 $fila = self::PRIMERA_FILA + $i;
-                $faltan = $this->fila($pasajero, $fila, $celdas);
+                $faltan = $this->fila($pasajero, $fila, $pasajero->edadAl($viaje), $celdas);
                 if ($faltan !== []) {
                     $avisos[] = sprintf('%s: falta %s', $this->nombre($pasajero), implode(', ', $faltan));
                 }
@@ -70,13 +73,13 @@ final readonly class ListaParaPeruRail implements ListaParaProveedorInterface
      *
      * @return list<string> lo que falta, para el aviso
      */
-    private function fila(CotizacionFilepasajero $pasajero, int $fila, array &$celdas): array
+    private function fila(CotizacionFilepasajero $pasajero, int $fila, ?int $edad, array &$celdas): array
     {
         $faltan = [];
         $documento = DocumentoParaLista::de($pasajero);
 
-        $tipoPax = $pasajero->getTipopaxperurail();
-        $tipoPax !== null ? $celdas["A$fila"] = Celda::numero($tipoPax) : $faltan[] = 'la fecha de nacimiento';
+        // 1 adulto (12 o más), 2 niño: la regla de `getTipopaxperurail()`, a la edad del viaje.
+        $edad !== null ? $celdas["A$fila"] = Celda::numero($edad >= 12 ? 1 : 2) : $faltan[] = 'la fecha de nacimiento';
 
         $sexo = $pasajero->getSexo()?->value;
         $sexo !== null ? $celdas["B$fila"] = Celda::texto($sexo) : $faltan[] = 'el sexo';

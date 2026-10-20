@@ -64,7 +64,7 @@ final class RellenadorDePlantillaXlsxTest extends TestCase
         $tocadas = ['xl/worksheets/sheet1.xml', 'xl/sharedStrings.xml', 'docProps/core.xml'];
         foreach ($antes as $nombre => $contenido) {
             if (!in_array($nombre, $tocadas, true)) {
-                self::assertSame($contenido, $despues[$nombre], "«$nombre» no debe cambiar: Power Query, tabla, estilos, validaciones…");
+                self::assertSame($contenido, $despues[$nombre], "«{$nombre}» no debe cambiar: Power Query, tabla, estilos, validaciones…");
             }
         }
     }

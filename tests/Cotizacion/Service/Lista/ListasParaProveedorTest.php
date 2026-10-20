@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Cotizacion\Service\Lista;
 
+use App\Cotizacion\Entity\Cotizacion;
+use App\Cotizacion\Entity\CotizacionCotservicio;
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
 use App\Cotizacion\Entity\CotizacionPasajeroIdentificacion;
+use App\Cotizacion\Enum\CotizacionEstadoEnum;
 use App\Cotizacion\Service\Lista\ListaParaCultura;
 use App\Cotizacion\Service\Lista\ListaParaPeruRail;
 use App\Cotizacion\Service\Lista\RellenadorDePlantillaXlsx;
@@ -87,6 +90,25 @@ final class ListasParaProveedorTest extends TestCase
         self::assertCount(1, $archivo->avisos);
         self::assertStringContainsString('menor de 3 años', $archivo->avisos[0]);
         self::assertSame('MC_EG95UF.xlsx', $archivo->nombre);
+    }
+
+    #[Test]
+    public function la_edad_es_la_del_viaje_y_no_la_de_hoy(): void
+    {
+        // Tiene 11 hoy y cumple 12 antes de viajar: en el tren va de adulto.
+        $nino = self::pasajero('Leo', 'Ríos', (new DateTimeImmutable('-12 years +1 month'))->format('Y-m-d'),
+            SexoEnum::MASCULINO, (new MaestroPais('PE', 'Perú'))->setCodigoPeruRail(230), DocumentoTipoEnum::DNI, '77777777');
+        self::assertSame(11, $nino->getEdad());
+
+        $file = self::file();
+        $vendida = (new Cotizacion())->setEstado(CotizacionEstadoEnum::CONFIRMADO);
+        $vendida->addCotservicio((new CotizacionCotservicio())->setFechaInicioAbsoluta(new DateTimeImmutable('+3 months')));
+        $file->addCotizacion($vendida);
+
+        $lista = new ListaParaPeruRail(new RellenadorDePlantillaXlsx(), self::PLANTILLAS . 'perurail.xlsx');
+        $h = self::hoja($lista->generar($file, [$nino])->contenido, 'PASAJEROS');
+
+        self::assertSame(1, $h->getCell('A2')->getValue());
     }
 
     #[Test]

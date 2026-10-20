@@ -26,6 +26,9 @@ final class ApellidosPorSeparadoTest extends TestCase
         yield 'tres' => ['Gómez Valencia Pérez', 'Gómez', 'Valencia Pérez'];
         yield 'mayúsculas' => ['DEL CASTILLO SOTO', 'DEL CASTILLO', 'SOTO'];
         yield 'espacios de más' => ['  Quispe   Mamani ', 'Quispe', 'Mamani'];
+        // La «y» une dos apellidos y no es de ninguno: no se pega al segundo.
+        yield 'con y' => ['García y López', 'García', 'López'];
+        yield 'compuesto con y' => ['de la Cruz y Pérez', 'de la Cruz', 'Pérez'];
         yield 'vacío' => ['', null, null];
         yield 'nulo' => [null, null, null];
     }

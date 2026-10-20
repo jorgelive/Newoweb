@@ -245,7 +245,14 @@ class CotizacionFilepasajero
     }
 
     /** Las partículas que forman parte del apellido que las sigue. En minúscula. */
-    private const array PARTICULAS_DE_APELLIDO = ['de', 'del', 'la', 'las', 'los', 'y', 'da', 'das', 'do', 'dos', 'van', 'von', 'der', 'di', 'san', 'santa'];
+    private const array PARTICULAS_DE_APELLIDO = ['de', 'del', 'la', 'las', 'los', 'da', 'das', 'do', 'dos', 'van', 'von', 'der', 'di', 'san', 'santa'];
+
+    /**
+     * La «y» que une dos apellidos («Ortega y Gasset»): separa el primero del segundo y no es de
+     * ninguno. Estaba entre las partículas y se pegaba al segundo: «García y López» daba de
+     * materno «y López».
+     */
+    private const string CONJUNCION_DE_APELLIDOS = 'y';
 
     /**
      * @return array{0: ?string, 1: ?string} [primer apellido, el resto]
@@ -258,6 +265,9 @@ class CotizacionFilepasajero
         $bloques = [];
         $pendiente = [];
         foreach ($palabras as $palabra) {
+            if (mb_strtolower($palabra) === self::CONJUNCION_DE_APELLIDOS && $bloques !== [] && $pendiente === []) {
+                continue;
+            }
             $pendiente[] = $palabra;
             if (!in_array(mb_strtolower($palabra), self::PARTICULAS_DE_APELLIDO, true)) {
                 $bloques[] = implode(' ', $pendiente);
@@ -284,11 +294,21 @@ class CotizacionFilepasajero
     #[Groups(['file:item:read'])]
     public function getEdad(): ?int
     {
+        return $this->edadAl(new DateTimeImmutable('today'));
+    }
+
+    /**
+     * La edad que tendrá un día concreto. Para lo que se compra con meses de antelación —el tren,
+     * la entrada a Machu Picchu— la que cuenta es la del viaje, no la de hoy: un niño de 11 que
+     * cumple 12 antes de viajar paga billete de adulto.
+     */
+    public function edadAl(DateTimeInterface $fecha): ?int
+    {
         if (!$this->fechanacimiento) {
             return null;
         }
-        $hoy = new DateTimeImmutable('today');
-        return $hoy->diff($this->fechanacimiento)->y;
+
+        return DateTimeImmutable::createFromInterface($fecha)->setTime(0, 0)->diff($this->fechanacimiento)->y;
     }
 
     /**

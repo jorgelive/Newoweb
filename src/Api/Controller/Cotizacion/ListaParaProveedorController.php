@@ -6,6 +6,7 @@ namespace App\Api\Controller\Cotizacion;
 
 use App\Cotizacion\Entity\CotizacionFile;
 use App\Cotizacion\Entity\CotizacionFilepasajero;
+use App\Cotizacion\Enum\PasajeroTipoEnum;
 use App\Cotizacion\Service\Lista\ListaParaProveedorInterface;
 use App\Security\Roles;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,8 +22,8 @@ use Symfony\Component\Uid\Uuid;
  * Descarga la lista de pasajeros en el formato de un tercero: `perurail`, `cultura`.
  *
  * Mismo par de verbos que la hoja de control (`ReporteDocumentosController`): `GET` el manifiesto
- * entero, `POST` sólo los ids del cuerpo —los que el manifiesto tiene filtrados—, y en el ORDEN en
- * que llegan.
+ * entero menos los «no participa», `POST` sólo los ids del cuerpo —los que el manifiesto tiene
+ * filtrados—, y en el ORDEN en que llegan.
  *
  * Los pasajeros incompletos no paran la descarga: se dicen en la cabecera `X-Avisos` (JSON
  * codificado en URL), que el panel enseña. Una lista de cuarenta no se puede quedar sin bajar porque
@@ -43,7 +44,8 @@ final class ListaParaProveedorController extends AbstractController
         requirements: ['formato' => '[a-z]+', 'id' => '[0-9a-fA-F-]{36}'],
         methods: ['GET', 'POST'],
     )]
-    #[IsGranted(Roles::RESERVAS_WRITE, message: 'No tienes permiso para ver el manifiesto.')]
+    // Leer, no gestionar: quien ve el manifiesto ve ya estos mismos datos en el expediente.
+    #[IsGranted(Roles::RESERVAS_SHOW, message: 'No tienes permiso para ver el manifiesto.')]
     public function __invoke(string $formato, string $id, Request $peticion, EntityManagerInterface $em): Response
     {
         $lista = null;
@@ -122,6 +124,9 @@ final class ListaParaProveedorController extends AbstractController
         $todos = array_values($file->getFilepasajeros()->toArray());
 
         if (!$peticion->isMethod('POST')) {
+            // «Todos» son los que van. Los «no participa» siguen en el padrón —se apuntaron y se
+            // cayeron— pero no llevan billete ni entrada; quien los quiera los pide por POST.
+            $todos = array_values(array_filter($todos, static fn (CotizacionFilepasajero $p): bool => $p->getTipo() !== PasajeroTipoEnum::NO_PARTICIPA));
             usort($todos, static fn (CotizacionFilepasajero $a, CotizacionFilepasajero $b): int =>
                 mb_strtolower(sprintf('%s %s', $a->getApellido(), $a->getNombre()))
                 <=> mb_strtolower(sprintf('%s %s', $b->getApellido(), $b->getNombre())));
