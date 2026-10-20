@@ -826,11 +826,48 @@ function comoHoraDePared(fecha: Date): string {
         + `T${p(fecha.getHours())}:${p(fecha.getMinutes())}:${p(fecha.getSeconds())}`;
 }
 
+/** «22/10 → 04/11», para decir en la confirmación qué fechas tenía y cuáles tendrá. */
+function tramo(inicio: Date | null, fin: Date | null): string {
+    const d = (f: Date | null): string => (f ? f.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' }) : '—');
+
+    return `${d(inicio)} → ${d(fin)}`;
+}
+
+/**
+ * 🔒 Arrastrar pide confirmación ANTES de guardar; si no, se deshace (Jorge, 20/10/2026).
+ *
+ * Un arrastre se hace sin querer —en el móvil basta un dedo que se queda quieto encima de una
+ * barra al hacer scroll— y el cambio sale a Beds24 y a los portales en cuanto se guarda. El texto
+ * dice quién, de dónde y a dónde, para que el «sí» sea sobre algo concreto.
+ */
+function confirmarCambio(info: EventDropArg | EventResizeDoneArg): boolean {
+    const nombre = info.event.title || 'esta reserva';
+    const antes = tramo(info.oldEvent.start, info.oldEvent.end);
+    const despues = tramo(info.event.start, info.event.end);
+    const casitaVieja = 'oldResource' in info ? info.oldResource?.title : undefined;
+    const casitaNueva = 'newResource' in info ? info.newResource?.title : undefined;
+
+    const cambios = [
+        casitaVieja && casitaNueva ? `de ${casitaVieja} a ${casitaNueva}` : null,
+        antes !== despues ? `del ${antes} al ${despues}` : null,
+    ].filter(Boolean).join(', ');
+
+    // Estirar una barra no la mueve: cambia sus fechas.
+    const verbo = 'newResource' in info ? 'Mover a' : 'Cambiar las fechas de';
+
+    return window.confirm(`¿${verbo} ${nombre} ${cambios || 'así'}?\n\nSe guarda y sale a Beds24 y a los portales.`);
+}
+
 async function onEventDrop(info: EventDropArg): Promise<void> {
     const extendedProps = info.event.extendedProps as PmsEventoExtendedProps;
     // `start`/`end` son `Date | null` en el tipo; un evento que se acaba de arrastrar
     // siempre los tiene, pero si faltasen no hay nada que guardar.
     if (!info.event.start || !info.event.end) return;
+
+    if (!confirmarCambio(info)) {
+        info.revert();
+        return;
+    }
 
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {
@@ -850,6 +887,11 @@ async function onEventDrop(info: EventDropArg): Promise<void> {
 async function onEventResize(info: EventResizeDoneArg): Promise<void> {
     const extendedProps = info.event.extendedProps as PmsEventoExtendedProps;
     if (!info.event.start || !info.event.end) return;
+
+    if (!confirmarCambio(info)) {
+        info.revert();
+        return;
+    }
 
     try {
         await reservasStore.patchEvento(extendedProps.eventoId, {

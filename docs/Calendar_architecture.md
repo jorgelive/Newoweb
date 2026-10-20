@@ -753,6 +753,15 @@ recurso REST de API Platform propio para EDITAR. Ningún dato de edición pasa p
 
 Calendarios: `pms_eventos_no_cancelados_spa`, `pms_eventos_todos_spa`.
 
+#### 🔒 Arrastrar o estirar una barra pide confirmación (20/10/2026)
+
+`onEventDrop()` y `onEventResize()` preguntan antes de guardar («¿Mover a Giovanna de Casita 4 a
+Casita 5, del 22/10 → 04/11 al 23/10 → 05/11?») con `confirmarCambio()`, y si la respuesta es no
+llaman a `info.revert()`: la barra vuelve a su sitio y no sale nada. Un arrastre se hace sin querer
+—en el móvil basta un dedo quieto sobre una barra al hacer scroll— y lo guardado sale a Beds24 y a
+los portales. Si el servidor lo rechaza (un solape, que desde aquí sigue frenando:
+`docs/PmsDisponibilidad.md` §8.c.1), también se revierte, como antes.
+
 #### 🧹 Quién limpia se asigna aquí
 
 El drawer lleva, en cada estancia, las casillas del equipo de limpieza (`muestraLimpieza`,
