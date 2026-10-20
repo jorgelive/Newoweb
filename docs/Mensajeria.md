@@ -5084,6 +5084,19 @@ Antes preguntaba lo contrario y en todo-o-nada: *«¿Aplico igual (marca y bloqu
 o prefieres que NO haga nada?»*. Un solape no llega a ocurrir nunca —con la noche vendida ya no
 se bloquea— y «no hacer nada» tampoco es la alternativa: la hora se registra igual.
 
+**Por qué lo decide el operador y no la hora** (Jorge, 20/10/2026): no es lo mismo alargar hasta
+las 12 que hasta las 16, y depende de si quedan una o dos noches libres, de si el siguiente ya dio
+su hora y de otras cosas que sólo él sopesa. El 19/10 se probó a no bloquear nunca con hora y se
+revirtió al día siguiente por esto.
+
+🔒 **La respuesta va DENTRO de la previsualización** (`decision_del_equipo`: `pendiente`, `bloquear
+la noche` o `sólo apuntar la hora`). La huella de `GuardiaDeSkills` se calcula sobre lo que se
+enseña, y con la decisión fuera el modelo podía confirmar `bloquear=true` cuando el operador había
+dicho «sólo la hora» sin que la huella lo notara (revisión del 19/10/2026). Ahora, si la respuesta
+llega después de la pregunta, el agente vuelve a previsualizar con ella y el operador aprueba ese
+resumen: un «sí» más, a cambio de que se aplique lo que dijo. Si lo dice al pedirlo («sale a las 16
+y bloquea la noche»), va desde la primera llamada y no hay vuelta extra.
+
 ⚠️ **Con la noche vendida tampoco se abre la línea de cargo**, porque cuelga de la misma casilla
 (`PmsCargosAutomaticosService::sincronizarExtras()` mira `isSalidaTardia()`). Lo que se le quiera
 cobrar por ese horario se añade a mano en el panel. Decisión consciente, no un olvido.
