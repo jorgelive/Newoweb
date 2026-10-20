@@ -2746,8 +2746,10 @@ viejas vía `aplicarCambiosVolatiles()`, sin pisar snapshots existentes):
   la OTA— y como `otro` el que se escribía a mano. `Version20261020150000` pasó los cuatro que había.
   `SERVICIO` se rotula **«Cargo por servicio»**: «Servicio» a secas se leía como un servicio vendido.
 
-  La fila del panel enseña la `descripcion` **sólo si el tipo es `otro` o no hay**: con tipo, repetía
-  lo mismo («Limpieza · suplemento de limpieza»). La descripción es la del canal tal cual —«cargo por
+  La fila del panel enseña la `descripcion` **sólo en los tipos que piden un detalle —`otro` y
+  `penalizacion`— o sin tipo**, y con la primera en mayúscula (el canal la manda en minúscula). En
+  los demás repetía lo que ya dice el tipo («Limpieza · suplemento de limpieza»). `TIPOS_CON_DETALLE`
+  en `ReservaFinanzasPanel.vue`. La descripción es la del canal tal cual —«cargo por
   servicio» la manda Booking por Beds24— y se conserva como verdad histórica.
 
 ### 11.5 Pagos propios — `PmsPagoFinanciero`

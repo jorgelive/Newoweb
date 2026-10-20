@@ -80,6 +80,14 @@ const panelAnulado = computed(() => finanzas.info?.activa === false);
 
 /** 🔒 Candado: mientras esté cerrado, los cargos son de solo lectura. */
 const cargosDesbloqueados = ref(false);
+/**
+ * Los tipos de cargo cuya descripción se enseña junto al tipo: los que no se explican solos. Un
+ * «Otro» o una penalización piden saber de qué; un alojamiento o una limpieza, no.
+ */
+const TIPOS_CON_DETALLE = new Set<string>(['otro', 'penalizacion']);
+/** El canal manda las descripciones en minúscula («cancel fee», «propina»). */
+const conMayuscula = (texto: string | null | undefined): string =>
+    texto ? texto.charAt(0).toLocaleUpperCase('es') + texto.slice(1) : '';
 /** ¿Hay algún cargo que mande la OTA? Si no, no hay nada que «Edición importes OTA» abra. */
 const hayCargosDelCanal = computed(() => (finanzas.info?.cargos ?? []).some(c => c.manual === false));
 
@@ -2449,13 +2457,14 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     <!-- La plantilla sin resolver de Beds24 se oculta: ver
                                          `descripcionVisible()`. Con el tipo de cargo al lado y la
                                          casita en la barra de la estancia, la línea no queda coja.
-                                         Y sólo si el tipo no lo dice ya: «Limpieza · suplemento de
-                                         limpieza» o «Cargo por servicio · cargo por servicio»
-                                         repetían lo mismo (Jorge, 20/10/2026). Con «Otro», o sin
-                                         tipo, la descripción es lo único que explica el cargo. -->
-                                    <span v-if="descripcionVisible(c.descripcion) && (!c.tipoCargo || c.tipoCargo === 'otro')"
+                                         Y sólo en los tipos que necesitan un detalle —«Otro» y
+                                         «Penalización»— o sin tipo: en los demás el tipo lo dice
+                                         todo y el texto del canal ensuciaba («Limpieza · suplemento
+                                         de limpieza»), y en minúscula (Jorge, 20/10/2026). Ver
+                                         `TIPOS_CON_DETALLE`. -->
+                                    <span v-if="descripcionVisible(c.descripcion) && (!c.tipoCargo || TIPOS_CON_DETALLE.has(c.tipoCargo))"
                                         class="text-xs font-bold text-slate-700 truncate">
-                                        {{ descripcionVisible(c.descripcion) }}
+                                        {{ conMayuscula(descripcionVisible(c.descripcion)) }}
                                     </span>
                                     <span v-else-if="!tipoCargoOpt(c.tipoCargo)" class="text-xs font-bold text-slate-400 truncate">
                                         Sin descripción
