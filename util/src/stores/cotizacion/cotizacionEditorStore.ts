@@ -31,6 +31,7 @@ import {
     etiquetaGrupoTarifa,
     esEstandarVisible,
     esServicioOpcionalParaElCliente,
+    esComponenteVigente,
     expurgarParaCliente,
     formatRangoEdad,
     getProcedenciaUI,
@@ -649,11 +650,17 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * ¿Viajan peruanos? Por el manifiesto del expediente (país PE) o por alguna tarifa de
      * procedencia nacional en la cotización. De ello cuelga el aviso de IGV de los hoteles: ver
      * `./igvHoteleria`.
+     *
+     * Sólo cuenta lo que va: ni los «no participa» del manifiesto, ni los componentes cancelados
+     * o reemplazados, ni una tarifa a 0 —que es como se dice «este grupo no lleva»—. Contarlos
+     * encendía el aviso en todos los hoteles por alguien que ya no viaja.
      */
     const peruanosEnLaCotizacion = computed(() => peruanosQueViajan(
-        (fileActual.value?.filepasajeros ?? []).map((p) => p.pais?.id),
+        (fileActual.value?.filepasajeros ?? []).filter((p) => p.tipo !== 'no_participa').map((p) => p.pais?.id),
         (cotizacion.value?.cotservicios ?? []).flatMap((s: CotServicio) =>
-            (s.cotcomponentes ?? []).flatMap((c) => (c.cottarifas ?? []).map((t: TarifaSnapshot) => t.procedenciaSnapshot))),
+            (s.cotcomponentes ?? []).filter(esComponenteVigente).flatMap((c) => (c.cottarifas ?? [])
+                .filter((t: TarifaSnapshot) => unidadesDe(t.cantidad, 1) > 0)
+                .map((t: TarifaSnapshot) => t.procedenciaSnapshot))),
     ));
 
     /** El aviso de IGV de un componente de hotel, o null. Sólo avisa: no toca precios. */
@@ -991,8 +998,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
                 const modo = (componente.modo || '').toLowerCase();
-                const estado = (componente.estado || '').toLowerCase();
-                if (estado === 'cancelado' || modo === 'reemplazado') return;
+                if (!esComponenteVigente(componente)) return;
                 if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
 
                 const modoFin = modo as ModoFinanciero;
@@ -1954,8 +1960,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             servicio.cotcomponentes?.forEach((componente: ComponenteCompleto) => {
                 const modo = (componente.modo || '').toLowerCase();
-                const estado = (componente.estado || '').toLowerCase();
-                if (estado === 'cancelado' || modo === 'reemplazado') return;
+                if (!esComponenteVigente(componente)) return;
                 if (modo !== 'incluido' && modo !== 'no_incluido' && modo !== 'cortesia') return;
 
                 /**

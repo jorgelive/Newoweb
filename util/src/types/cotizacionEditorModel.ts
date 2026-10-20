@@ -889,6 +889,13 @@ export const esOpcionalParaElCliente = (comp: {
 };
 
 /**
+ * ¿Sigue en pie el componente? Ni cancelado ni reemplazado por otro. Es la misma pregunta en todos
+ * los recorridos que cuentan o enseñan componentes; estaba copiada a mano en cuatro sitios.
+ */
+export const esComponenteVigente = (c: { estado?: string | null; modo?: string | null }): boolean =>
+    (c.estado || '').toLowerCase() !== 'cancelado' && (c.modo || '').toLowerCase() !== 'reemplazado';
+
+/**
  * ¿El SERVICIO entero se le publica al cliente como opcional?
  *
  * Sí cuando nada de lo que cobra va incluido: ningún componente activo `incluido` tiene una
@@ -914,11 +921,7 @@ export const esServicioOpcionalParaElCliente = (servicio: {
         cottarifas?: { rolSnapshot?: string | null; calculoSnapshot?: string | null }[] | null;
     }[] | null;
 }): boolean => {
-    const activos = (servicio.cotcomponentes || []).filter((c) => {
-        const estado = (c.estado || '').toLowerCase();
-        const modo = (c.modo || '').toLowerCase();
-        return estado !== 'cancelado' && modo !== 'reemplazado';
-    });
+    const activos = (servicio.cotcomponentes || []).filter(esComponenteVigente);
     // Modo vacío NO es incluido: el votante y `construirInclusiones()` lo descartan, y esta
     // pregunta tiene que contar los mismos componentes que ellos.
     const incluidos = activos.filter((c) => (c.modo || '').toLowerCase() === 'incluido');
