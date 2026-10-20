@@ -2977,6 +2977,19 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         </p>
                     <div class="px-4 py-3 grid grid-cols-2 gap-2">
                         <label>
+                            <span class="text-[11px] font-bold text-slate-500">Medio de pago</span>
+                            <select v-model="pagoForm.medioPago" @change="onCambiarMedioPago"
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+                                <option v-for="m in finanzas.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="text-[11px] font-bold text-slate-500">Fecha</span>
+                            <!-- El TC es el del día del pago: al cambiar la fecha se vuelve a consultar. -->
+                            <input type="date" v-model="pagoForm.fechaPago" @change="autocompletarTipoCambio"
+                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                        </label>
+                        <label>
                             <span class="text-[11px] font-bold text-slate-500">Monto neto</span>
                             <input type="text" inputmode="decimal" v-model="pagoForm.monto" @input="refrescarTotalDesdeMonto"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
@@ -3030,19 +3043,6 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </span>
                             </label>
                         </div>
-                        <label>
-                            <span class="text-[11px] font-bold text-slate-500">Medio de pago</span>
-                            <select v-model="pagoForm.medioPago" @change="onCambiarMedioPago"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-                                <option v-for="m in finanzas.mediosPago" :key="m.id" :value="m.id">{{ m.label }}</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span class="text-[11px] font-bold text-slate-500">Fecha</span>
-                            <!-- El TC es el del día del pago: al cambiar la fecha se vuelve a consultar. -->
-                            <input type="date" v-model="pagoForm.fechaPago" @change="autocompletarTipoCambio"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
                         <!-- Comisión en PORCENTAJE, con el sufijo % dentro del campo. -->
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Comisión</span>
@@ -3067,36 +3067,6 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </span>
                         </label>
 
-                        <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">
-                                Tipo de cambio (USD→PEN)
-                                <span v-if="cargandoTipoCambio" class="ml-1 font-normal text-slate-400">
-                                    <i class="fas fa-spinner fa-spin text-[9px]"></i> consultando…
-                                </span>
-                            </span>
-                            <!-- Se congela una vez puesto, igual que en los cargos: el backend
-                                 sólo permite RELLENAR el que está vacío (§12.4), así que un
-                                 campo abierto sobre un TC ya guardado es un rechazo asegurado
-                                 con el botón de guardar bien visible. Editable mientras esté
-                                 vacío, que es la reparación legítima. -->
-                            <input type="text" inputmode="decimal" v-model="pagoForm.tipoCambio" placeholder="Ej. 3.750"
-                                :disabled="tipoCambioPagoCongelado"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
-                                :class="tipoCambioPagoCongelado ? 'bg-slate-100 text-slate-500' : 'bg-white'" />
-                            <span v-if="tipoCambioPagoCongelado" class="mt-1 block text-[10px] font-bold text-slate-400">
-                                <i class="fas fa-lock text-[9px] mr-1"></i>
-                                Es la foto del día en que se registró el importe: no se corrige.
-                            </span>
-                            <span v-else-if="monedaPagoEsExtranjera && !pagoForm.tipoCambio"
-                                class="mt-1 block text-[10px] font-bold text-amber-600">
-                                <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
-                                Sin tipo de cambio este pago no suma al saldo (moneda distinta a la reserva).
-                            </span>
-                            <span v-else-if="!pagoForm.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
-                                Guárdalo aunque coincida la moneda: si mañana se cambia la moneda base
-                                de la reserva, sin él este pago dejaría de sumar.
-                            </span>
-                        </label>
                         <!-- Quién RECIBIÓ el dinero, que NO es quien lo está registrando.
                              La lista son los usuarios con ROLE_COBRADOR y llega del backend
                              (PmsEnumAjaxController::getCobradores), sin filtrar por `enabled`:
@@ -3117,16 +3087,61 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 Quién recibió el dinero de manos del huésped, no quién lo apunta aquí.
                             </span>
                         </label>
-                        <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">Referencia / Nº operación</span>
-                            <input type="text" v-model="pagoForm.referencia"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
-                        <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">Notas</span>
-                            <textarea v-model="pagoForm.notas" rows="2"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"></textarea>
-                        </label>
+                        <!-- Mismo criterio que el formulario de cargo: lo de cada cobro arriba (medio,
+                             fecha, importe, comisión, quién lo cobró) y el resto plegado (Jorge,
+                             20/10/2026). El resumen enseña el TC, en ámbar si sin él el pago no suma. -->
+                        <details class="col-span-2 group rounded-lg border border-sky-200 overflow-hidden">
+                            <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none bg-sky-100/70 hover:bg-sky-100 text-[11px] font-black uppercase tracking-wide text-sky-900">
+                                <i class="fas fa-chevron-right text-[9px] transition-transform group-open:rotate-90"></i>
+                                Más campos
+                                <span class="ml-auto font-bold normal-case tracking-normal"
+                                    :class="monedaPagoEsExtranjera && !pagoForm.tipoCambio ? 'text-amber-600' : 'text-sky-700/60'">
+                                    TC {{ pagoForm.tipoCambio || 'sin registrar' }}
+                                </span>
+                            </summary>
+                            <div class="grid grid-cols-2 gap-2 px-3 py-3 bg-white/60">
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">
+                                    Tipo de cambio (USD→PEN)
+                                    <span v-if="cargandoTipoCambio" class="ml-1 font-normal text-slate-400">
+                                        <i class="fas fa-spinner fa-spin text-[9px]"></i> consultando…
+                                    </span>
+                                </span>
+                                <!-- Se congela una vez puesto, igual que en los cargos: el backend
+                                     sólo permite RELLENAR el que está vacío (§12.4), así que un
+                                     campo abierto sobre un TC ya guardado es un rechazo asegurado
+                                     con el botón de guardar bien visible. Editable mientras esté
+                                     vacío, que es la reparación legítima. -->
+                                <input type="text" inputmode="decimal" v-model="pagoForm.tipoCambio" placeholder="Ej. 3.750"
+                                    :disabled="tipoCambioPagoCongelado"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                    :class="tipoCambioPagoCongelado ? 'bg-slate-100 text-slate-500' : 'bg-white'" />
+                                <span v-if="tipoCambioPagoCongelado" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                    <i class="fas fa-lock text-[9px] mr-1"></i>
+                                    Es la foto del día en que se registró el importe: no se corrige.
+                                </span>
+                                <span v-else-if="monedaPagoEsExtranjera && !pagoForm.tipoCambio"
+                                    class="mt-1 block text-[10px] font-bold text-amber-600">
+                                    <i class="fas fa-triangle-exclamation text-[9px] mr-1"></i>
+                                    Sin tipo de cambio este pago no suma al saldo (moneda distinta a la reserva).
+                                </span>
+                                <span v-else-if="!pagoForm.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                    Guárdalo aunque coincida la moneda: si mañana se cambia la moneda base
+                                    de la reserva, sin él este pago dejaría de sumar.
+                                </span>
+                            </label>
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">Referencia / Nº operación</span>
+                                <input type="text" v-model="pagoForm.referencia"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">Notas</span>
+                                <textarea v-model="pagoForm.notas" rows="2"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"></textarea>
+                            </label>
+                            </div>
+                        </details>
                     </div>
 
                         <!-- Pie STICKY: el formulario de pago es largo (medio, fecha, comisión, TC,

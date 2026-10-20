@@ -4259,6 +4259,10 @@ resumen del plegado enseña el TC —en ámbar si al cargo le falta—, y el equ
 moneda va bajo el importe: plegar es ordenar, no esconder lo que se está decidiendo. La casilla
 «Fijado» de los cargos del canal queda fuera del plegado, porque se marca sola al corregir.
 
+El de **pago**, igual: arriba **medio de pago y fecha**, luego neto y moneda (con la imputación, que
+depende de la moneda), comisión y total cobrado, y quién lo cobró; en «Más campos», **tipo de
+cambio, referencia y notas**. El resumen enseña el TC, en ámbar si en otra moneda sin él no suma.
+
 #### Barras de acción pegadas (sticky) de los formularios
 
 Los formularios de pago y de cargo manual son largos (medio, fecha, comisión, TC, referencia,
