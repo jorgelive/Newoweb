@@ -2573,15 +2573,15 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </label>
                             <!-- Mismo orden y mismo plegado que el alta. El resumen avisa si falta el TC:
                                  es una reparación que se pide al abrir el cargo. -->
-                            <details class="col-span-2 group rounded-lg border border-emerald-200/80 bg-white/60">
-                                <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none text-[11px] font-bold text-slate-500">
+                            <details class="col-span-2 group rounded-lg border border-emerald-200 overflow-hidden">
+                                <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none bg-emerald-100/70 hover:bg-emerald-100 text-[11px] font-black uppercase tracking-wide text-emerald-900">
                                     <i class="fas fa-chevron-right text-[9px] transition-transform group-open:rotate-90"></i>
                                     Más campos
                                     <span class="ml-auto font-normal" :class="cargoSinTipoCambio(c) ? 'text-amber-600 font-bold' : 'text-slate-400'">
                                         TC {{ cargoForm.tipoCambio || 'sin registrar' }}
                                     </span>
                                 </summary>
-                                <div class="grid grid-cols-2 gap-2 px-3 pb-3">
+                                <div class="grid grid-cols-2 gap-2 px-3 py-3 bg-white/60">
                                 <label class="col-span-2">
                                     <span class="text-[11px] font-bold text-slate-500">Descripción</span>
                                     <input type="text" v-model="cargoForm.descripcion"
@@ -2731,15 +2731,15 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                         <!-- Lo de todos los días va arriba (tipo, estancia, importe, moneda y lo que lee
                              el huésped); el resto, plegado (Jorge, 20/10/2026). El resumen enseña el TC,
                              que se rellena solo: plegado no es escondido. -->
-                        <details class="col-span-2 group rounded-lg border border-emerald-200/80 bg-white/60">
-                            <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none text-[11px] font-bold text-slate-500">
+                        <details class="col-span-2 group rounded-lg border border-emerald-200 overflow-hidden">
+                            <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none bg-emerald-100/70 hover:bg-emerald-100 text-[11px] font-black uppercase tracking-wide text-emerald-900">
                                 <i class="fas fa-chevron-right text-[9px] transition-transform group-open:rotate-90"></i>
                                 Más campos
                                 <span class="ml-auto font-normal text-slate-400">
                                     TC {{ cargoForm.tipoCambio || '—' }}
                                 </span>
                             </summary>
-                            <div class="grid grid-cols-2 gap-2 px-3 pb-3">
+                            <div class="grid grid-cols-2 gap-2 px-3 py-3 bg-white/60">
                             <label class="col-span-2">
                                 <span class="text-[11px] font-bold text-slate-500">Descripción</span>
                                 <input type="text" v-model="cargoForm.descripcion" placeholder="Ej. Alojamiento 3 noches"
