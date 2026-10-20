@@ -2509,10 +2509,35 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     </option>
                                 </select>
                             </label>
-                            <label class="col-span-2">
-                                <span class="text-[11px] font-bold text-slate-500">Descripción</span>
-                                <input type="text" v-model="cargoForm.descripcion"
+                            <label>
+                                <span class="text-[11px] font-bold text-slate-500">Importe</span>
+                                <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
                                     class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                            <!-- La moneda de un cargo con importe NO se cambia: está atada al
+                                 importe y al TC capturados en ese momento (§12.4). Mientras siga
+                                 en 0.00 no hay nada capturado, y ahí sí — que es lo que permite
+                                 escribir en soles el precio de una estancia directa. -->
+                            <label>
+                                <span class="text-[11px] font-bold text-slate-500 inline-flex items-center gap-1.5">
+                                    Moneda
+                                    <InfoTooltip v-if="!puedeCambiarMoneda(c)" lado="izquierda">
+                                        La moneda queda fija al registrar el importe: va atada al tipo de cambio
+                                        que se capturó en ese momento, y cambiarla dejaría el cargo diciendo una
+                                        cifra que nadie pactó.
+                                        <span class="block mt-1.5 text-slate-400">
+                                            Si está equivocada, borra el cargo y créalo de nuevo.
+                                        </span>
+                                    </InfoTooltip>
+                                </span>
+                                <select v-model="cargoForm.moneda" :disabled="!puedeCambiarMoneda(c)"
+                                    @change="autocompletarTipoCambioCargo"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white
+                                           disabled:bg-slate-100 disabled:text-slate-400">
+                                    <option v-for="m in finanzas.monedas" :key="m.id ?? ''" :value="m.id ?? ''">
+                                        {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
+                                    </option>
+                                </select>
                             </label>
                             <!-- Lo que SÍ ve el huésped. `descripcion` es la interna: en los
                                  cargos de Beds24 viene con lo que mande el canal y no es
@@ -2546,58 +2571,46 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                     si la corriges, pulsa <i class="fas fa-language"></i> para rehacer los demás idiomas.
                                 </span>
                             </label>
+                            <!-- Mismo orden y mismo plegado que el alta. El resumen avisa si falta el TC:
+                                 es una reparación que se pide al abrir el cargo. -->
+                            <details class="col-span-2 group rounded-lg border border-emerald-200/80 bg-white/60">
+                                <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none text-[11px] font-bold text-slate-500">
+                                    <i class="fas fa-chevron-right text-[9px] transition-transform group-open:rotate-90"></i>
+                                    Más campos
+                                    <span class="ml-auto font-normal" :class="cargoSinTipoCambio(c) ? 'text-amber-600 font-bold' : 'text-slate-400'">
+                                        TC {{ cargoForm.tipoCambio || 'sin registrar' }}
+                                    </span>
+                                </summary>
+                                <div class="grid grid-cols-2 gap-2 px-3 pb-3">
+                                <label class="col-span-2">
+                                    <span class="text-[11px] font-bold text-slate-500">Descripción</span>
+                                    <input type="text" v-model="cargoForm.descripcion"
+                                        class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                                </label>
 
-                            <label>
-                                <span class="text-[11px] font-bold text-slate-500">Importe</span>
-                                <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                            </label>
-                            <!-- La moneda de un cargo con importe NO se cambia: está atada al
-                                 importe y al TC capturados en ese momento (§12.4). Mientras siga
-                                 en 0.00 no hay nada capturado, y ahí sí — que es lo que permite
-                                 escribir en soles el precio de una estancia directa. -->
-                            <label>
-                                <span class="text-[11px] font-bold text-slate-500 inline-flex items-center gap-1.5">
-                                    Moneda
-                                    <InfoTooltip v-if="!puedeCambiarMoneda(c)" lado="izquierda">
-                                        La moneda queda fija al registrar el importe: va atada al tipo de cambio
-                                        que se capturó en ese momento, y cambiarla dejaría el cargo diciendo una
-                                        cifra que nadie pactó.
-                                        <span class="block mt-1.5 text-slate-400">
-                                            Si está equivocada, borra el cargo y créalo de nuevo.
-                                        </span>
-                                    </InfoTooltip>
-                                </span>
-                                <select v-model="cargoForm.moneda" :disabled="!puedeCambiarMoneda(c)"
-                                    @change="autocompletarTipoCambioCargo"
-                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white
-                                           disabled:bg-slate-100 disabled:text-slate-400">
-                                    <option v-for="m in finanzas.monedas" :key="m.id ?? ''" :value="m.id ?? ''">
-                                        {{ m.id }}{{ m.simbolo ? ` (${m.simbolo})` : '' }}
-                                    </option>
-                                </select>
-                            </label>
-                            <!-- SIEMPRE presente (ver `tcSiempre`): es la venta USD→PEN del día.
-                                 Si el cargo ya lo tenía guardado, se muestra bloqueado — es la
-                                 foto del día y el backend rechaza cambiarlo. -->
-                            <label class="col-span-2">
-                                <span class="text-[11px] font-bold text-slate-500">
-                                    Tipo de cambio (USD→PEN)
-                                    <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
-                                </span>
-                                <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio"
-                                    :disabled="!!c.tipoCambio"
-                                    placeholder="Ej. 3.750" @focus="autocompletarTipoCambioCargo"
-                                    class="mt-1 w-full rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
-                                    :class="cargoSinTipoCambio(c) ? 'border border-amber-300' : 'border border-slate-200'" />
-                                <span v-if="c.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
-                                    Fijo: es la cotización del día en que se registró.
-                                </span>
-                                <span v-else class="mt-1 block text-[10px] font-bold text-amber-600">
-                                    Guárdalo aunque el cargo esté en la moneda de la reserva: si mañana se
-                                    cambia la moneda base, sin él este cargo dejaría de sumar.
-                                </span>
-                            </label>
+                                <!-- SIEMPRE presente (ver `tcSiempre`): es la venta USD→PEN del día.
+                                     Si el cargo ya lo tenía guardado, se muestra bloqueado — es la
+                                     foto del día y el backend rechaza cambiarlo. -->
+                                <label class="col-span-2">
+                                    <span class="text-[11px] font-bold text-slate-500">
+                                        Tipo de cambio (USD→PEN)
+                                        <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
+                                    </span>
+                                    <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio"
+                                        :disabled="!!c.tipoCambio"
+                                        placeholder="Ej. 3.750" @focus="autocompletarTipoCambioCargo"
+                                        class="mt-1 w-full rounded-lg px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
+                                        :class="cargoSinTipoCambio(c) ? 'border border-amber-300' : 'border border-slate-200'" />
+                                    <span v-if="c.tipoCambio" class="mt-1 block text-[10px] font-bold text-slate-400">
+                                        Fijo: es la cotización del día en que se registró.
+                                    </span>
+                                    <span v-else class="mt-1 block text-[10px] font-bold text-amber-600">
+                                        Guárdalo aunque el cargo esté en la moneda de la reserva: si mañana se
+                                        cambia la moneda base, sin él este cargo dejaría de sumar.
+                                    </span>
+                                </label>
+                                </div>
+                            </details>
                             <!-- El candado, con su llave: el chip «Fijado» lo suelta y aquí se vuelve a
                                  poner. Sólo en los cargos del canal: a un manual no lo pisa nadie. -->
                             <label v-if="c.manual !== true" class="col-span-2 flex items-start gap-2 cursor-pointer">
@@ -2682,23 +2695,6 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                             </select>
                         </label>
 
-                        <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">Descripción</span>
-                            <input type="text" v-model="cargoForm.descripcion" placeholder="Ej. Alojamiento 3 noches"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                        </label>
-                        <!-- Lo que SÍ ve el huésped. `descripcion` es la interna: en los
-                             cargos de Beds24 viene con lo que mande el canal y no es
-                             presentable. Opcional a propósito: la mayoría de cargos se
-                             explican con su tipo. -->
-                        <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">Descripción para el huésped</span>
-                            <input type="text" v-model="cargoForm.descripcionClienteEs"
-                                placeholder="Ej. Ajuste de redondeo para el cuadre"
-                                class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                            <span class="text-[10px] text-slate-400">Aparece en su estado de cuenta. Se traduce sola.</span>
-                        </label>
-
                         <label>
                             <span class="text-[11px] font-bold text-slate-500">Importe</span>
                             <input type="text" inputmode="decimal" v-model="cargoForm.totalLinea"
@@ -2713,22 +2709,54 @@ async function borrarPago(p: PmsPagoFinanciero): Promise<void> {
                                 </option>
                             </select>
                         </label>
-                        <!-- Siempre, en cualquier moneda: ver `tcSiempre`. -->
+                        <!-- Equivalente en vivo, junto al importe que se teclea. Es una AYUDA DE
+                             LECTURA: el cargo se guarda y se suma en su propia moneda, no en ésta. -->
+                        <p v-if="equivalenteDelCargo" class="col-span-2 -mt-1 text-[10px] font-bold text-slate-400">
+                            Son unos {{ equivalenteDelCargo }} — sólo para hacerte una idea;
+                            el cargo se registra en {{ cargoForm.moneda }}.
+                        </p>
+
+                        <!-- Lo que SÍ ve el huésped. `descripcion` es la interna: en los
+                             cargos de Beds24 viene con lo que mande el canal y no es
+                             presentable. Opcional a propósito: la mayoría de cargos se
+                             explican con su tipo. -->
                         <label class="col-span-2">
-                            <span class="text-[11px] font-bold text-slate-500">
-                                Tipo de cambio (USD→PEN)
-                                <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
-                            </span>
-                            <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
+                            <span class="text-[11px] font-bold text-slate-500">Descripción para el huésped</span>
+                            <input type="text" v-model="cargoForm.descripcionClienteEs"
+                                placeholder="Ej. Ajuste de redondeo para el cuadre"
                                 class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
-                            <!-- Equivalente en vivo: quita la duda de «¿cuánto es esto en la otra
-                                 moneda?» mientras se teclea. Es una AYUDA DE LECTURA: el cargo se
-                                 guarda y se suma en su propia moneda, no en ésta. -->
-                            <span v-if="equivalenteDelCargo" class="mt-1 block text-[10px] font-bold text-slate-400">
-                                Son unos {{ equivalenteDelCargo }} — sólo para hacerte una idea;
-                                el cargo se registra en {{ cargoForm.moneda }}.
-                            </span>
+                            <span class="text-[10px] text-slate-400">Aparece en su estado de cuenta. Se traduce sola.</span>
                         </label>
+
+                        <!-- Lo de todos los días va arriba (tipo, estancia, importe, moneda y lo que lee
+                             el huésped); el resto, plegado (Jorge, 20/10/2026). El resumen enseña el TC,
+                             que se rellena solo: plegado no es escondido. -->
+                        <details class="col-span-2 group rounded-lg border border-emerald-200/80 bg-white/60">
+                            <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none text-[11px] font-bold text-slate-500">
+                                <i class="fas fa-chevron-right text-[9px] transition-transform group-open:rotate-90"></i>
+                                Más campos
+                                <span class="ml-auto font-normal text-slate-400">
+                                    TC {{ cargoForm.tipoCambio || '—' }}
+                                </span>
+                            </summary>
+                            <div class="grid grid-cols-2 gap-2 px-3 pb-3">
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">Descripción</span>
+                                <input type="text" v-model="cargoForm.descripcion" placeholder="Ej. Alojamiento 3 noches"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+
+                            <!-- Siempre, en cualquier moneda: ver `tcSiempre`. -->
+                            <label class="col-span-2">
+                                <span class="text-[11px] font-bold text-slate-500">
+                                    Tipo de cambio (USD→PEN)
+                                    <i v-if="cargandoTipoCambio" class="fas fa-circle-notch fa-spin ml-1 text-slate-300"></i>
+                                </span>
+                                <input type="text" inputmode="decimal" v-model="cargoForm.tipoCambio" placeholder="Ej. 3.750"
+                                    class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" />
+                            </label>
+                            </div>
+                        </details>
                         <p v-if="errorCargo" class="col-span-2 text-[10px] font-black text-amber-600 leading-snug">
                             <i class="fas fa-triangle-exclamation mr-1"></i>{{ errorCargo }}
                         </p>

@@ -4251,6 +4251,14 @@ relationship … that was not configured to cascade persist"*. Ahora la caché s
 `em->clear()` —los workers de messenger, el cron, los persisters por lotes— podía toparse con
 ello.
 
+#### Orden de los formularios de cargo (20/10/2026)
+
+Alta y edición con el mismo orden: **tipo, estancia, importe y moneda, descripción para el
+huésped**, y debajo **«Más campos»** plegado por defecto (descripción interna y tipo de cambio). El
+resumen del plegado enseña el TC —en ámbar si al cargo le falta—, y el equivalente en la otra
+moneda va bajo el importe: plegar es ordenar, no esconder lo que se está decidiendo. La casilla
+«Fijado» de los cargos del canal queda fuera del plegado, porque se marca sola al corregir.
+
 #### Barras de acción pegadas (sticky) de los formularios
 
 Los formularios de pago y de cargo manual son largos (medio, fecha, comisión, TC, referencia,
