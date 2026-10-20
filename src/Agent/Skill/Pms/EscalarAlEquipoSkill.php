@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Agent\Service\EscaleraDeTemas;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Service\ConocimientoGenerico;
 use App\Agent\Access\NivelRiesgo;
@@ -121,6 +122,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         private ConocimientoGenerico $conocimiento,
         // Quién hace sonar los teléfonos. Aquí sólo se decide QUÉ se dice y CUÁNDO callar.
         private AvisoAlEquipoService $avisos,
+        private EscaleraDeTemas $escalera,
     ) {}
 
     public function nombre(): string
@@ -182,6 +184,9 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 SkillParameter::texto('conversacion_id', 'Sólo si hablas desde el panel sobre el '
                     . 'chat de otro. En la conversación con el huésped no hace falta.',
                     requerido: false),
+                SkillParameter::booleano('otro_asunto', 'true SÓLO si te he devuelto «antes_de_escalar» '
+                    . 'y lo que escalas NO tiene que ver con ese tema de la guía (otra avería, una '
+                    . 'emergencia distinta).'),
             ],
         );
     }
@@ -254,6 +259,44 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // conocen la situación (`consultar_codigos` devuelve `escalar_en_silencio` cuando el
         // huésped ya tiene enlace y teléfono).
         $silencioso = $e->booleano('silencioso');
+
+        // ── Antes de molestar a nadie: ¿queda un paso de la guía por darle? (20/10/2026) ──
+        // Un huésped en la puerta de la Casita 4 dijo «la llave se atasca» justo después de recibir
+        // el truco de tirar de la puerta; el agente escaló cuatro veces sin darle el paso siguiente
+        // —la llave 4 y tirar del jalador— aunque el triaje le había señalado el tema. Entraron solos
+        // al rato. Si en este hilo se explicó hace poco un tema al que le quedan peldaños, primero el
+        // peldaño: su último paso es el que dice «avisa al equipo». Una sola vez por paso: servido en
+        // este turno, `pendienteReciente()` ya no lo devuelve y el escalado pasa.
+        if (!$actor->esDelEquipo() && !$e->booleano('otro_asunto')) {
+            $pendiente = $this->escalera->pendienteReciente($actor->conversacionId());
+
+            if ($pendiente !== null) {
+                $this->logger->info(sprintf(
+                    'Agent: escalado frenado para %s: el tema %s tiene un paso más (va por el %d).',
+                    $actor->etiqueta(),
+                    $pendiente['tema'],
+                    $pendiente['peldano'],
+                ));
+
+                return SkillResult::ok([
+                    'escalado' => false,
+                    'antes_de_escalar' => $pendiente['servidoAhora']
+                        ? 'TODAVÍA NO HE AVISADO A NADIE. Acabas de darle un paso de la guía que aún no '
+                            . 'es el último: dáselo con seguridad —suele ser la solución— y pídele que te '
+                            . 'diga si así funciona. Si te contesta que no, vuelve a consultar la guía con '
+                            . 'ya_lo_intento y el siguiente paso te dirá si avisar. Si lo que escalas no '
+                            . 'tiene nada que ver con ese tema, llámame con otro_asunto: true.'
+                        : sprintf(
+                            'TODAVÍA NO HE AVISADO A NADIE. En este chat se le explicó hace poco un tema '
+                            . 'de la guía que tiene un paso más para cuando no funciona. Pídelo con '
+                            . 'consultar_guia(tema_id: «%s», ya_lo_intento: true) y dáselo con seguridad: '
+                            . 'suele ser la solución. Si ese paso dice que avises, llámame otra vez. Si lo '
+                            . 'que escalas no tiene nada que ver con ese tema, llámame con otro_asunto: true.',
+                            $pendiente['tema'],
+                        ),
+                ]);
+            }
+        }
 
         // ── La última red: ¿esto ya está contestado? ─────────────────────────
         // Buena parte de lo que se escala son preguntas repetidas cuya respuesta no cambia

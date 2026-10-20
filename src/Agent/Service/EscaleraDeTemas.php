@@ -60,7 +60,7 @@ final class EscaleraDeTemas
      * la escalera de la ducha no subía. También es lo que permite que convivan temas de dominios
      * distintos en el mismo turno cuando Turismo tenga los suyos.
      *
-     * @var list<array{tema: string, peldano: int}>
+     * @var list<array{tema: string, peldano: int, quedan?: bool}>
      */
     private array $servido = [];
 
@@ -202,12 +202,109 @@ final class EscaleraDeTemas
         );
     }
 
-    /** La skill deja constancia de qué tema y qué peldaño acaba de entregar. */
-    public function anotarServido(string $temaId, int $peldano): void
+    /**
+     * La skill deja constancia de qué tema y qué peldaño acaba de entregar, y de si al tema le
+     * quedan peldaños después de éste: es lo que deja a {@see self::pendienteReciente()} saber que
+     * hay un «y si no» sin conocer la guía.
+     */
+    public function anotarServido(string $temaId, int $peldano, ?bool $quedan = null): void
     {
         if ($temaId !== '') {
-            $this->servido[] = ['tema' => $temaId, 'peldano' => $peldano];
+            $this->servido[] = array_filter(
+                ['tema' => $temaId, 'peldano' => $peldano, 'quedan' => $quedan],
+                static fn ($v) => $v !== null,
+            );
         }
+    }
+
+    /**
+     * El tema de guía que se le explicó hace poco en este hilo y al que todavía le quedan
+     * peldaños, o null (20/10/2026).
+     *
+     * Lo pregunta `escalar_al_equipo` antes de avisar. Un huésped en la puerta de la Casita 4 dijo
+     * «la llave se atasca» justo después de recibir el truco de tirar de la puerta, y el agente
+     * escaló cuatro veces sin darle el paso siguiente —comprobar la llave 4 y tirar del jalador—,
+     * aunque el triaje le había señalado el tema de la puerta. Al final entraron solos. «Pídeselo en
+     * el prompt» no basta: tiene que ser el código el que diga que hay un paso antes de molestar a
+     * nadie.
+     *
+     * Cuenta la huella MÁS RECIENTE de cada tema (la que dice si quedan), dentro de la ventana y sin
+     * que haya hablado una persona después. Lo servido en ESTE turno manda sobre lo anterior: si el
+     * paso que se acaba de dar todavía no es el último, se devuelve con `servidoAhora` —se le acaba
+     * de dar una prueba y hay que esperar a ver si funciona—; si es el último («avisa al equipo»),
+     * el tema queda cerrado y el escalado pasa.
+     *
+     * @return array{tema: string, peldano: int, servidoAhora: bool}|null
+     */
+    public function pendienteReciente(?string $conversacionId, int $minutos = 60): ?array
+    {
+        if ($conversacionId === null || !Uuid::isValid($conversacionId)) {
+            return null;
+        }
+
+        foreach ($this->servido as $ahora) {
+            if (($ahora['quedan'] ?? false) === true) {
+                return ['tema' => $ahora['tema'], 'peldano' => $ahora['peldano'], 'servidoAhora' => true];
+            }
+        }
+        $servidosAhora = array_column($this->servido, 'tema');
+
+        /** @var list<Message> $salientes */
+        $salientes = $this->em->getRepository(Message::class)->createQueryBuilder('m')
+            ->andWhere('IDENTITY(m.conversation) = :c')
+            ->setParameter('c', $conversacionId, 'uuid')
+            ->andWhere('m.direction = :dir')->setParameter('dir', Message::DIRECTION_OUTGOING)
+            ->andWhere('m.createdAt >= :desde')->setParameter('desde', new \DateTimeImmutable(sprintf('-%d minutes', $minutos)))
+            ->andWhere('m.status NOT IN (:muertos)')
+            ->setParameter('muertos', [Message::STATUS_CANCELLED, Message::STATUS_FAILED])
+            ->orderBy('m.createdAt', 'DESC')
+            ->addOrderBy('m.id', 'DESC')
+            ->setMaxResults(self::MAX_MENSAJES)
+            ->getQuery()->getResult();
+
+        $vistos = [];
+        foreach ($salientes as $mensaje) {
+            // Una persona contestó después: la conversación ya la lleva alguien.
+            if ($mensaje->getSenderType() === Message::SENDER_HOST) {
+                return null;
+            }
+
+            foreach ($this->huellasConResto($mensaje) as $huella) {
+                if ($huella['tema'] === null || isset($vistos[$huella['tema']])) {
+                    continue;
+                }
+                $vistos[$huella['tema']] = true;
+
+                if ($huella['quedan'] && !in_array($huella['tema'], $servidosAhora, true)) {
+                    return ['tema' => $huella['tema'], 'peldano' => $huella['peldano'], 'servidoAhora' => false];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Como {@see self::huellasDe()}, con si quedaban peldaños. Las huellas de antes del 20/10/2026
+     * no lo traen y cuentan como «no se sabe» (false): mejor no frenar un escalado por una duda.
+     *
+     * @return list<array{tema: ?string, peldano: int, quedan: bool}>
+     */
+    private function huellasConResto(Message $mensaje): array
+    {
+        $metadata = $mensaje->getMetadata();
+        $crudas = is_array($metadata['temas_peldano'] ?? null)
+            ? array_values(array_filter($metadata['temas_peldano'], 'is_array'))
+            : [];
+
+        return array_map(
+            static fn (array $huella): array => [
+                'tema' => is_string($huella['tema'] ?? null) ? $huella['tema'] : null,
+                'peldano' => is_int($huella['peldano'] ?? null) ? $huella['peldano'] : 0,
+                'quedan' => ($huella['quedan'] ?? false) === true,
+            ],
+            $crudas,
+        );
     }
 
     /**
@@ -230,7 +327,7 @@ final class EscaleraDeTemas
      *
      * Se vacía al leerlo a propósito: ver el aviso de {@see $servido}.
      *
-     * @return list<array{tema: string, peldano: int}>
+     * @return list<array{tema: string, peldano: int, quedan?: bool}>
      */
     public function tomarServido(): array
     {

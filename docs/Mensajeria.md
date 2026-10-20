@@ -11089,6 +11089,29 @@ duchas y «Calefactor». Varios necesitan las dos cosas: pasos **y** partirse.
   peldaños; servir el 0 de nuevo es peor que las dos cosas. No tiene arreglo barato dentro de la
   escalera: la memoria del humano para este propósito debería ser más larga que la del guardia.
 
+### 22.5 La red en `escalar_al_equipo`: primero el peldaño (20/10/2026)
+
+Pinas Trojan, en la puerta de la Casita 4: «la llave se atasca». Acababa de recibir el truco de
+tirar de la puerta, el triaje clasificó bien («consultar_guia, tema puerta: puede decirles cómo
+abrirla») y aun así el agente **escaló cuatro veces sin volver a la guía**, con el teléfono de
+urgencias sin contestar. Entraron solos a los veinte minutos. La escalera no sirve de nada si el
+modelo no la pide: el historial le llega sin los resultados de las herramientas, así que en el
+turno siguiente ya no sabe que el tema tenía un «y si no».
+
+`EscalarAlEquipoSkill` pregunta antes de avisar a `EscaleraDeTemas::pendienteReciente()`:
+
+```
+¿en la última hora se le sirvió un tema con peldaños por delante, sin que hablara una persona?
+  ├─ servido en un turno anterior   → NO avisa: «pídelo con consultar_guia(tema_id, ya_lo_intento)»
+  ├─ servido en ESTE turno y quedan → NO avisa: «dáselo y espera a ver si funciona»
+  └─ el último peldaño, o nada      → avisa (el último peldaño es el que dice «avisa al equipo»)
+```
+
+Para saberlo sin que el núcleo conozca la guía, la huella del saliente (`temas_peldano`) guarda
+desde ese día **`quedan`**: si al tema le quedaban peldaños después del servido. Las huellas de
+antes no lo traen y cuentan como «no se sabe», que no frena. Si lo que escala no tiene que ver
+con el tema (otra avería, un incendio), el modelo pasa `otro_asunto: true`. Sólo con huéspedes.
+
 ### Dónde tocar para cambiar la escalera
 
 | Necesidad | Archivo / método |
@@ -11098,6 +11121,7 @@ duchas y «Calefactor». Varios necesitan las dos cosas: pasos **y** partirse.
 | Cambiar el tope de peldaños | `EscaleraDeTemas::MAX_PELDANOS` |
 | Cambiar qué se le dice al agotarse | `ConsultarGuiaSkill::detalle()`, clave `debes_escalar` |
 | Cambiar el aviso anti-invención | `ConsultarGuiaSkill::detalle()`, clave `si_no_le_funciona` |
+| Cuándo frena un escalado por un peldaño pendiente | `EscaleraDeTemas::pendienteReciente()` (ventana de 60 min) y su uso en `EscalarAlEquipoSkill::ejecutar()` |
 | Que la huella se escriba en el saliente | `AiConversationProcessor::encolarRespuesta()` |
 | Probarlo con datos reales | `php tools/pruebas/probar-escalera.php` (transacción + rollback) |
 

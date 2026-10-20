@@ -1811,6 +1811,23 @@ que el repaso de tildes no les puso («Pídele», «balón», «en qué baño es
 ⚠️ La skill recorta el texto a `MAX_CARACTERES` (1 800); la ducha más larga, la 7, tiene ~970.
 Si se le añade más, mirar que el final no quede fuera.
 
+### La puerta de la Casita 4 se abre con el jalador (20/10/2026)
+
+La llave «se atasca» si no se tira de la puerta mientras se gira. Un huésped lo dijo justo después
+de recibir el truco y el agente escaló cuatro veces en vez de insistir. `app:pms:guia:puerta-jalador`
+le dio a «Puerta (casa 4)» su escalera, como la de la ducha:
+
+```
+peldaño 0  cómo se abre: «agarra el jalador y tira de la puerta hacia ti mientras giras la llave»
+peldaño 1  no abre / se atasca: ¿es la llave número 4? y tira del jalador con firmeza al girar
+peldaño 2  sigue igual: emergencia al equipo contando lo que ya probó, y el teléfono de urgencias
+```
+
+El truco del peldaño 0 decía «tira suavemente de la puerta»; se cambió en el texto del agente **y
+en el publicado** (que se retraduce solo) para que las superficies digan lo mismo. Que el agente
+pase por el peldaño 1 antes de avisar lo garantiza la red de `escalar_al_equipo`
+(`docs/Mensajeria.md` §22.5), no el prompt.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de

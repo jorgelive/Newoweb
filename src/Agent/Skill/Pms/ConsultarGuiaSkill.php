@@ -808,7 +808,11 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         // Si el ítem no tiene escalera no se anota nada, y así la metadata de los salientes no
         // se llena de huellas que nadie va a contar.
         if ($item->pasosDisponibles() > 0 && !$item->isBloqueado()) {
-            $this->escalera->anotarServido((string) $item->getId(), $peldano);
+            $this->escalera->anotarServido(
+                (string) $item->getId(),
+                $peldano,
+                quedan: $item->agenteTextoParaPeldano($peldano + 1) !== null,
+            );
         }
 
         $cuerpo = $this->cuerpoParaElAgente($item, $idioma, $contexto, $acceso, $peldano);
