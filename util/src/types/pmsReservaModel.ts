@@ -233,6 +233,8 @@ export interface PmsReservaCrearPayload {
     descripcion?: string | null;
     monto: string;
     comision: string;
+    /** Se crea a sabiendas encima de otra: ver `PmsEventoCalendario::$solapeAceptado`. */
+    solapeAceptado?: boolean;
 }
 
 // ============================================================================

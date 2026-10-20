@@ -218,6 +218,27 @@ que se guarda pisa:
 Cuenta las noches con `ocupacion()`, así que hereda `IMPIDEN_VENTA`, el solape por `DATE()` y el
 **rango efectivo** (§8.d).
 
+### 8.c.1 El editor avisa ARRIBA y deja guardar encima (20/10/2026)
+
+La regla vive en `SolapesDeEstancia::de()` y la usan dos: el listener, que **frena**, y
+`PmsSolapesDeEstanciaController` (`GET /pms/estancias/solapes`), que el editor de la estancia
+consulta en cuanto cambian casita, fechas, estado o una casilla, y pinta el choque **arriba**, en la
+propia estancia. Antes el choque sólo salía al pulsar Guardar, junto a los botones.
+
+Desde ahí **se puede guardar igual** (Jorge, 20/10/2026: a veces se crea encima para mover luego a
+la otra). Lo hace `PmsEventoCalendario::$solapeAceptado`, que el editor manda sólo si el aviso
+estaba en pantalla, y el listener no frena ese guardado.
+
+| Quién guarda | ¿Puede quedar encima? | Por qué |
+|---|---|---|
+| El editor de la estancia, con el aviso a la vista | **Sí** | La persona lo está viendo |
+| Arrastrar una barra en el calendario | No | Ahí no hay aviso: es como pasó lo de la casita 4 |
+| El agente | No | Tampoco ve aviso; tiene que buscar disponibilidad |
+
+⚠️ **`$solapeAceptado` no es una columna.** Vale para el guardado que lo trae: si se guardara, el
+siguiente arrastre en el calendario ya no frenaría. Y si la consulta del aviso falla, no se manda:
+el guardado frena como antes y el choque sale abajo. Falla hacia el lado que frena.
+
 Lo que se comprueba es la estancia **con sus noches extra**: marcar la casilla valida la víspera o
 la noche de salida, y mover una estancia con horario extra valida la estancia y su noche extra en
 el sitio nuevo. Si sólo cambió una casilla, las noches de la estancia no se vuelven a mirar (no se
@@ -260,6 +281,7 @@ Se prueba sin guardar nada con `tools/pruebas/probar-solape-estancia.php "Casita
 | Subir el techo de noches | `PmsDisponibilidadService` | `MAX_NOCHES` |
 | Cambiar qué noche se mira para un late check-out / early check-in | `PmsDisponibilidadService` | `margenesDe()` — §8.b |
 | Cambiar cómo se le presentan los márgenes al operador | `EscalarAlEquipoSkill` | `margenes()` — es texto de WhatsApp, no JSON |
-| Cambiar qué frena al crear o mover una estancia | `PmsEventoCalendarioSolapeListener` | `comprobar()` — §8.c |
+| Cambiar qué frena al crear o mover una estancia | `SolapesDeEstancia` (la regla) y `PmsEventoCalendarioSolapeListener` (cuándo frena) | `de()` / `comprobar()` — §8.c |
+| Cambiar el aviso del editor o quién puede guardar encima | `PmsSolapesDeEstanciaController`, `ReservaEditDrawer.vue` (`choques`, `solapeAceptadoPara`) | §8.c.1 |
 | Comprobar disponibilidad a mano | — | `php bin/console app:pms:disponibilidad <desde> <hasta>` |
 | Comprobar que las dos caras cuadran | — | Los tres comandos de §8 |

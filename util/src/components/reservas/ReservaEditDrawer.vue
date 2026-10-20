@@ -310,6 +310,64 @@ function entryDesdeEvento(evento: PmsEventoCalendario): EventoEntry {
 }
 
 const eventos = ref<EventoEntry[]>([]);
+
+/**
+ * Con quién choca cada estancia del formulario, por `uid`: el aviso de arriba.
+ *
+ * Se pregunta al servidor con la misma regla que el candado al guardar (`SolapesDeEstancia`), en
+ * cuanto cambian casita, fechas, estado o una casilla. Antes el choque sólo salía al pulsar Guardar,
+ * como rechazo junto a los botones; ahora se ve antes y se puede guardar igual (Jorge, 20/10/2026):
+ * lo que viaja es `solapeAceptado`, y sólo si el aviso estaba en pantalla.
+ *
+ * Si la consulta falla no se enseña nada y no se manda `solapeAceptado`: el candado del guardado
+ * sigue ahí y dice el choque igual que antes. Fallar hacia el lado que frena.
+ */
+const choques = ref<Record<string, string[]>>({});
+let temporizadorChoques: ReturnType<typeof setTimeout> | null = null;
+let turnoChoques = 0;
+
+async function comprobarChoques(): Promise<void> {
+    const turno = ++turnoChoques;
+    const resultado: Record<string, string[]> = {};
+
+    for (const entry of eventos.value) {
+        if (!entry.form.pmsUnidad || !entry.form.inicio || !entry.form.fin) continue;
+
+        try {
+            const { data } = await apiClient.get<{ choques?: string[] }>('/pms/estancias/solapes', {
+                params: {
+                    unidad: entry.form.pmsUnidad,
+                    inicio: fromDatetimeLocal(entry.form.inicio),
+                    fin: fromDatetimeLocal(entry.form.fin),
+                    // Un bloqueo nuevo se guarda como bloqueo, diga lo que diga el selector.
+                    estado: isCreate.value && !isCreateReserva.value ? PMS_ESTADO.BLOQUEO : entry.form.estado,
+                    entradaTemprana: entry.form.entradaTemprana ? 1 : 0,
+                    salidaTardia: entry.form.salidaTardia ? 1 : 0,
+                    reserva: props.reservaId ?? undefined,
+                },
+            });
+            if (data.choques?.length) resultado[entry.uid] = data.choques;
+        } catch {
+            // Ver el docblock: sin aviso, el guardado frena como siempre.
+        }
+    }
+
+    // Sólo la última consulta manda: una lenta no pisa el aviso de un cambio posterior.
+    if (turno === turnoChoques) choques.value = resultado;
+}
+
+watch(
+    () => eventos.value.map(e => [e.uid, e.form.pmsUnidad, e.form.inicio, e.form.fin, e.form.estado,
+        e.form.entradaTemprana, e.form.salidaTardia].join('|')).join('§'),
+    () => {
+        if (temporizadorChoques) clearTimeout(temporizadorChoques);
+        temporizadorChoques = setTimeout(() => void comprobarChoques(), 400);
+    },
+    { immediate: true },
+);
+
+/** ¿Se está guardando esta estancia con el choque a la vista? Es lo único que lo permite. */
+const solapeAceptadoPara = (entry: EventoEntry): boolean => (choques.value[entry.uid]?.length ?? 0) > 0;
 const activeIndex = ref(0);
 
 /**
@@ -1437,6 +1495,7 @@ function payloadCreacion(entry: EventoEntry, estado: string): PmsEventoCalendari
         cantidadNinos: entry.form.cantidadNinos,
         entradaTemprana: entry.form.entradaTemprana,
         salidaTardia: entry.form.salidaTardia,
+        solapeAceptado: solapeAceptadoPara(entry),
     };
 }
 
@@ -1496,6 +1555,7 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                 descripcion: entry.form.descripcion || null,
                 monto: entry.form.monto,
                 comision: entry.form.comision,
+                solapeAceptado: solapeAceptadoPara(entry),
             };
             const creada = await reservasStore.createReservaCompleta(payload);
             const idCreada = extraerId(creada);
@@ -1544,6 +1604,7 @@ async function guardar(cerrarAlTerminar = false): Promise<void> {
                         cantidadNinos: entry.form.cantidadNinos,
                         entradaTemprana: entry.form.entradaTemprana,
                         salidaTardia: entry.form.salidaTardia,
+                        solapeAceptado: solapeAceptadoPara(entry),
                     };
 
                     // La confirmación de la hora viaja SÓLO si se tocó aquí: si cambió la hora,
@@ -2257,6 +2318,18 @@ async function ejecutarBorrado(): Promise<void> {
 
                                 <!-- ===== FORM (crear / editar) ===== -->
                                 <div v-else class="grid grid-cols-2 gap-3">
+                                    <!-- El choque, ARRIBA y en cuanto se eligen casita y fechas. Avisa y no
+                                         frena: con esto en pantalla se puede guardar igual (ver `choques`). -->
+                                    <div v-if="choques[entry.uid]?.length" role="alert"
+                                        class="col-span-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3">
+                                        <p v-for="(c, ic) in choques[entry.uid]" :key="ic"
+                                            class="text-sm font-black text-amber-800 leading-snug">
+                                            <i class="fas fa-triangle-exclamation mr-1.5"></i>{{ c }}
+                                        </p>
+                                        <p class="mt-1 text-[11px] font-bold text-amber-700/80">
+                                            Puedes guardar igual: quedará encima, también en Beds24 y en los portales.
+                                        </p>
+                                    </div>
                                     <label class="col-span-2">
                                         <span class="text-xs font-bold text-slate-500">Casita</span>
                                         <!-- `bg-white` explícito: sin él heredaba el tinte del cuerpo de la

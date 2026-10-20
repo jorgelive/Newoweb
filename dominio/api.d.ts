@@ -4655,6 +4655,13 @@ export interface components {
             /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
             contextRotulo?: string | null;
             /**
+             * @description El idioma del asunto (la reserva, el expediente) que se aplicó al hilo la última vez. Sirve
+             *     para que `MessageConversationFactory::upsertFromContext()` sólo lo vuelva a aplicar cuando
+             *     CAMBIA —el equipo lo corrigió en la reserva—, y no en cada recálculo, que deshacía el idioma
+             *     que la detección había sacado de los mensajes del huésped.
+             */
+            contextIdiomaAsunto?: string | null;
+            /**
              * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
              * @enum {string|null}
              */
@@ -4937,6 +4944,13 @@ export interface components {
             contextStatusTag?: string | null;
             /** @description Qué es el asunto, en una palabra, escrita por su dominio (`MessageContextInterface::getRotulo()`). */
             contextRotulo?: string | null;
+            /**
+             * @description El idioma del asunto (la reserva, el expediente) que se aplicó al hilo la última vez. Sirve
+             *     para que `MessageConversationFactory::upsertFromContext()` sólo lo vuelva a aplicar cuando
+             *     CAMBIA —el equipo lo corrigió en la reserva—, y no en cada recálculo, que deshacía el idioma
+             *     que la detección había sacado de los mensajes del huésped.
+             */
+            contextIdiomaAsunto?: string | null;
             /**
              * @description El vínculo que declaró el contexto, o `null` en conversaciones anteriores al campo.
              * @enum {string|null}
@@ -31250,6 +31264,13 @@ export interface components {
              */
             entradaTemprana: boolean;
             /**
+             * @description «Ya sé que choca y la guardo igual»: lo manda el editor de la estancia cuando enseñaba el
+             *     choque arriba (`SolapesDeEstancia`), y hace que `PmsEventoCalendarioSolapeListener` no frene
+             *     ESE guardado (Jorge, 20/10/2026).
+             * @default false
+             */
+            solapeAceptado: boolean;
+            /**
              * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
              *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
              */
@@ -31315,6 +31336,13 @@ export interface components {
              * @default false
              */
             entradaTemprana: boolean;
+            /**
+             * @description «Ya sé que choca y la guardo igual»: lo manda el editor de la estancia cuando enseñaba el
+             *     choque arriba (`SolapesDeEstancia`), y hace que `PmsEventoCalendarioSolapeListener` no frene
+             *     ESE guardado (Jorge, 20/10/2026).
+             * @default false
+             */
+            solapeAceptado: boolean;
             /**
              * @description Marcar o desmarcar desde el panel que la hora de llegada es FIRME, sin cambiarla: «sí, a
              *     las 14:00» por teléfono. Al marcar se conserva la fecha de una confirmación anterior.
@@ -33569,6 +33597,11 @@ export interface components {
             monto: string;
             /** @default 0.00 */
             comision: string;
+            /**
+             * @description Ver `PmsEventoCalendario::$solapeAceptado`: el editor enseñaba el choque y se crea igual.
+             * @default false
+             */
+            solapeAceptado: boolean;
         };
         "PmsReserva.html-pax_reserva.read": {
             nombreCliente: string | null;

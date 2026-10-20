@@ -79,4 +79,8 @@ final class PmsReservaCrearInput
 
     #[Groups(['pms_reserva_crear:write'])]
     public string $comision = '0.00';
+
+    /** Ver `PmsEventoCalendario::$solapeAceptado`: el editor enseñaba el choque y se crea igual. */
+    #[Groups(['pms_reserva_crear:write'])]
+    public bool $solapeAceptado = false;
 }

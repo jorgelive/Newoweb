@@ -6,10 +6,8 @@ namespace App\Pms\EventListener;
 
 use App\Exchange\Service\Context\SyncContext;
 use App\Pms\Entity\PmsEventoCalendario;
-use App\Pms\Entity\PmsEventoEstado;
-use App\Pms\Service\Reserva\PmsDisponibilidadService;
+use App\Pms\Service\Reserva\SolapesDeEstancia;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
@@ -49,6 +47,15 @@ use DomainException;
  * víspera incluida, igual que marcar la casilla valida esa víspera. Ver
  * docs/PlanHorarioExtraSinEventos.md.
  *
+ * ### 🔓 El editor puede guardar encima, a sabiendas (20/10/2026)
+ *
+ * El editor de la estancia enseña el choque ARRIBA en cuanto se eligen casita y fechas (con la
+ * misma regla, {@see SolapesDeEstancia}), y desde ahí se puede guardar igual: a veces se crea
+ * encima para mover después a la otra (Jorge, 20/10/2026). Lo marca
+ * `PmsEventoCalendario::$solapeAceptado`, que sólo manda el editor cuando el aviso estaba en
+ * pantalla. El calendario —arrastrar una barra— y el agente no lo mandan: ahí nadie ve el aviso, y
+ * es justo como pasó lo de la casita 4.
+ *
  * ### Sólo lo que decide una persona
  *
  * Se comprueba con el contexto en UI (panel, calendario, agente). Lo que baja de Beds24 es
@@ -61,12 +68,12 @@ final class PmsEventoCalendarioSolapeListener
 {
     public function __construct(
         private readonly SyncContext $syncContext,
-        private readonly PmsDisponibilidadService $disponibilidad,
+        private readonly SolapesDeEstancia $solapes,
     ) {}
 
     public function prePersist(PmsEventoCalendario $evento, PrePersistEventArgs $args): void
     {
-        $this->comprobar($evento, $args->getObjectManager(), cambiaLaEstancia: true);
+        $this->comprobar($evento, cambiaLaEstancia: true);
     }
 
     public function preUpdate(PmsEventoCalendario $evento, PreUpdateEventArgs $args): void
@@ -77,79 +84,26 @@ final class PmsEventoCalendarioSolapeListener
         }
 
         if ($cambiaLaEstancia || $args->hasChangedField('entradaTemprana') || $args->hasChangedField('salidaTardia')) {
-            $this->comprobar($evento, $args->getObjectManager(), $cambiaLaEstancia);
+            $this->comprobar($evento, $cambiaLaEstancia);
         }
     }
 
-    /**
-     * @param bool $cambiaLaEstancia Si sólo cambió una casilla, las noches de la estancia no se
-     *                               vuelven a mirar: no se han movido, y un solape que bajó del
-     *                               canal no tiene por qué impedir marcar un horario extra que
-     *                               no choca con nada.
-     */
-    private function comprobar(PmsEventoCalendario $evento, object $em, bool $cambiaLaEstancia): void
+    private function comprobar(PmsEventoCalendario $evento, bool $cambiaLaEstancia): void
     {
-        if (!$this->syncContext->isUi() || !$em instanceof EntityManagerInterface) {
+        if (!$this->syncContext->isUi()) {
             return;
         }
 
-        $estado = $evento->getEstado()?->getId();
-        $inicio = $evento->getInicio();
-        $fin = $evento->getFin();
-
-        if ($estado === null || !in_array($estado, PmsEventoEstado::IMPIDEN_VENTA, true)
-            || $evento->getPmsUnidad() === null || $inicio === null || $fin === null
-            || $fin->format('Y-m-d') <= $inicio->format('Y-m-d')) {
+        // Guardada a sabiendas desde el editor, que enseña el choque arriba antes de guardar. Ver
+        // la cabecera: el calendario y el agente no lo mandan, y para ellos el candado sigue.
+        if ($evento->isSolapeAceptado()) {
             return;
         }
 
-        if ($cambiaLaEstancia) {
-            $this->frenarSiOcupada($evento, $inicio, $fin, 'Libera esas noches o elige otra casita antes de guardar.');
-        }
+        $choques = $this->solapes->de($evento, $cambiaLaEstancia);
 
-        foreach ($evento->nochesExtra() as $noche) {
-            $this->frenarSiOcupada($evento, $noche->desde, $noche->hasta, sprintf(
-                'La %s ocupa también esa noche: elige otra fecha o casita, o quita la casilla.',
-                mb_strtolower($noche->etiqueta())
-            ));
-        }
-    }
-
-    private function frenarSiOcupada(
-        PmsEventoCalendario $evento,
-        \DateTimeInterface $desde,
-        \DateTimeInterface $hasta,
-        string $queHacer,
-    ): void {
-        $unidad = $evento->getPmsUnidad();
-
-        if ($unidad === null) {
-            return;
-        }
-
-        $propioId = (string) $evento->getId();
-        $reservaId = $evento->getReserva()?->getId() !== null ? (string) $evento->getReserva()->getId() : null;
-
-        foreach ($this->disponibilidad->ocupacion($desde, $hasta, (string) $unidad->getId()) as $otro) {
-            if ($otro->eventoId === $propioId || ($reservaId !== null && $otro->reservaId === $reservaId)) {
-                continue;
-            }
-
-            // Un bloqueo no frena (ver la cabecera).
-            if (!$otro->esEstancia) {
-                continue;
-            }
-
-            [$entra, $sale] = $otro->nochesOcupadas();
-
-            throw new DomainException(sprintf(
-                '%s ya está ocupada del %s al %s por %s. %s',
-                $unidad->getNombre(),
-                (new \DateTimeImmutable($entra))->format('d/m'),
-                (new \DateTimeImmutable($sale))->format('d/m'),
-                $otro->quienOcupa(),
-                $queHacer,
-            ));
+        if ($choques !== []) {
+            throw new DomainException($choques[0]);
         }
     }
 }

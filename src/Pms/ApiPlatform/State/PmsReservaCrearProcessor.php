@@ -84,6 +84,7 @@ final class PmsReservaCrearProcessor implements ProcessorInterface
         $evento->setDescripcion($data->descripcion);
         $evento->setMonto($data->monto);
         $evento->setComision($data->comision);
+        $evento->setSolapeAceptado($data->solapeAceptado);
         $evento->setChannel($canalDirecto);
         $evento->setEstado($this->entityManager->getReference(PmsEventoEstado::class, PmsEventoEstado::CODIGO_PENDIENTE));
         $evento->setEstadoPago($this->entityManager->getReference(PmsEventoEstadoPago::class, PmsEventoEstadoPago::ID_SIN_PAGO));

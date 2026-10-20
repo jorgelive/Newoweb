@@ -325,6 +325,18 @@ class PmsEventoCalendario
     private bool $entradaTemprana = false;
 
     /**
+     * «Ya sé que choca y la guardo igual»: lo manda el editor de la estancia cuando enseñaba el
+     * choque arriba (`SolapesDeEstancia`), y hace que `PmsEventoCalendarioSolapeListener` no frene
+     * ESE guardado (Jorge, 20/10/2026).
+     *
+     * ⚠️ **No es una columna.** Vale para el guardado que lo trae y nada más: si se guardara, la
+     * siguiente vez que alguien arrastrara la barra en el calendario —donde no hay aviso— el candado
+     * ya no lo frenaría. Ver docs/PmsDisponibilidad.md §8.c.
+     */
+    #[Groups(['pms_evento:write'])]
+    private bool $solapeAceptado = false;
+
+    /**
      * Cuándo se confirmó la HORA de llegada (el huésped por el chat, o el equipo al apuntarla).
      *
      * La hora sola no lo dice: un `inicio` a las 14:00 es el check-in de todos, haya confirmado el
@@ -1031,6 +1043,9 @@ class PmsEventoCalendario
 
         return null;
     }
+
+    public function isSolapeAceptado(): bool { return $this->solapeAceptado; }
+    public function setSolapeAceptado(bool $aceptado): self { $this->solapeAceptado = $aceptado; return $this; }
 
     public function setEntradaTemprana(bool $entradaTemprana): self
     {
