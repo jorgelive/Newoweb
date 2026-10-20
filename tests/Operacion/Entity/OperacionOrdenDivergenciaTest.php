@@ -275,6 +275,30 @@ final class OperacionOrdenDivergenciaTest extends TestCase
         self::assertStringContainsString('se pidió a las 08:00 y ahora es a las 20:45', $orden->getDivergencias()[0]);
     }
 
+    /**
+     * Emitida SIN hora y la hora aparece después: es completar el documento, no reemitir. Antes no
+     * lo decía nadie —ni divergencia ni cambio menor— y el proveedor se quedaba sin la hora.
+     */
+    #[Test]
+    public function laHoraQueApareceDespuesDeEmitirEsUnCambioMenor(): void
+    {
+        $servicio = $this->servicio('Traslado', '2026-10-19', 2, '60.00')->setHoraComponente(null);
+        $orden = $this->ordenCon($servicio);
+        $this->emision()->emitir($orden);
+
+        $servicio->setHoraComponente('09:30');
+
+        self::assertFalse($orden->isSucia(), 'Nulo → con valor no es una modificación.');
+        self::assertStringContainsString('ya se sabe la hora — 09:30', $orden->getCambiosMenores()[0] ?? '');
+
+        $orden->aplicarCambiosMenores();
+        $item = $orden->getItems()->first();
+        self::assertInstanceOf(OperacionOrdenServicioItem::class, $item);
+        self::assertSame('09:30', $item->getHora());
+        self::assertFalse($orden->hasCambiosMenores());
+        self::assertFalse($orden->isSucia());
+    }
+
     /** Aplicar el menor actualiza el documento y la orden deja de tener nada pendiente. */
     #[Test]
     public function aplicarElMenorActualizaElDocumentoSinReemitir(): void

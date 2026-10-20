@@ -4496,7 +4496,7 @@ que la comparación no tuviera que repetirla.
 | | Motivo |
 |---|---|
 | **La ruta** | Los puntos tienen vigilancia propia y más específica. Se pasa `null` a los dos lados |
-| **La hora** | Asimetría deliberada: que aparezca es el proveedor **confirmando** (cambio menor); que cambie es modificar el encargo. Un diff en bloque no distingue las dos |
+| **La hora** | Asimetría deliberada: que aparezca es el proveedor **confirmando** (cambio menor); que cambie es modificar el encargo. Un diff en bloque no distingue las dos. Lo mismo con la hora VENDIDA: una orden emitida sin hora que luego la tiene ofrece completarla («ya se sabe la hora», 19/10/2026; antes no lo decía nadie) |
 | **Las notas** | La misma asimetría |
 
 Se igualan copiándolas del congelado al transitorio, no excluyéndolas del formato: así el formato

@@ -1042,6 +1042,10 @@ class OperacionOrdenServicio
 
             if (($hora = $servicio->getHoraRecojo()) !== null) {
                 $avisos[] = sprintf('«%s»: el proveedor confirmó el recojo a las %s', $this->etiqueta($item), $hora);
+            } elseif ($item->getHora() === null && ($hora = $servicio->getHoraComponente()) !== null) {
+                // Se emitió sin hora y ahora la tiene: el dato apareció, completar. La otra cara
+                // —de una hora a otra— es reemitir, y la denuncia `getDivergencias()`.
+                $avisos[] = sprintf('«%s»: ya se sabe la hora — %s', $this->etiqueta($item), $hora);
             }
         }
 
@@ -1139,6 +1143,8 @@ class OperacionOrdenServicio
 
             if (($hora = $servicio->getHoraRecojo()) !== null) {
                 $item->setHoraRecojoConfirmada($hora);
+                $item->setHora($hora);
+            } elseif ($item->getHora() === null && ($hora = $servicio->getHoraComponente()) !== null) {
                 $item->setHora($hora);
             }
         }
