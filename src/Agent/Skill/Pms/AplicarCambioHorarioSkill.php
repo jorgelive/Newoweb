@@ -46,24 +46,22 @@ use App\Agent\Skill\EntradaDeSkill;
  *
  * Por eso esto SÍ funciona en reservas de OTA, mientras que mover fechas está prohibido.
  *
- * ### 🔑 Bloquear la noche es OPCIONAL, y a veces imposible
+ * ### 🔑 Con HORA nunca se bloquea la noche
  *
  * Marcar la casilla retira de la venta la noche anterior a la entrada —o la posterior a la
- * salida— para tener margen de limpieza. Eso lo decide el operador, no se deduce de la hora:
+ * salida—. Con una hora («sale a las 14:00») eso es perder una noche vendible por unas horas:
+ * «es dinero perdido» (Jorge, 19/10/2026). Así que con hora **sólo se apunta la hora**, quepa o
+ * no en el horario, y si la excede se dice que es horario extra. Si la noche se vende después,
+ * la limpieza tendrá menos margen esa mañana; eso lo ve el operador.
  *
- * - **Noche libre** → se PREGUNTA si bloquearla, y la respuesta viaja en `bloquear`. Retirar de
- *   la venta una noche vendible no puede ser el efecto secundario de apuntar una hora.
+ * Sólo marca —y bloquea— cuando se pide SIN hora: «márcale salida tardía», que es vender la
+ * noche entera. Y con esa noche ya vendida no se puede: no hay nada que hacer y se pide la hora.
  *
- *   🔥 Hasta el 01/10/2026 la pregunta ofrecía «si prefieres dejarla vendible, sólo apunto la
- *   hora», pero la skill no sabía hacerlo: confirmar SIEMPRE bloqueaba. Si el equipo contestaba
- *   «no bloquees», el agente no podía confirmar y la hora no se guardaba en ningún sitio. Ahora,
- *   con hora y la noche libre, confirmar sin `bloquear` es un error: la decisión es del equipo y
- *   tiene que llegar explícita.
- * - **Noche ya vendida** → NO se pregunta nada, porque no se puede bloquear: la noche extra
- *   quedaría superpuesta a una estancia real. Se registra la hora y se avisa de que la
- *   limpieza tendrá menos margen esa mañana. Si hace falta refuerzo, eso lo ve el operador.
+ * 🔥 Hasta el 19/10/2026, con hora y la noche libre, se PREGUNTABA si bloquearla y la respuesta
+ * viajaba en `bloquear`. Además de ofrecer perder dinero, la respuesta no entraba en la huella
+ * de la confirmación (`GuardiaDeSkills`): el modelo podía cambiarla entre la propuesta y el «sí».
  *
- * Con la noche vendida tampoco se abre la línea de cargo, porque cuelga de la misma casilla
+ * Sin la casilla tampoco se abre la línea de cargo, porque cuelga de ella
  * ({@see \App\Pms\Service\Finance\PmsCargosAutomaticosService::sincronizarExtras()}). Lo que
  * se le quiera cobrar por ese horario se añade a mano en el panel.
  *
@@ -106,12 +104,10 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
                 . 'cargo que se abre—. Léeselas una a una al operador, no las resumas, y '
                 . 'termina con la pregunta de pregunta_aprobacion. PÁSAME LA HORA si te la '
                 . 'dicen («sale a las 14:00»): si cabe dentro del horario del alojamiento sólo '
-                . 'la registro y no bloqueo nada; si lo excede, además marco el horario extra. '
-                . 'BLOQUEAR LA NOCHE LO DECIDE EL EQUIPO: si está libre, la pregunta_aprobacion '
-                . 'pregunta si además se retira de la venta para tener margen de limpieza; '
-                . 'léesela tal cual y llámame con confirmado=true y bloquear=true si dice que '
-                . 'sí, o bloquear=false si dice que sólo apunte la hora (la hora se guarda igual '
-                . 'y la noche sigue vendible). Nunca decidas tú: sin su respuesta no confirmes. '
+                . 'la registro; si lo excede, también la registro y digo que es horario extra. '
+                . 'CON HORA NUNCA SE BLOQUEA NINGUNA NOCHE: la noche sigue a la venta. No '
+                . 'ofrezcas bloquearla ni retirarla de los portales. Sólo sin hora («márcale '
+                . 'salida tardía») se marca la casilla y se bloquea la noche entera. '
                 . 'Si la estancia YA tenía el horario marcado y te dan una hora, la registro '
                 . 'sin tocar nada más. Y si la respuesta trae '
                 . '«no_se_puede_bloquear», esa noche YA ESTÁ VENDIDA: NO ofrezcas bloquear nada '
@@ -123,8 +119,8 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
                 SkillParameter::texto('cambio', '"salida_tardia" o "entrada_temprana".'),
                 SkillParameter::texto('hora', 'La hora acordada, en formato HH:MM de 24 horas '
                     . '("06:00", "18:00"). Si cabe dentro del horario normal del alojamiento '
-                    . 'sólo se registra; si lo excede, además se marca y se bloquea la noche. '
-                    . 'Sin hora, se marca sin registrar ninguna. CÓMO LEER LA HORA QUE TE DIGAN: '
+                    . 'sólo se registra; si lo excede, también, y es horario extra — pero no se '
+                    . 'bloquea ninguna noche. Sin hora, se marca la casilla y se bloquea la noche. CÓMO LEER LA HORA QUE TE DIGAN: '
                     . 'un número suelto es la hora del reloj de 24 h tal cual — «a las 6» es '
                     . '06:00 y «a las 18» es 18:00. Sólo pasa a la tarde si te lo dicen con '
                     . 'palabras: «6 de la tarde», «6 pm» o «18» son 18:00. Ante la duda NO '
@@ -133,10 +129,6 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
                     requerido: false),
                 SkillParameter::booleano('confirmado', 'true SÓLO después de que el usuario '
                     . 'haya confirmado explícitamente. false para previsualizar.'),
-                SkillParameter::booleano('bloquear', 'La respuesta del EQUIPO a la '
-                    . 'pregunta_aprobacion: true si quiere retirar la noche de la venta, false si '
-                    . 'sólo quiere apuntar la hora. Obligatorio al confirmar una hora fuera del '
-                    . 'horario con la noche libre; en los demás casos se ignora.'),
             ],
         );
     }
@@ -169,8 +161,6 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         $eventoId = trim($e->texto('evento_id'));
         $cambio = strtolower(trim($e->texto('cambio')));
         $confirmado = $e->booleano('confirmado');
-        // Tres valores, no dos: «no lo ha dicho» no es «ha dicho que no».
-        $decisionBloqueo = array_key_exists('bloquear', $entrada) ? $e->booleano('bloquear') : null;
 
         if (!Uuid::isValid($eventoId)) {
             return SkillResult::error('El evento_id no es válido.');
@@ -199,9 +189,8 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         $limite = $this->horas->limite($evento, $esSalida);
         $excede = $horaPedida !== '' && $this->horas->excede($evento, $horaPedida, $esSalida);
 
-        // Sin hora se conserva el comportamiento de siempre: marcar y bloquear. Con hora, sólo
-        // se bloquea si de verdad se sale del horario — que es la diferencia entre «salgo a las
-        // 9:30» (un dato) y «salgo a las 14:00» (una noche que deja de venderse).
+        // «Es horario extra»: sin hora (se marca la noche entera) o con una hora que se sale del
+        // horario. Que además se BLOQUEE es otra cosa, y sólo pasa sin hora: ver `$vaABloquear`.
         $bloquea = $horaPedida === '' || $excede;
 
         $resumen = [
@@ -229,8 +218,7 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         }
 
         // 🗓️ Cómo está la noche que el bloqueo ocuparía. Se mira SIEMPRE, se vaya a bloquear
-        // o no: si está ocupada cambia lo que se puede hacer, y si está libre es la que se
-        // ofrece bloquear.
+        // o no: si está ocupada cambia lo que se puede hacer, y el operador ve cómo está.
         $alerta = $this->alertaDeOcupacion($evento, $esSalida, $bloquea, $horaPedida, $limite);
 
         if ($alerta !== null) {
@@ -246,12 +234,11 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
         // sobre una noche vendida se anunciaba como «cabe dentro del horario (14:00)» — y las
         // 08:00 son entrada temprana de manual.
         $nocheOcupada = $bloquea && $alerta !== null && !$alerta['libre'];
-        // Se PUEDE bloquear (y por eso se pregunta); se VA a bloquear si el equipo dijo que sí.
-        // Sin hora es el comportamiento de siempre —marcar es bloquear—, porque entonces no hay
-        // otra cosa que apuntar.
+        // Se bloquea SÓLO sin hora —marcar es vender la noche entera—. Con hora, aunque sea
+        // horario extra y la noche esté libre, se apunta y la noche sigue a la venta.
         $puedeBloquear = $bloquea && !$nocheOcupada;
-        $vaABloquear = $puedeBloquear && ($horaPedida === '' || $decisionBloqueo === true);
-        $equipoNoBloquea = $puedeBloquear && $horaPedida !== '' && $decisionBloqueo === false;
+        $vaABloquear = $puedeBloquear && $horaPedida === '';
+        $horarioExtraSinBloqueo = $puedeBloquear && $horaPedida !== '';
 
         // Sin hora y con la noche vendida no hay NADA que hacer: marcar sin hora es bloquear, y no
         // se puede. Respondía `aplicado: true` y «Registrada la hora de salida a las .» sin haber
@@ -310,15 +297,6 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             ]);
         }
 
-        // La decisión de bloquear es del equipo: con la noche libre y una hora fuera del horario,
-        // no se confirma sin ella.
-        if ($confirmado && $puedeBloquear && $horaPedida !== '' && $decisionBloqueo === null) {
-            return SkillResult::error(
-                'Falta la decisión del equipo: pregúntale si bloquea también la noche (pregunta_aprobacion) '
-                . 'y vuelve a llamarme con bloquear=true o bloquear=false.'
-            );
-        }
-
         if (!$confirmado) {
             return SkillResult::ok($resumen + [
                 'aplicado' => false,
@@ -326,34 +304,35 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
                 // Las consecuencias, enumeradas. El bloqueo que sale al canal y la línea de
                 // cargo a cero las provocan servicios de más abajo al hacer flush, no esta
                 // skill: si no se nombran aquí, el operador aprueba una cosa y ocurren varias.
-                'que_va_a_pasar' => $this->consecuencias($evento, $esSalida, $puedeBloquear, $horaPedida),
-                // 🔑 Con la noche LIBRE, bloquearla es opcional y la decide el operador, así que
-                // la pregunta lo dice: retirar de la venta una noche vendible no es el efecto
-                // secundario de apuntar una hora. Con la noche ocupada no se pregunta nada —no
-                // se puede bloquear— y basta con aprobar el registro de la hora.
-                'pregunta_aprobacion' => $puedeBloquear
-                    ? sprintf(
-                        '¿Bloqueo también la noche %s (%s) para tener margen de limpieza? Se '
-                        . 'retira de la venta en todos los portales. Si prefieres dejarla '
-                        . 'vendible, dímelo y sólo apunto la hora.',
-                        $esSalida ? 'posterior a la salida' : 'anterior a la entrada',
-                        $alerta['fecha'] ?? ''
-                    )
-                    : '¿Apruebas el cambio?',
+                'que_va_a_pasar' => $this->consecuencias($evento, $esSalida, $vaABloquear, $horaPedida),
+                'pregunta_aprobacion' => '¿Apruebas el cambio?',
                 // ⚠️ Tiene que describir lo que DE VERDAD va a pasar. Decía siempre «quedará
                 // marcada con salida tardía», y el modelo lo repetía tal cual: registrar una
                 // salida a las 00:00 —diez horas ANTES del check-out— se anunciaba al operador
                 // como «voy a registrar la salida tardía». Ninguna casilla se marca cuando la
                 // hora cabe dentro del horario.
                 'previsualizacion' => match (true) {
-                    $puedeBloquear => sprintf(
-                        'Si el equipo decide bloquear, la estancia de %s en %s (%s) quedará marcada '
-                        . 'con %s; si no, sólo se apunta la hora y la noche sigue vendible. Enséñale '
-                        . 'al operador la lista de «que_va_a_pasar» entera y hazle la pregunta.',
+                    $vaABloquear => sprintf(
+                        'La estancia de %s en %s (%s) quedará marcada con %s y la noche %s (%s) se '
+                        . 'retira de la venta en todos los portales. Enséñale al operador la lista '
+                        . 'de «que_va_a_pasar» entera y hazle la pregunta.',
                         $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
                         $resumen['casita'],
                         $resumen['localizador'] ?? 'sin localizador',
-                        $esSalida ? 'salida tardía' : 'entrada temprana'
+                        $esSalida ? 'salida tardía' : 'entrada temprana',
+                        $esSalida ? 'posterior a la salida' : 'anterior a la entrada',
+                        $alerta['fecha'] ?? ''
+                    ),
+                    $horarioExtraSinBloqueo => sprintf(
+                        'Se apuntará que %s en %s (%s) %s a las %s. Es horario extra (el normal es '
+                        . '%s), pero NO se bloquea ninguna noche: sigue a la venta y no se abre '
+                        . 'cargo. Si se le cobra, se añade a mano en el panel. No ofrezcas bloquear.',
+                        $resumen['huesped'] !== '' ? $resumen['huesped'] : 'el huésped',
+                        $resumen['casita'],
+                        $resumen['localizador'] ?? 'sin localizador',
+                        $esSalida ? 'sale' : 'entra',
+                        $horaPedida,
+                        $limite
                     ),
                     $nocheOcupada => sprintf(
                         'Se apuntará que %s en %s (%s) %s a las %s. Esa noche ya está vendida, '
@@ -415,16 +394,14 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             // hacerle creer al operador que bloqueó una noche que sigue vendible.
             'mensaje' => match (true) {
                 $vaABloquear => sprintf(
-                    '%sMarcada la %s. Esa noche queda bloqueada.',
-                    $horaPedida !== '' ? sprintf('Registrada la hora %s. ', $horaPedida) : '',
+                    'Marcada la %s. Esa noche queda bloqueada.',
                     $esSalida ? 'salida tardía' : 'entrada temprana'
                 ),
-                // Sí era horario extra, pero la noche estaba vendida: se apuntó la hora y nada
-                // más. Decir aquí «cabe dentro del horario» —como hacía al fusionar las dos
-                // variables— era falso: las 08:00 con check-in a las 14:00 son entrada temprana.
-                $equipoNoBloquea => sprintf(
+                // Horario extra con hora: se apuntó y nada más. Decir aquí «cabe dentro del
+                // horario» sería falso: las 08:00 con check-in a las 14:00 son entrada temprana.
+                $horarioExtraSinBloqueo => sprintf(
                     'Registrada la hora de %s a las %s. Es horario extra, pero no se ha bloqueado '
-                    . 'la noche, como decidió el equipo: sigue vendible y no se ha abierto cargo.',
+                    . 'la noche: sigue a la venta y no se ha abierto cargo.',
                     $esSalida ? 'salida' : 'entrada',
                     $horaPedida
                 ),
@@ -488,11 +465,12 @@ final readonly class AplicarCambioHorarioSkill implements SkillInterface, SkillD
             )];
         }
 
-        // Dentro del horario normal no hay noche que bloquear ni cargo que abrir: sólo queda
-        // el dato. Enumerar las otras tres consecuencias aquí sería asustar por nada.
+        // Con hora no se bloquea nada ni se abre cargo, quepa o no en el horario: sólo queda el
+        // dato. Enumerar las otras tres consecuencias aquí sería asustar por nada.
+        // ⚠️ Decía «la hora cabe dentro del horario» y desde el 19/10/2026 también llega aquí
+        // una hora que lo excede: el texto no puede dar la razón.
         if (!$bloquea) {
-            $lista[] = 'NO se bloquea ninguna noche ni se abre ningún cargo: la hora cabe '
-                . 'dentro del horario normal del alojamiento.';
+            $lista[] = 'NO se bloquea ninguna noche ni se abre ningún cargo: la noche sigue a la venta.';
 
             return $lista;
         }

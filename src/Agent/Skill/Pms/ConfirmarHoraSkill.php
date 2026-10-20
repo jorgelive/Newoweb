@@ -46,8 +46,8 @@ use Throwable;
  *   en el día de entrada, así que no se escribe: queda como petición, la llegada como confirmada,
  *   y el equipo avisado.
  * - **Fuera del horario y sin nada pactado** (entrada temprana, salida tardía): NO se toca la
- *   estancia. Bloquear la noche de al lado lo decide el equipo
- *   (`aplicar_cambio_horario`, que le pregunta). Se deja una petición pegada a la estancia y el
+ *   estancia. Aceptarla lo decide el equipo (`aplicar_cambio_horario`, que apunta la hora sin
+ *   bloquear ninguna noche). Se deja una petición pegada a la estancia y el
  *   equipo recibe el aviso con la noche de al lado libre u ocupada.
  *
  * ── El equipo se entera SIEMPRE ─────────────────────────────────────────────
