@@ -1297,10 +1297,23 @@ async function borrarCargo(c: PmsCargoFinanciero): Promise<void> {
 const pagoFormAbierto = ref(false);
 const pagoEditandoId = ref<string | null>(null);
 
+/**
+ * La moneda con que nace un pago: la de los cargos si están TODOS en una, y si no la base.
+ *
+ * La base dice en qué se cotiza, no en qué se debe: Giovanna (GY3ADX) se cotiza en dólares y sus
+ * dos cargos son en soles, así que el pago nacía en USD y el formulario tenía que ofrecer imputarlo
+ * a la deuda en PEN (Jorge, 20/10/2026). Con cargos en dos monedas no se adivina: manda la base.
+ */
+const monedaPorDefectoDelPago = computed<string>(() => {
+    const conCargos = totalesPorMoneda.value.filter(t => Number(t.cargos) > 0);
+
+    return conCargos.length === 1 ? conCargos[0].moneda : (monedaCabecera.value?.id ?? 'USD');
+});
+
 function pagoVacio() {
     return {
         monto: '',
-        moneda: monedaCabecera.value?.id ?? 'USD',
+        moneda: monedaPorDefectoDelPago.value,
         medioPago: finanzas.mediosPago[0]?.id ?? 'efectivo',
         fechaPago: hoyInput(),
         tipoCambio: '',

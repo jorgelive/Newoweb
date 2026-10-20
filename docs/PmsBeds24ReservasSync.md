@@ -4209,6 +4209,11 @@ implícito. Ahora la moneda base (`PmsInformacionFinanciera.moneda`) se puede fi
 y con eso queda **determinista**: los formularios de cargo y de pago proponen esa moneda por
 defecto, con la otra siempre disponible al tipo de cambio.
 
+⚠️ **Salvo el pago cuando todos los cargos están en otra moneda** (20/10/2026): entonces nace en la
+de los cargos. La base dice en qué se cotiza, no en qué se debe — GY3ADX se cotiza en dólares con
+sus dos cargos en soles, y el pago nacía en USD ofreciendo imputarlo a la deuda en PEN. Con cargos
+en dos monedas manda la base. `monedaPorDefectoDelPago` en `ReservaFinanzasPanel.vue`.
+
 **Sólo en reservas DIRECTAS PURAS.** El criterio de `PmsInformacionFinanciera::isMonedaBaseEditable()`
 no es el canal de la reserva sino **el origen de los cargos**: basta un cargo sincronizado desde
 Beds24 para bloquearlo. En una OTA la moneda la manda el canal, reescribirla falsearía la verdad
