@@ -162,10 +162,14 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
                 . 'abrió la caja de ABAJO, que es donde está su llave, y que mire TODAS las llaves: cada una '
                 . 'lleva su número en el llavero y la suya es la número {{ numero }}. Si no consigue abrir la '
                 . 'caja, mándale el vídeo {{ video_caja_llaves }}. Pídele que te CONFIRME si así la encuentra o '
-                . "si de verdad no está.\n"
+                . 'si de verdad no está. Si te CONFIRMA que no está: avisa al equipo como emergencia con '
+                . 'escalar_al_equipo, con este motivo: «su llave no estaba en la caja en el check-in: necesita '
+                . "la llave de emergencia»; y dile que ya avisaste para que le den una llave.\n"
                 . '— Si YA ESTÁ ALOJADO: que no esté en la caja es lo normal, porque la recogió al llegar. '
-                . 'Pregúntale si la tiene él o alguien de su grupo; si la ha perdido, es el tema «Pérdida de '
-                . "llaves».\n"
+                . 'Pregúntale si la tiene él o alguien de su grupo. Si la ha PERDIDO y necesita entrar: avisa al '
+                . 'equipo como emergencia con escalar_al_equipo, con este motivo: «perdió su llave y necesita '
+                . 'entrar: darle la llave de emergencia y hacer la cobranza de la pérdida»; y cuéntale lo que '
+                . "dice el tema «Pérdida de llaves» sobre el costo, sólo si lo pregunta.\n"
                 . '— Si TODAVÍA NO ES SU DÍA DE ENTRADA: su llave se deja para su llegada; díselo así y avisa al '
                 . 'equipo con escalar_al_equipo, sin marcar emergencia.',
             ],

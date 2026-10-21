@@ -1878,11 +1878,28 @@ husos y medianoches; se le da el hecho y él bifurca. Hora de pared del establec
 sin estancia— lo salta por `PmsGuiaContexto::SOLO_CON_ESTANCIA`. Una clave nueva que dependa del
 «ahora» va en esa lista.
 
-🔒 **Las llaves de emergencia NO están en la guía, a propósito.** Están en la caja fuerte de
-ARRIBA, en una cartuchera celeste, etiquetadas «emergencia 1», «emergencia 2»… Es un dato para el
-EQUIPO: el agente no lo tiene, porque un «no se lo digas al huésped» se incumple (`CLAUDE.md`, «la
-supresión no funciona») y aquí sería contarle a cualquiera dónde están las llaves de todas las
-casitas. El agente escala; quien atiende el aviso decide si usarlas.
+🔒 **Las llaves de emergencia NO están en la guía, a propósito, y las da una PERSONA (21/10/2026).**
+Están en la caja fuerte de ARRIBA —**la del dinero**, donde los huéspedes dejan el pago en
+efectivo—, en una cartuchera celeste, etiquetadas «emergencia 1», «emergencia 2»… Darlas obliga a
+dar el código de la caja del dinero, y por eso Jorge eligió que no las entregue el agente: un
+huésped con reserva activa obtendría de noche, sin que nadie lo decida, el código de una caja con
+efectivo. El agente tampoco sabe dónde están —un «no se lo digas» se incumple (`CLAUDE.md`, «la
+supresión no funciona»)—.
+
+Lo que hace cada uno:
+
+| Caso | El agente escala como emergencia con este motivo | El equipo |
+|---|---|---|
+| En la llegada, y CONFIRMA que su llave no está | «su llave no estaba en la caja en el check-in: necesita la llave de emergencia» | Le manda la plantilla `llave_emergencia` |
+| Ya alojado, la PERDIÓ y necesita entrar | «perdió su llave y necesita entrar: darle la llave de emergencia y hacer la cobranza de la pérdida» | Le manda la plantilla y hace la cobranza (el costo está en «Pérdida de llaves») |
+
+**La plantilla `llave_emergencia`** (`app:pms:crear-plantilla-llave-emergencia`) es hermana de
+`caja_dinero`: envío manual, Beds24 y WhatsApp dentro de ventana, no oficial en Meta, y el código,
+la foto y el vídeo de la caja como variables (`{{ codigo_caja_dinero }}`…), nunca tecleados.
+⚠️ **La etiqueta «emergencia» se restaura tras traducir**: la traducción automática la convirtió en
+«emergency» y el huésped habría buscado una etiqueta que no existe. El comando la vuelve a poner en
+la línea de la cartuchera de cada idioma conservando el `origenHash`, como `PaxCrearTextosGuiaCommand`.
+⚠️ **El huésped no la puede pedir**: su `agenteUso` le dice al agente que no la mande por su cuenta.
 
 ⚠️ **El número de llave es `{{ numero }}`, no `{{ numero_llave }}`.** Al escribir esta escalera
 volvió a salir la errata del 11/09 (§3 ter). Desde ese día `app:pms:verificar-marcadores-guia`
@@ -1909,6 +1926,7 @@ las fija tras el primer `flush` conservando el `origenHash`.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar las instrucciones de la llave de emergencia | `PmsCrearPlantillaLlaveEmergenciaCommand` | `CUERPO` (y la etiqueta en `ETIQUETA`); en producción, en el panel de plantillas, sin tocar la palabra «emergencia» de los otros idiomas |
 | Cambiar hasta qué hora se considera «llegada» para la llave | `PmsGuiaContexto` | `FIN_DE_LA_LLEGADA` (hoy 07:00) y `momentoDeLaLlave()` |
 | Cambiar qué se le da a quien no puede entrar o no encuentra su llave | `PmsGuiaPuertasEscaleraCommand` | `pasos()`, y volver a correr `app:pms:guia:puertas-escalera` (§7 quater, «No puedo entrar») |
 | **Cambiar quién ve qué** | `src/Pms/Guia/PmsGuiaAcceso.php` | `permite()` (la matriz, §3) |
