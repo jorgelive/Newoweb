@@ -48,7 +48,8 @@ con una clave no pasan como UTILITY por mucho que se vistan. **Tercer intento, `
 sin «dinero» en las variables ni en el nombre —`llave_emergencia_v2` y `pago_en_efectivo_v2`, con
 `{{combinacion_caja_superior}}`, `{{foto_caja_superior}}` y `{{video_caja_superior}}`, alias que
 publica `PmsMessageDataResolver::ALIAS_PARA_META`; los textos de dentro de ventana no cambian—.
-Si tampoco pasa, la salida es no tener plantilla propia:
+**También rechazada, 14 de 14, en menos de un minuto.** El nombre de las variables no era. La salida
+es no tener plantilla propia:
 el mensaje EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada,
 y las instrucciones como texto cuando el huésped pulsa. Las `_v1` quedan rechazadas en Meta y
 `is_official_meta: false` aquí, así que no se usan.
