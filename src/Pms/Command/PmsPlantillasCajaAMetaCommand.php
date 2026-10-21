@@ -38,6 +38,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Por eso el cuerpo de Meta ya NO es copia del de dentro de ventana: está escrito aquí.
  *
+ * Y también se rechazó. La `_v2` quita además «dinero» de las variables y del nombre: la caja se
+ * nombra por su sitio (`{{combinacion_caja_superior}}`…), alias que publica
+ * `PmsMessageDataResolver::ALIAS_PARA_META`. Los textos de dentro de ventana no cambian.
+ *
  * El cuerpo se escribe en español y lo traduce `AutoTranslationEventListener` al guardar; en
  * `llave_emergencia` la etiqueta física «emergencia» se restaura después
  * (`PmsCrearPlantillaLlaveEmergenciaCommand::conEtiqueta()`). Nace `is_official_meta: false`: la
@@ -55,6 +59,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class PmsPlantillasCajaAMetaCommand extends Command
 {
     /**
+     * El nombre en Meta. Las `_v1` (`llave_emergencia_v1`, `caja_dinero_v1`) quedaron rechazadas;
+     * la del pago deja de llamarse «caja_dinero» por lo mismo que sus variables
+     * (`PmsMessageDataResolver::ALIAS_PARA_META`).
+     *
+     * @var array<string, string>
+     */
+    private const array NOMBRES_EN_META = [
+        PmsCrearPlantillaLlaveEmergenciaCommand::CODIGO => 'llave_emergencia_v2',
+        'caja_dinero' => 'pago_en_efectivo_v2',
+    ];
+
+    /**
      * El cuerpo de Meta, en español: lo demás lo traduce el listener.
      *
      * @var array<string, string>
@@ -66,12 +82,12 @@ final class PmsPlantillasCajaAMetaCommand extends Command
             Hola {{guest_name}}, estas son las instrucciones para retirar la llave de emergencia de tu alojamiento:
 
             1️⃣ En el pasadizo hay dos cajas fuertes digitales. La de la llave de emergencia es la de ARRIBA — la de abajo es la de las llaves de siempre.
-            2️⃣ Marca en el teclado {{codigo_caja_dinero}} y gira la perilla hacia la derecha para abrir.
+            2️⃣ Marca en el teclado {{combinacion_caja_superior}} y gira la perilla hacia la derecha para abrir.
             3️⃣ Dentro hay una cartuchera celeste. Toma la llave con la etiqueta «emergencia» y el número de tu casita ({{room_name}}).
             4️⃣ Cierra la caja girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.
 
-            📷 Así es la caja: {{foto_caja_dinero}}
-            🎥 Cómo se abre: {{video_caja_dinero}}
+            📷 Así es la caja: {{foto_caja_superior}}
+            🎥 Cómo se abre: {{video_caja_superior}}
 
             Te enviamos estas instrucciones porque las solicitaste a nuestro equipo de recepción.
             TXT,
@@ -81,12 +97,12 @@ final class PmsPlantillasCajaAMetaCommand extends Command
             Hola {{guest_name}}, estas son las instrucciones para dejar el pago en efectivo que acordaste con nuestro equipo:
 
             1️⃣ En el pasadizo hay dos cajas fuertes digitales. La del pago es la de ARRIBA — la de abajo es la de las llaves.
-            2️⃣ Marca en el teclado {{codigo_caja_dinero}} y gira la perilla hacia la derecha para abrir.
+            2️⃣ Marca en el teclado {{combinacion_caja_superior}} y gira la perilla hacia la derecha para abrir.
             3️⃣ Antes de cerrar, toma una foto del dinero dentro de la caja y envíanosla: es tu comprobante y el nuestro.
             4️⃣ Cierra girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.
 
-            📷 Así es la caja: {{foto_caja_dinero}}
-            🎥 Cómo se abre: {{video_caja_dinero}}
+            📷 Así es la caja: {{foto_caja_superior}}
+            🎥 Cómo se abre: {{video_caja_superior}}
 
             Te enviamos estas instrucciones para completar el pago de tu reserva.
             TXT,
@@ -151,8 +167,8 @@ final class PmsPlantillasCajaAMetaCommand extends Command
             $plantilla->setWhatsappMetaTmpl([
                 'is_active' => true,
                 'category' => 'UTILITY',
-                // Con sufijo desde el primer día: el nombre en Meta no se edita (docs/Mensajeria.md §18).
-                'meta_template_name' => $codigo . '_v1',
+                // El nombre en Meta no se edita (docs/Mensajeria.md §18): cada intento, uno nuevo.
+                'meta_template_name' => self::NOMBRES_EN_META[$codigo],
                 'is_official_meta' => false,
                 'header' => [],
                 'footer' => [],

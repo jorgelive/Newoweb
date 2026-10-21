@@ -44,7 +44,11 @@ para UTILITY: **nombrar la operación** (abre con «Información sobre tu reserv
 que sólo admite el texto fijo de verificación— y **cerrar con el motivo del envío**, no con una
 invitación a conversar. **También se rechazó, 14 de 14 y en segundos** (lo decide el clasificador
 automático, no una persona), con el mismo motivo. Conclusión: unas instrucciones para abrir una caja
-con una clave no pasan como UTILITY por mucho que se vistan. La salida es no tener plantilla propia:
+con una clave no pasan como UTILITY por mucho que se vistan. **Tercer intento, `_v2`** (Jorge):
+sin «dinero» en las variables ni en el nombre —`llave_emergencia_v2` y `pago_en_efectivo_v2`, con
+`{{combinacion_caja_superior}}`, `{{foto_caja_superior}}` y `{{video_caja_superior}}`, alias que
+publica `PmsMessageDataResolver::ALIAS_PARA_META`; los textos de dentro de ventana no cambian—.
+Si tampoco pasa, la salida es no tener plantilla propia:
 el mensaje EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada,
 y las instrucciones como texto cuando el huésped pulsa. Las `_v1` quedan rechazadas en Meta y
 `is_official_meta: false` aquí, así que no se usan.

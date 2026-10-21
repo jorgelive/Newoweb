@@ -169,6 +169,25 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         'foto_caja_dinero',
         'video_caja_llaves',
         'video_caja_dinero',
+        // Los alias de abajo abren lo mismo que su original.
+        'combinacion_caja_superior',
+        'foto_caja_superior',
+        'video_caja_superior',
+    ];
+
+    /**
+     * Los mismos datos de la caja de ARRIBA con un nombre que no dice «dinero», sólo para los
+     * cuerpos de plantilla OFICIAL de Meta (alias → clave original).
+     *
+     * 🔥 Meta rechazó `llave_emergencia_v1` y `caja_dinero_v1` (21/10/2026, `INCORRECT_CATEGORY`),
+     * dos veces, y el nombre de una variable lo ve su revisor. Aquí dentro se siguen llamando por lo
+     * que abren —el aviso de abajo sobre `door_code` sigue en pie—; el alias es la cara hacia Meta.
+     * Ver `docs/Mensajeria.md`, «Plantillas que se ofrecen a mano».
+     */
+    public const array ALIAS_PARA_META = [
+        'combinacion_caja_superior' => 'codigo_caja_dinero',
+        'foto_caja_superior'        => 'foto_caja_dinero',
+        'video_caja_superior'       => 'video_caja_dinero',
     ];
 
     /**
@@ -221,7 +240,21 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             $salida[$tipo->clave()] = $valor;
         }
 
-        return $salida;
+        return self::conAlias($salida);
+    }
+
+    /**
+     * @param array<string, string> $datos
+     *
+     * @return array<string, string>
+     */
+    private static function conAlias(array $datos): array
+    {
+        foreach (self::ALIAS_PARA_META as $alias => $original) {
+            $datos[$alias] = $datos[$original] ?? '';
+        }
+
+        return $datos;
     }
 
     public function supports(string $contextType): bool
@@ -566,6 +599,9 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'foto_caja_dinero'      => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
             'video_caja_llaves'     => 'https://youtu.be/ejemplo',
             'video_caja_dinero'     => 'https://youtu.be/ejemplo',
+            'combinacion_caja_superior' => '2013E',
+            'foto_caja_superior'    => rtrim($this->paxHostUrl, '/') . '/carga/pms/pms_establecimiento/images/ejemplo.webp',
+            'video_caja_superior'   => 'https://youtu.be/ejemplo',
             'guide_url'             => rtrim($this->paxBookGuideUrl, '/') . '/' . $dummyLocator,
             'guide_path'            => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator,
             // ⚠️ Los marcadores nuevos van TAMBIÉN aquí. Este array alimenta el `example`
