@@ -74,6 +74,56 @@ final readonly class PmsGuiaContexto
     }
 
     /**
+     * Claves que SÓLO existen con una estancia, porque dependen del «ahora» frente a sus fechas.
+     *
+     * `app:pms:verificar-marcadores-guia` revisa con un contexto SIN estancia (es lo que enseña
+     * qué no resuelve nadie), y sin esta lista las denunciaría como huérfanas. Vive aquí, junto a
+     * quien las carga, para que una clave nueva de este tipo no exija acordarse de otro archivo.
+     */
+    public const array SOLO_CON_ESTANCIA = ['momento_llave'];
+
+    /** Hasta qué hora del día SIGUIENTE a la entrada se sigue «llegando» (decisión de Jorge). */
+    public const string FIN_DE_LA_LLEGADA = '07:00';
+
+    /**
+     * Dónde tiene que estar su llave AHORA, dicho como un hecho: `{{ momento_llave }}`.
+     *
+     * ── Por qué es código y no una instrucción ─────────────────────────────────
+     * «Si no encuentra su llave» significa cosas opuestas según el momento (20/10/2026, Jorge):
+     * el día de su entrada —o esa noche, hasta las 07:00— la llave TIENE que estar en la caja de
+     * abajo y hay que validar que de verdad no está antes de escalar; ya alojado, la recogió al
+     * llegar y no estar en la caja es lo normal. Pedirle al modelo que lo deduzca de las fechas es
+     * pedirle que calcule husos y medianoches: se le da el hecho y él bifurca, que es lo que hace
+     * bien (`CLAUDE.md`, «las condiciones se escriben en positivo en todas las ramas»).
+     *
+     * Hora de pared del establecimiento, como `PmsGuiaAcceso::paraEvento()`: la fecha guardada se
+     * vuelve a leer en su zona antes de comparar (`docs/ZonasHorarias.md`).
+     */
+    public static function momentoDeLaLlave(
+        \DateTimeInterface $inicio,
+        \DateTimeZone $zona,
+        \DateTimeImmutable $ahora,
+    ): string {
+        $entrada = new \DateTimeImmutable($inicio->format('Y-m-d'), $zona);
+        [$hora, $minuto] = array_map('intval', explode(':', self::FIN_DE_LA_LLEGADA));
+        $finLlegada = $entrada->modify('+1 day')->setTime($hora, $minuto);
+
+        if ($ahora < $entrada) {
+            return 'TODAVÍA NO ES SU DÍA DE ENTRADA: su llave se deja en la caja para el día de su llegada.';
+        }
+
+        if ($ahora < $finLlegada) {
+            return sprintf(
+                'ESTÁ EN SU LLEGADA (desde el día de su entrada hasta las %s del día siguiente): su llave TIENE '
+                . 'que estar en la caja de llaves, la de abajo.',
+                self::FIN_DE_LA_LLEGADA,
+            );
+        }
+
+        return 'YA ESTÁ ALOJADO: su llave la recogió de la caja al llegar, así que no tiene por qué estar en la caja.';
+    }
+
+    /**
      * Construye el contexto de una estancia. Con $evento a null sale el
      * contexto del catálogo público: sin nombre de huésped, sin fechas y —lo
      * importante— sin ninguna clave sensible cargada, ni siquiera enmascarada.
@@ -151,6 +201,16 @@ final readonly class PmsGuiaContexto
         // dice quién puede verlos, y el catálogo resuelve con el mismo `permite()`.
         if (null === $evento) {
             return new self($valores, [], [], $medios);
+        }
+
+        $inicio = $evento->getInicio();
+
+        if ($inicio !== null) {
+            $valores['momento_llave'] = self::momentoDeLaLlave(
+                $inicio,
+                $evento->zonaHoraria(),
+                new \DateTimeImmutable('now', $evento->zonaHoraria()),
+            );
         }
 
         $sensibles = array_filter([

@@ -33,6 +33,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * 3. Si aun así no abre: escalar como emergencia. Lo dispara solo `consultar_guia` al agotarse los
  *    pasos (`debes_escalar`), y `escalar_al_equipo` no deja avisar mientras quede un paso.
  *
+ * «No encuentro mi llave» depende del MOMENTO, y ése lo da el código (`{{ momento_llave }}`,
+ * `PmsGuiaContexto::momentoDeLaLlave()`): en su llegada —el día de entrada y hasta las 07:00 del
+ * siguiente— se valida que de verdad no está antes de escalar; ya alojado, no estar en la caja es
+ * lo normal y es el tema «Pérdida de llaves».
+ *
  * Casita 5: todavía sin vídeo de ingreso; se añade cuando lo haya y se vuelve a correr.
  *
  * ⚠️ **Las llaves de emergencia NO están aquí, a propósito.** Viven en la caja fuerte de arriba y
@@ -149,11 +154,20 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
                 . "3) Que gire la llave en sentido HORARIO.\n"
                 . self::CIERRE,
             ],
+            // El momento lo pone el código (`PmsGuiaContexto::momentoDeLaLlave()`): validar que de verdad
+            // no está sólo tiene sentido en la llegada (Jorge, 20/10/2026).
             'Llaves (general)' => [
-                'SI DICE QUE NO ENCUENTRA SU LLAVE EN LA CAJA: que compruebe que abrió la caja de ABAJO, que es '
-                . 'donde está su llave, y que mire TODAS las llaves: cada una lleva su número en el llavero y la '
-                . 'suya es la número {{ numero }}. Si no consigue abrir la caja, mándale el vídeo '
-                . '{{ video_caja_llaves }}. Pídele que te diga si así la encuentra.',
+                "SI DICE QUE NO ENCUENTRA SU LLAVE EN LA CAJA. Ahora mismo: {{ momento_llave }}\n"
+                . '— Si ESTÁ EN SU LLEGADA: antes de nada, valida que de verdad no está. Que compruebe que '
+                . 'abrió la caja de ABAJO, que es donde está su llave, y que mire TODAS las llaves: cada una '
+                . 'lleva su número en el llavero y la suya es la número {{ numero }}. Si no consigue abrir la '
+                . 'caja, mándale el vídeo {{ video_caja_llaves }}. Pídele que te CONFIRME si así la encuentra o '
+                . "si de verdad no está.\n"
+                . '— Si YA ESTÁ ALOJADO: que no esté en la caja es lo normal, porque la recogió al llegar. '
+                . 'Pregúntale si la tiene él o alguien de su grupo; si la ha perdido, es el tema «Pérdida de '
+                . "llaves».\n"
+                . '— Si TODAVÍA NO ES SU DÍA DE ENTRADA: su llave se deja para su llegada; díselo así y avisa al '
+                . 'equipo con escalar_al_equipo, sin marcar emergencia.',
             ],
         ];
     }

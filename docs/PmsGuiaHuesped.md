@@ -1855,8 +1855,28 @@ sigue sin abrir           →  emergencia al equipo (lo ordena `consultar_guia` 
 
 Las casitas sin truco tienen un solo paso: si con todo junto sigue sin abrir, se escala. La
 Casita 5 no tiene vídeo de ingreso todavía; cuando lo tenga, se añade la línea y se vuelve a correr
-el comando. «Llaves (general)» tiene su paso para quien **no encuentra su llave**: que abrió la caja
-de ABAJO y que mire todas, cada una lleva su número; si aun así no está, se escala.
+el comando.
+
+**«No encuentro mi llave» depende del MOMENTO, y ése lo da el código.** «Llaves (general)» empieza
+su paso con `{{ momento_llave }}` (`PmsGuiaContexto::momentoDeLaLlave()`), un hecho en tres ramas:
+
+```
+antes del día de entrada              → «su llave se deja para su llegada» → escalar, sin emergencia
+día de entrada … 07:00 del siguiente  → la llave TIENE que estar en la caja de abajo:
+                                        VALIDAR que de verdad no está (caja de abajo, mirar todas,
+                                        su número) y sólo con su confirmación → emergencia
+ya alojado                            → la recogió al llegar: no estar en la caja es lo normal
+                                        → ¿la tiene él o su grupo? si la perdió, «Pérdida de llaves»
+```
+
+Lo decidió Jorge el 20/10/2026: validar sólo tiene sentido en la llegada. **Es código y no una
+instrucción** porque pedirle al modelo que deduzca el momento de las fechas es pedirle que calcule
+husos y medianoches; se le da el hecho y él bifurca. Hora de pared del establecimiento, igual que
+`PmsGuiaAcceso::paraEvento()`; el límite está en `PmsGuiaContexto::FIN_DE_LA_LLEGADA`.
+
+⚠️ `momento_llave` sólo existe con estancia, así que `app:pms:verificar-marcadores-guia` —que revisa
+sin estancia— lo salta por `PmsGuiaContexto::SOLO_CON_ESTANCIA`. Una clave nueva que dependa del
+«ahora» va en esa lista.
 
 🔒 **Las llaves de emergencia NO están en la guía, a propósito.** Están en la caja fuerte de
 ARRIBA, en una cartuchera celeste, etiquetadas «emergencia 1», «emergencia 2»… Es un dato para el
@@ -1889,6 +1909,7 @@ las fija tras el primer `flush` conservando el `origenHash`.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar hasta qué hora se considera «llegada» para la llave | `PmsGuiaContexto` | `FIN_DE_LA_LLEGADA` (hoy 07:00) y `momentoDeLaLlave()` |
 | Cambiar qué se le da a quien no puede entrar o no encuentra su llave | `PmsGuiaPuertasEscaleraCommand` | `pasos()`, y volver a correr `app:pms:guia:puertas-escalera` (§7 quater, «No puedo entrar») |
 | **Cambiar quién ve qué** | `src/Pms/Guia/PmsGuiaAcceso.php` | `permite()` (la matriz, §3) |
 | Que un getter que devuelve `array` salga tipado en el schema | la entidad | el `@return array<int, X>` del docblock — es la única fuente (§7) |

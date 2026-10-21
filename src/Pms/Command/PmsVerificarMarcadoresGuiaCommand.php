@@ -178,7 +178,9 @@ final class PmsVerificarMarcadoresGuiaCommand extends Command
                     if (in_array($clave, self::BLOQUES_DEL_FRONT, true)) {
                         continue;
                     }
-                } elseif (in_array($clave, self::NORMALIZA_EL_FRONT, true)) {
+                } elseif (in_array($clave, self::NORMALIZA_EL_FRONT, true)
+                    || in_array($clave, PmsGuiaContexto::SOLO_CON_ESTANCIA, true)) {
+                    // Las de estancia sólo existen con fechas y un «ahora»: aquí se revisa sin estancia.
                     continue;
                 }
 
