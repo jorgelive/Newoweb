@@ -17,6 +17,31 @@ la siguiente persona lo investiga otra vez.
 
 ---
 
+## ⏸️ En espera (Jorge): mandar la llave de emergencia o la caja del dinero FUERA de ventana — 21/10/2026
+
+`llave_emergencia` y `caja_dinero` salen por Beds24 y por WhatsApp dentro de la ventana de 24 h. A
+una reserva **directa** sin ventana no le llegan, y el caso real es justo ése: el huésped llama por
+teléfono. Meta **no aprueba ninguna plantilla que dé o mencione una clave** (cinco redacciones,
+medido con sondas: `docs/Mensajeria.md`, «Plantillas que se ofrecen a mano»), y sin la clave no
+sirve. Descartados también el mensaje en espera con `respuesta_pendiente` y la categoría de
+autenticación. Mientras tanto: se le pide por teléfono que escriba por WhatsApp, y con eso se abre
+la ventana.
+
+Si se retoma, la única vía compatible con lo que Meta ya aprueba es la de `guia_llegada`: plantilla
+sin la clave y un botón a una página que la muestre. Hoy el código de la caja de arriba está fuera
+de la guía a propósito (`PmsEstablecimientoMediaTipo::visibilidad()` → `null`).
+
+## Emergencias: lo que espera una decisión de Jorge — 21/10/2026
+
+Del protocolo de puertas y llaves (`docs/PmsGuiaHuesped.md` §7 quater):
+
+- **Textos aprobados para gas, agua, luz e intrusos.** Hoy el agente escala con la marca de
+  emergencia, pero no tiene qué decir mientras tanto; sin texto aprobado, lo improvisa.
+- **La llave de emergencia, ¿se devuelve o se la queda?** Y si se cambia la combinación de la caja
+  de arriba después de darla. Ninguna de las dos cosas se le dice hoy al huésped.
+
+---
+
 ## Vender sin pasar a mano por una cotización — 16/10/2026
 
 Tres piezas que salieron al montar «Cómo reservar» (`docs/Cotizaciones.md` §6.a) y que Jorge
