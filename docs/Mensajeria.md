@@ -42,8 +42,12 @@ copiado, con un cierre «escríbenos por aquí». Las sospechas, y el segundo cu
 para UTILITY: **nombrar la operación** (abre con «Información sobre tu reserva `{{locator}}` en
 `{{room_name}}`»), **no decir «código»** —«marca el código X» es la forma de una de AUTENTICACIÓN,
 que sólo admite el texto fijo de verificación— y **cerrar con el motivo del envío**, no con una
-invitación a conversar. Si también se rechaza, la salida es no tener plantilla propia: el mensaje
-EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada.
+invitación a conversar. **También se rechazó, 14 de 14 y en segundos** (lo decide el clasificador
+automático, no una persona), con el mismo motivo. Conclusión: unas instrucciones para abrir una caja
+con una clave no pasan como UTILITY por mucho que se vistan. La salida es no tener plantilla propia:
+el mensaje EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada,
+y las instrucciones como texto cuando el huésped pulsa. Las `_v1` quedan rechazadas en Meta y
+`is_official_meta: false` aquí, así que no se usan.
 El motivo de un rechazo se lee pidiendo `fields=rejected_reason` al listado de plantillas
 (`var/probar-rechazo-meta.php`); el correo de Meta no lo trae. Se suben con
 `msg:meta:push <code> --todos` y la marca oficial la pone `app:whatsapp:sync-templates` al
