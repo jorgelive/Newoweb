@@ -27,9 +27,10 @@ sirve. Descartados también el mensaje en espera con `respuesta_pendiente` y la 
 autenticación. Mientras tanto: se le pide por teléfono que escriba por WhatsApp, y con eso se abre
 la ventana.
 
-Si se retoma, la única vía compatible con lo que Meta ya aprueba es la de `guia_llegada`: plantilla
-sin la clave y un botón a una página que la muestre. Hoy el código de la caja de arriba está fuera
-de la guía a propósito (`PmsEstablecimientoMediaTipo::visibilidad()` → `null`).
+**Actualizado el mismo día:** la página existe. Las dos plantillas mandan ya un enlace firmado a una
+ficha que sólo abre ese enlace (`docs/PmsGuiaHuesped.md` §7 sexies). Lo que queda para fuera de
+ventana: una plantilla oficial con ese enlace y sin la clave, probada antes con una sonda
+(`var/probar-clasificador-meta.php`), y su cuerpo de Meta.
 
 ## Emergencias: lo que espera una decisión de Jorge — 21/10/2026
 

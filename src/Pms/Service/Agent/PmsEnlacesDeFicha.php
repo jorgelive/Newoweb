@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Agent;
 
+use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Agent\Contract\ResolutorDeEnlacesInterface;
 use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsGuiaItem;
@@ -45,6 +46,12 @@ final readonly class PmsEnlacesDeFicha implements ResolutorDeEnlacesInterface
             self::MARCADOR,
             function (array $m) use ($idioma): string {
                 $destino = $this->em->getRepository(PmsGuiaItem::class)->findOneBy(['codigo' => $m[1]]);
+
+                // Un enlace a un `PorEnlace` no se le anuncia al agente: no es un tema que pueda
+                // consultar, y su título ya dice qué hay (la caja del dinero, la llave de emergencia).
+                if ($destino?->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace) {
+                    $destino = null;
+                }
                 $titulo = $destino !== null ? MaestroIdioma::textoEn($destino->getTitulo(), $idioma) : null;
 
                 return $titulo === null || $titulo === ''

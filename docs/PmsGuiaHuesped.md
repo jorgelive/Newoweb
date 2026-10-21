@@ -21,6 +21,7 @@ las entidades `PmsGuia*` / `PmsUnidad` / `PmsEstablecimiento`, `src/Api/Controll
 5. [Rutas, slugs y endpoints](#5-rutas-slugs-y-endpoints)
 6. [Qué se arregló y qué sigue roto](#6-qué-se-arregló-y-qué-sigue-roto)
 7. [Gotchas](#7-gotchas)
+7 sexies. [Fichas que sólo abre un enlace del equipo: la llave de emergencia y el pago en efectivo](#7-sexies-fichas-que-sólo-abre-un-enlace-del-equipo-21102026)
 8. [Dónde tocar para cambiar X](#8-dónde-tocar-para-cambiar-x)
 9. [Los cuatro temas que faltaban](#9-los-cuatro-temas-que-faltaban-y-las-reglas-que-ahora-viven-aquí)
 
@@ -1924,6 +1925,95 @@ volvió a salir la errata del 11/09 (§3 ter). Desde ese día `app:pms:verificar
 revisa también `agenteContenido` y cada paso de `agentePasos`, no sólo el texto publicado: los
 dos pasan por el mismo interpolador y se le dictan al huésped casi tal cual.
 
+## 7 sexies. Fichas que sólo abre un enlace del equipo (21/10/2026)
+
+Cómo sacar la **llave de emergencia** y cómo dejar un **pago en efectivo**: las dos van a la caja de
+ARRIBA, la del dinero, y su código no es de cualquier huésped aunque tenga la ventana abierta. Lo
+decide una persona cada vez (decisión de Jorge: la llave de emergencia la da el equipo, nunca el
+agente). Hasta hoy iban como texto dentro de las plantillas `llave_emergencia` y `caja_dinero`, con
+el código escrito en el mensaje.
+
+```
+ equipo: «mándale la llave de emergencia»            (panel, o el agente con enviar_plantilla)
+   │
+   ▼
+ plantilla llave_emergencia: «…aquí tienes cómo sacarla: {{ acceso_llave_emergencia }}»
+   │   PmsMessageDataResolver::enlacesDelEquipo() → PmsGuiaEnlaceDelEquipo::emitir()
+   │   (token firmado: reserva | ficha | caducidad — no escribe nada en la base)
+   ▼
+ huésped abre  pax /acceso/{token}            PaxGuiaEnlaceView.vue
+   │
+   ▼
+ GET api /pms/guia-enlace/{token}             PmsGuiaEnlacePublicoController::ver()
+   ├─ PmsGuiaThrottle (el mismo freno que la guía)
+   ├─ PmsGuiaEnlaceDelEquipo::leer(): firma → caducidad → ficha sigue PorEnlace →
+   │                                   reserva no cancelada → estancia que la guía sirve
+   │                                   (cualquier fallo: el mismo 404)
+   └─ interpola la ficha con PmsGuiaAcceso::porEnlace()
+      y PmsGuiaContexto::construir(…, conMediosDelEquipo: true)
+```
+
+**Las piezas:**
+
+| Pieza | Qué hace |
+|---|---|
+| `PmsGuiaVisibilidad::PorEnlace` | Nivel FUERA de la escalera. `permite()` sólo lo abre con `PmsGuiaAcceso::porEnlace()`; `exigeCondicionExtra()` es falso, así que tampoco se anuncia con candado. |
+| `PmsGuiaEnlaceDelEquipo` | Emite y valida el token. Caduca al final del día de salida, nunca antes de `HORAS_MINIMAS` (48 h) ni después de `DIAS_MAXIMOS` (14 días). Una reserva cuya última estancia acabó hace más de `DIAS_TRAS_LA_SALIDA` (2) no da enlace. |
+| `PmsGuiaAcceso::porEnlace($deLaEstancia)` | El acceso de la estancia (`paraEvento()`) **más** la ficha. No abre la ventana: el resto de marcadores que la ficha escriba sigue la escalera. |
+| `{{ acceso_<código> }}` | Una variable por ficha `PorEnlace`, con guiones bajos (`llave-emergencia` → `acceso_llave_emergencia`, `variable()`): Meta no admite guiones. |
+| `app:pms:guia:enlaces-del-equipo` | Crea las dos fichas por ORM (se traducen). No cuelgan de ninguna sección. |
+| `app:pms:plantillas-caja-con-enlace` | Pone las dos plantillas a mandar el enlace en lugar de los pasos. |
+| `pax:textos:enlace-equipo` | Las tres frases de la página (`enl_*`). |
+
+**Por qué un enlace firmado y no un ítem oculto de la guía.** La guía se abre con el localizador:
+esconder la ficha del menú no la protege, porque cualquiera con el localizador llegaría a ella. Y
+por qué firmado y sin fila: las variables de plantilla se calculan también en la vista previa
+(`msg:plantilla:ver`) y en dos skills que leen la reserva; con una fila por enlace, cada lectura
+dejaría guardado un enlace válido. El precio es no poder revocar uno suelto: lo acotan la caducidad
+y que al abrirlo se vuelva a comprobar la estancia.
+
+**El dato se resuelve al ABRIR, no al mandar.** Si la caja de arriba cambia de código, el enlace ya
+enviado enseña el nuevo. Y el código ya no se queda escrito en el chat.
+
+⚠️ **Por dónde se podría escapar, y quién lo cierra.** Cada sitio que lista fichas de la guía:
+
+| Consumidor | Cómo no la ve |
+|---|---|
+| La guía (`PmsGuiaArbolFiltro::podar()`) | `permite()` falso y sin candado: se cae, aunque alguien la cuelgue de una sección |
+| El catálogo público (`PmsUnidadCatalogoProvider`) | se salta `PorEnlace` aunque esté en la lista del catálogo |
+| El índice de temas del agente (`PmsIndiceDeTemas::construir()`, `temasQueCubren()`) | se salta: el agente ofrecería un tema que `podar()` le quita, y lo negaría |
+| Los enlaces `{{ ficha: … }}` para el agente (`PmsEnlacesDeFicha`) | se tratan como si no existieran |
+| Las skills que leen la reserva (`BuscarReservaSkill`, `ConsultarMiReservaSkill`) | `PmsMessageDataResolver::sinClavesDeAcceso()` quita los `acceso_*` además de `CLAVES_DE_ACCESO` |
+| Buscadores | `PaxAppController::PRIVADAS` incluye `acceso`: `/acceso/{token}` tiene dos tramos y sin eso se servía como vitrina, indexable |
+
+🔒 **La caja del dinero sólo existe en el contexto del enlace.** El código, la foto y el vídeo los
+carga `PmsGuiaContexto::construir()` únicamente con `conMediosDelEquipo` (el código, como dato del
+contexto; los medios, con nivel `PorEnlace`). En cualquier otra ficha el código sale bloqueado
+(sigue en `CLAVES_SENSIBLES`) y la foto y el vídeo se QUITAN —antes se quedaban crudos—.
+
+🔥 **La primera versión protegía las dos fichas, no el dato** (lo cazó la revisión de Fable): el
+código seguía en `$sensibles`, así que cualquier ficha normal que lo escribiera se lo enseñaba a
+cualquier huésped en ventana, y el panel lo ofrecía como marcador. Medido en producción: ninguna
+ficha lo usaba. Y `porEnlace()` devolvía una ventana abierta a secas, que habría abierto también
+las llaves o el vídeo de entrada antes del pago si una ficha `PorEnlace` los escribía.
+
+**Lo que sí ve el agente:** una vez mandada la plantilla, el texto con el enlace queda en el
+historial del hilo (`AiConversationProcessor::historial()`), y el agente podría volver a citarlo
+en esa conversación. Es la misma persona, así que no es una fuga; pero que lo sepa quien lea esto.
+Quién puede MANDARLA lo cierra `ROLE_MENSAJES_WRITE` en `enviar_plantilla` y `autoenvioHabilitada
+= false` en las dos (comprobado en producción el 21/10/2026); el «si la pide él, no la mandes» del
+`agenteUso` es la petición, no el cierre.
+
+**El freno no cuenta los enlaces propios caducados** (`firmaValida()`): el contador por IP es el
+mismo que el de la guía, y reabrir diez veces un enlace vencido dejaba sin guía a ese huésped.
+**`Referrer-Policy: no-referrer`** va en la PÁGINA `/acceso/…` (`PaxAppController::paraBuscadores()`):
+la URL es la credencial y la página embebe un vídeo de YouTube.
+
+Verificación: `PmsGuiaEnlaceDelEquipoTest` (firma, manipulación, otro secreto, caducidad y sus
+topes, reserva vieja, ficha que deja de ser `PorEnlace`, reserva cancelada, la matriz, el código de
+la caja sólo en el contexto del enlace y `sinClavesDeAcceso()`), y
+`app:pms:verificar-marcadores-guia` revisa también estas fichas.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
@@ -1944,7 +2034,9 @@ las fija tras el primer `flush` conservando el `origenHash`.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
-| Cambiar las instrucciones de la llave de emergencia | `PmsCrearPlantillaLlaveEmergenciaCommand` | `CUERPO` (y la etiqueta en `ETIQUETA`); en producción, en el panel de plantillas, sin tocar la palabra «emergencia» de los otros idiomas |
+| Cambiar las instrucciones de la llave de emergencia o del pago en efectivo | panel → Guía → Ítems: fichas `llave-emergencia` y `pago-efectivo` | La plantilla sólo lleva el enlace (§7 sexies). La etiqueta «emergencia» va en `<span translate="no">` |
+| Añadir otra ficha que sólo abra el equipo | panel: ficha con «Sólo con enlace del equipo» y un código | En la plantilla, `{{ acceso_<código con _> }}`. Nada de código: `PmsGuiaEnlaceDelEquipo::items()` la encuentra sola |
+| Cuánto dura un enlace del equipo | `PmsGuiaEnlaceDelEquipo` | `HORAS_MINIMAS` y `caducidad()` |
 | Cambiar hasta qué hora se considera «llegada» para la llave | `PmsGuiaContexto` | `FIN_DE_LA_LLEGADA` (hoy 07:00) y `momentoDeLaLlave()` |
 | Cambiar qué se le da a quien no puede entrar o no encuentra su llave | `PmsGuiaPuertasEscaleraCommand` | `pasos()`, y volver a correr `app:pms:guia:puertas-escalera` (§7 quater, «No puedo entrar») |
 | **Cambiar quién ve qué** | `src/Pms/Guia/PmsGuiaAcceso.php` | `permite()` (la matriz, §3) |

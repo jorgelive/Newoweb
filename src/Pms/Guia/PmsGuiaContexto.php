@@ -128,8 +128,13 @@ final readonly class PmsGuiaContexto
      * contexto del catálogo público: sin nombre de huésped, sin fechas y —lo
      * importante— sin ninguna clave sensible cargada, ni siquiera enmascarada.
      */
-    public static function construir(PmsUnidad $unidad, ?PmsEventoCalendario $evento): self
-    {
+    public static function construir(
+        PmsUnidad $unidad,
+        ?PmsEventoCalendario $evento,
+        // Sólo `PmsGuiaEnlaceDelEquipo`: mete los medios que no son del huésped (`visibilidad()`
+        // nula) con nivel `PorEnlace`, que sólo abre el acceso del enlace.
+        bool $conMediosDelEquipo = false,
+    ): self {
         $establecimiento = $unidad->getEstablecimiento();
         $reserva = $evento?->getReserva();
 
@@ -182,11 +187,20 @@ final readonly class PmsGuiaContexto
         //
         // Si esta comprobación se copiara a un segundo sitio, el día que alguien añada un tipo
         // nuevo tendría que acordarse de los dos. Por eso no se copia.
+        //
+        // La excepción es `$conMediosDelEquipo`, que pide quien sirve un enlace del equipo: ahí
+        // sí entran, con nivel `PorEnlace` (`docs/PmsGuiaHuesped.md` §7 sexies).
         foreach (PmsEstablecimientoMediaTipo::cases() as $tipo) {
             $nivel = $tipo->visibilidad();
 
             if ($nivel === null) {
-                continue;
+                if (!$conMediosDelEquipo) {
+                    continue;
+                }
+
+                // Aun dentro, con un nivel que la guía no abre nunca: si este contexto acabara
+                // por error en `podar()`, el medio saldría bloqueado, no a la vista.
+                $nivel = PmsGuiaVisibilidad::PorEnlace;
             }
 
             $valor = $establecimiento?->medio($tipo)?->getValor();
@@ -221,8 +235,23 @@ final readonly class PmsGuiaContexto
             'numero'       => $unidad->getNumero() !== null ? (string) $unidad->getNumero() : null,
             'codigo_caja_casita'   => $unidad->getCodigoCajaCasita(),
             'codigo_caja_llaves' => $establecimiento?->getCodigoCajaLlaves(),
-            'codigo_caja_dinero'  => $establecimiento?->getCodigoCajaDinero(),
         ], static fn (?string $v): bool => null !== $v && '' !== $v);
+
+        // 🔒 El código de la caja del DINERO, sólo para un enlace del equipo (21/10/2026).
+        //
+        // Estaba en `$sensibles` como los demás, así que cualquier ficha de la guía que lo
+        // escribiera se lo enseñaba a cualquier huésped con la ventana abierta —y el panel lo
+        // listaba como marcador disponible—. La barrera de `PorEnlace` protegía las dos fichas,
+        // no el DATO. Ahora entra por la misma puerta que su foto y su vídeo, y como dato del
+        // contexto, no como «sensible»: quien construye este contexto ya pasó el enlace firmado,
+        // y el acceso de la estancia (que puede no tener la ventana abierta: quien paga en
+        // efectivo puede no haber pagado nada) no tiene que volver a decidirlo. En cualquier otro
+        // contexto el marcador sale como bloqueo, porque sigue en `PmsGuiaInterpolador::CLAVES_SENSIBLES`.
+        $codigoCajaDinero = $establecimiento?->getCodigoCajaDinero();
+
+        if ($conMediosDelEquipo && $codigoCajaDinero !== null && $codigoCajaDinero !== '') {
+            $valores['codigo_caja_dinero'] = $codigoCajaDinero;
+        }
 
         return new self($valores, $sensibles, $unidad->getWifiNetworks(), $medios);
     }

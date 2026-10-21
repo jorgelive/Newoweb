@@ -67,6 +67,12 @@ variable e incluso sin variable. Ni «dinero», ni los enlaces, ni la palabra «
 oficial con estas instrucciones tiene que ir **sin la clave**, y la clave salir por otro camino.
 («La contraseña es {{password_caja_superior}}», también rechazada.)
 
+**Y después, el enlace (21/10/2026).** Las dos plantillas ya no llevan los pasos ni el código:
+llevan `{{ acceso_llave_emergencia }}` / `{{ acceso_pago_efectivo }}`, un enlace firmado y con
+caducidad a una ficha de la guía que sólo abre ese enlace (`docs/PmsGuiaHuesped.md` §7 sexies).
+Dentro de ventana y por Beds24 funciona ya. Para fuera de ventana, una plantilla con un ENLACE y sin
+la clave sigue el patrón que Meta aprueba (`guia_llegada`): queda por probar con una sonda.
+
 **Cerrado sin plantilla oficial (Jorge, 21/10/2026): sin la clave no sirve.** Las cuatro (`_v1`,
 `_v2`) se borraron de Meta y el bloque de Meta de las dos volvió a `{body: [], is_official_meta:
 false}`. Siguen saliendo por Beds24 y por WhatsApp dentro de ventana; a una directa sin ventana, se le

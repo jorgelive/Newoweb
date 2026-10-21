@@ -117,6 +117,13 @@ finanzas_publico_controllers:
     type: attribute
     host: '%app.host.api%'
 
+# Los enlaces del equipo a un ítem `PorEnlace` de la guía (`/pms/guia-enlace/{token}`). Mismo host
+# que el cobro: los pide `pax` por `apiClient`. Ver docs/PmsGuiaHuesped.md §7 sexies.
+pms_publico_controllers:
+    resource: ../src/Pms/Controller/Publico/
+    type: attribute
+    host: '%app.host.api%'
+
 finanzas_webhook_controllers:
     resource: ../src/Finanzas/Controller/Webhook/
     type: attribute

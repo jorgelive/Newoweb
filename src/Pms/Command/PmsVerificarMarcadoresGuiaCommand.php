@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Entity\PmsUnidad;
+use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaContexto;
 use App\Pms\Guia\PmsGuiaInterpolador;
@@ -55,6 +57,10 @@ final class PmsVerificarMarcadoresGuiaCommand extends Command
     /** Bloques que el front pinta: llegan con `:` y es su forma final, no un resto. */
     private const BLOQUES_DEL_FRONT = [
         'img', 'video', 'map', 'widget', 'imgbloqueado', 'videobloqueado',
+        // El enlace a otra ficha (`FichaEnlaceBlock`, `RichContentEngine::COMPONENT_REGISTRY`).
+        // Faltaba, y el verificador daba en rojo las siete «Early check in Late Check Out»: un
+        // rojo permanente es el que entrena a no mirar.
+        'ficha',
     ];
 
     /**
@@ -131,6 +137,24 @@ final class PmsVerificarMarcadoresGuiaCommand extends Command
                             ];
                         }
                     }
+                }
+            }
+        }
+
+        // 🔗 Los `PorEnlace` no cuelgan de ninguna sección, así que el bucle de arriba no los ve. Se
+        // revisan con el contexto de la primera casita y los medios del equipo dentro: son los que
+        // ESOS ítems usan (`{{ foto_caja_dinero }}`…) y fuera de ese contexto saldrían huérfanos.
+        $primera = $unidades[0] ?? null;
+
+        if ($primera !== null) {
+            $contextoDelEquipo = PmsGuiaContexto::construir($primera, null, conMediosDelEquipo: true);
+
+            /** @var list<PmsGuiaItem> $deEnlace */
+            $deEnlace = $this->em->getRepository(PmsGuiaItem::class)->findBy(['visibilidad' => PmsGuiaVisibilidad::PorEnlace]);
+
+            foreach ($deEnlace as $item) {
+                foreach ($this->sobrantes($item->getDescripcion(), $contextoDelEquipo) as $clave => $idiomas) {
+                    $filas[] = ['(enlace del equipo)', $item->getNombreInterno() ?? '—', $clave, implode(' ', $idiomas)];
                 }
             }
         }

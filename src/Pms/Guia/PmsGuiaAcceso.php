@@ -58,7 +58,27 @@ final readonly class PmsGuiaAcceso
         public PmsGuiaAccesoEstado $estado,
         /** Momento en que se abren los ítems `Llegada`; solo se rellena en estado Pendiente. */
         public ?\DateTimeImmutable $liberaEn = null,
+        /**
+         * El portador llegó con un enlace del equipo (`PmsGuiaEnlaceDelEquipo`). Es lo ÚNICO que
+         * abre `PmsGuiaVisibilidad::PorEnlace`, y sólo lo pone {@see self::porEnlace()}.
+         */
+        public bool $porEnlace = false,
     ) {
+    }
+
+    /**
+     * El acceso de quien abre un enlace del equipo, ya validado (firma, caducidad y estancia
+     * viva: `PmsGuiaEnlaceDelEquipo::leer()`): el de SU estancia, más la ficha `PorEnlace`.
+     *
+     * ⚠️ **Parte del acceso de la estancia, no de una ventana abierta.** La primera versión
+     * devolvía `Activa` a secas, y eso abría también todo lo demás que la ficha escribiera —el
+     * código de las llaves, el vídeo de entrada— antes del pago o semanas antes de llegar. El
+     * enlace añade UNA cosa, la ficha y lo suyo (la caja del dinero: su código lo pone el
+     * contexto y sus medios llevan nivel `PorEnlace`); el resto sigue la escalera de siempre.
+     */
+    public static function porEnlace(self $deLaEstancia): self
+    {
+        return new self($deLaEstancia->estado, $deLaEstancia->liberaEn, true);
     }
 
     /** Catálogo público: no hay estancia detrás del enlace. */
@@ -163,6 +183,9 @@ final readonly class PmsGuiaAcceso
      * (🔒 = no se puede ver, pero el ítem SE ANUNCIA con candado; ver
      * debeAnunciarBloqueo().)
      *
+     * `PorEnlace` no está en la tabla porque no es un peldaño: ✗ en todas las filas —y sin
+     * candado, `exigeCondicionExtra()` es falso—, ✓ sólo con `porEnlace()`.
+     *
      * `SinPago` conserva el nivel `Cliente` a propósito: cómo llegar y las
      * normas de la casa no son secretos, y quien tiene el localizador lo sacó
      * de su correo. Lo que el pago protege empieza en `ClienteConfirmado`.
@@ -177,6 +200,8 @@ final readonly class PmsGuiaAcceso
             PmsGuiaVisibilidad::Cliente           => $this->estado->esHuesped(),
             PmsGuiaVisibilidad::ClienteConfirmado => $this->estado->pagoConfirmado(),
             PmsGuiaVisibilidad::SoloVentana       => PmsGuiaAccesoEstado::Activa === $this->estado,
+            // Fuera de la escalera: ni la ventana ni el pago lo abren. Sólo el enlace del equipo.
+            PmsGuiaVisibilidad::PorEnlace         => $this->porEnlace,
         };
     }
 

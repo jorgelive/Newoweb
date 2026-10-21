@@ -319,12 +319,15 @@ final class PmsGuiaInterpolador
         'croquis'           => false,
         'foto_puerta'       => false,
         'video_ingreso'     => true,
-        // Del EDIFICIO, no de la casita, pero se sirven igual. Sólo las de las LLAVES: las de la
-        // caja del DINERO no entran en el contexto —`PmsEstablecimientoMediaTipo::visibilidad()`
-        // devuelve `null`—, así que aunque alguien escriba `{{ foto_caja_dinero }}` no hay valor
-        // que resolver y el marcador se quita.
+        // Del EDIFICIO, no de la casita, pero se sirven igual.
         'video_caja_llaves' => true,
         'foto_caja_llaves'  => false,
+        // Las de la caja del DINERO sólo entran en el contexto de un enlace del equipo
+        // (`PmsGuiaContexto::construir(…, conMediosDelEquipo: true)`). En la guía normal no hay
+        // valor que resolver y el marcador se QUITA —antes de estar en esta lista se quedaba
+        // crudo, `{{ foto_caja_dinero }}`, a la vista del huésped—.
+        'video_caja_dinero' => true,
+        'foto_caja_dinero'  => false,
     ];
 
     /**

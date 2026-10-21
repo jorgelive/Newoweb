@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api\Provider\Pms;
 
+use App\Pms\Enum\PmsGuiaVisibilidad;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Pms\Entity\PmsCatalogo;
@@ -100,7 +101,9 @@ final class PmsUnidadCatalogoProvider implements ProviderInterface
 
         foreach ($catalogo->getCatalogoHasItems() as $rel) {
             $item = $rel->getItem();
-            if (!$rel->isActivo() || !$item) {
+            // Un ítem `PorEnlace` sólo se sirve con el enlace del equipo, nunca en el escaparate,
+            // aunque alguien lo cuelgue del catálogo por error.
+            if (!$rel->isActivo() || !$item || $item->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace) {
                 continue;
             }
 

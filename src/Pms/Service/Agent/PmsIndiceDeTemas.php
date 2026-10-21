@@ -129,6 +129,11 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
         $items = $this->em->getRepository(PmsGuiaItem::class)->findAll();
 
         foreach ($items as $item) {
+            // `PorEnlace` no es un tema que el agente pueda ofrecer: no está en la guía de nadie.
+            if ($item->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace) {
+                continue;
+            }
+
             $suyas = $this->palabrasDe(
                 (string) $item->getAgenteTerminos() . ' ' . $this->titulos($item)
             );
@@ -325,6 +330,12 @@ final readonly class PmsIndiceDeTemas implements IndiceDeTemasInterface
                 }
 
                 foreach ($relacion->getSeccion()->getItemsApi() as $item) {
+                    // Aunque alguien lo cuelgue de una sección, un `PorEnlace` no se indexa: el
+                    // agente ofrecería un tema que `podar()` le quita después, y lo NEGARÍA.
+                    if ($item->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace) {
+                        continue;
+                    }
+
                     // ⚠️ Del ítem CRUDO se lee `getTitulo()`, no `getTituloParaCliente()`: los
                     // campos «ParaCliente» son transitorios y los rellena el filtro al podar —
                     // en la entidad recién cargada están vacíos, y con ellos el índice sale

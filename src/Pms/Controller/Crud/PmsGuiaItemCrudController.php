@@ -177,6 +177,7 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 PmsGuiaVisibilidad::Cliente->getLabel()           => PmsGuiaVisibilidad::Cliente,
                 PmsGuiaVisibilidad::ClienteConfirmado->getLabel() => PmsGuiaVisibilidad::ClienteConfirmado,
                 PmsGuiaVisibilidad::SoloVentana->getLabel()       => PmsGuiaVisibilidad::SoloVentana,
+                PmsGuiaVisibilidad::PorEnlace->getLabel()         => PmsGuiaVisibilidad::PorEnlace,
             ])
             ->renderExpanded(false)
             ->setRequired(true)
@@ -191,7 +192,11 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                 . '<strong>Solo en ventana</strong>: además, solo desde 30 h antes del check-in —el día anterior a las 08:00 si se entra a las 14:00, que es cuando sale el recordatorio— y hasta el check-out '
                 . '(úsalo para códigos de puerta, caja fuerte y WiFi). '
                 . 'Los dos últimos, si no se cumplen, NO desaparecen: el huésped ve el título con un candado '
-                . 'y qué le falta para abrirlo.'
+                . 'y qué le falta para abrirlo. '
+                . '<strong>Sólo con enlace del equipo</strong>: fuera de la escalera. No sale nunca en la guía, '
+                . 'ni con candado, ni el agente lo conoce: sólo lo abre el enlace que mandas en una plantilla con '
+                . '<code>{{ acceso_CÓDIGO }}</code> (pon el código de la ficha). Para lo que decide una persona '
+                . 'cada vez: la caja del dinero, la llave de emergencia. No hace falta colgarlo de ninguna sección.'
             ));
 
         // Eje DISTINTO del de arriba, y por eso va justo al lado: "quién lo ve" es una
@@ -525,10 +530,20 @@ class PmsGuiaItemCrudController extends AbstractCrudController
                     <code>{{ door_code }}</code>
                     <code>{{ codigo_caja_casita }}</code>
                     <code>{{ codigo_caja_llaves }}</code>
-                    <code>{{ codigo_caja_dinero }}</code>
                     <div class="text-muted" style="margin-top:4px;">
                         Fuera de la ventana se sustituyen por «Disponible el …» / «Disponible al
                         confirmar». El valor real no sale del servidor.
+                    </div>
+                </div>
+
+                <strong>Caja de ARRIBA (la del dinero) — sólo en fichas «Sólo con enlace del equipo»</strong>
+                <div style="margin:6px 0 12px;">
+                    <code>{{ codigo_caja_dinero }}</code>
+                    <code>{{ foto_caja_dinero }}</code>
+                    <code>{{ video_caja_dinero }}</code>
+                    <div class="text-muted" style="margin-top:4px;">
+                        En cualquier otra ficha no se resuelven nunca: el código sale bloqueado y la
+                        foto y el vídeo desaparecen. Lo decide una persona al mandar el enlace.
                     </div>
                 </div>
 

@@ -13,6 +13,7 @@ use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsInformacionFinanciera;
 use App\Pms\Finanzas\PmsRedactorDeCobro;
 use App\Pms\Entity\PmsReserva;
+use App\Pms\Guia\PmsGuiaEnlaceDelEquipo;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
@@ -37,7 +38,56 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         private readonly string $paxCatalogUrl,
         #[Autowire('%pax_catalog_url_nd%')]
         private readonly string $paxCatalogUrlNd,
+        private readonly PmsGuiaEnlaceDelEquipo $enlacesDelEquipo,
     ) {}
+
+    /**
+     * Las variables quitando las que abren algo: las de `CLAVES_DE_ACCESO` y los enlaces del equipo
+     * (`{{ acceso_<codigo> }}`), que no son una lista fija sino una por ítem `PorEnlace`.
+     *
+     * La usan quienes leen el diccionario para otra cosa que no sea mandar una plantilla
+     * (`BuscarReservaSkill`, `ConsultarMiReservaSkill`). Un `array_diff_key` con la lista fija se
+     * dejaría los enlaces: el modelo los tendría y podría pegarlos en un mensaje al huésped.
+     *
+     * @template T
+     *
+     * @param array<string, T> $datos
+     *
+     * @return array<string, T>
+     */
+    public static function sinClavesDeAcceso(array $datos): array
+    {
+        return array_filter(
+            array_diff_key($datos, array_flip(self::CLAVES_DE_ACCESO)),
+            static fn (string $clave): bool => !str_starts_with($clave, PmsGuiaEnlaceDelEquipo::PREFIJO_VARIABLE),
+            ARRAY_FILTER_USE_KEY,
+        );
+    }
+
+    /**
+     * Un enlace por ítem `PorEnlace` de la guía: `{{ acceso_llave_emergencia }}`,
+     * `{{ acceso_pago_efectivo }}`… (`PmsGuiaEnlaceDelEquipo::variable()`).
+     *
+     * Emitir no escribe nada (el token va firmado), así que calcularlo en cada lectura del
+     * diccionario no deja rastro. Lo que sí hace falta es que no se LEA donde no toca: por eso
+     * {@see self::sinClavesDeAcceso()}.
+     *
+     * @return array<string, string>
+     */
+    private function enlacesDelEquipo(PmsReserva $reserva): array
+    {
+        $salida = [];
+
+        foreach ($this->enlacesDelEquipo->items() as $codigo => $item) {
+            $token = $this->enlacesDelEquipo->emitir($reserva, $item);
+            // Sin estancia que servir, vacío: como un medio que falta, la plantilla se sostiene sin él.
+            $salida[PmsGuiaEnlaceDelEquipo::variable($codigo)] = $token !== null
+                ? $this->enlacesDelEquipo->url($token)
+                : '';
+        }
+
+        return $salida;
+    }
 
     /**
      * El WhatsApp por el que se atiende, como se escribe y como enlace.
@@ -557,7 +607,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // información completa. Se manda a mano desde el panel, no por una regla.
             'medios_de_pago_todos'  => $this->redactor->mediosConDatos($reserva, $idioma, todas: true, enlaceTarjeta: $accountUrl),
         ] + $this->whatsappDelAlojamiento($reserva->getEstablecimiento())
-          + $this->mediosDelAlojamiento($reserva->getEstablecimiento());
+          + $this->mediosDelAlojamiento($reserva->getEstablecimiento())
+          + $this->enlacesDelEquipo($reserva);
     }
 
     /**
@@ -618,6 +669,14 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'salida_path'           => rtrim($this->paxBookGuideUrlNd, '/') . '/' . $dummyLocator . '/guia?section=salida',
             'tours_catalog_url'     => rtrim($this->paxCatalogUrl, '/'),
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
-        ] + $this->whatsappDelAlojamiento(null);
+        ] + $this->whatsappDelAlojamiento(null)
+          // Un token de mentira: es el `example` de Meta y la vista previa, y no puede abrir nada.
+          + array_map(
+              fn (): string => $this->enlacesDelEquipo->url('EJEMPLO.EJEMPLO'),
+              array_flip(array_map(
+                  static fn (string $codigo): string => PmsGuiaEnlaceDelEquipo::variable($codigo),
+                  array_keys($this->enlacesDelEquipo->items()),
+              )),
+          );
     }
 }

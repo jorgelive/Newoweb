@@ -133,7 +133,7 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
         // `consultar_codigos`, que comprueba la ventana y explica el motivo cuando toca callar.
         // Un `if ($actor->esDelEquipo())` aquí sería una segunda puerta a lo mismo, con su propia
         // regla, y las reglas duplicadas divergen.
-        $datos = array_diff_key($datos, array_flip(PmsMessageDataResolver::CLAVES_DE_ACCESO));
+        $datos = PmsMessageDataResolver::sinClavesDeAcceso($datos);
 
         // 💵 Y fuera los importes cuando el canal los oculta: en una consulta de OTA el precio
         // lo pone la plataforma. Con la nota en su lugar, para que remita a ella en vez de negar

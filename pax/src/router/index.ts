@@ -8,7 +8,7 @@ import { createRouter, createWebHistory } from 'vue-router'
  * la URL que se reparte a los clientes y que va en correos ya enviados: ningún
  * slug nuevo puede llegar a secuestrarla.
  */
-const PREFIJOS_RESERVADOS: readonly string[] = ['huesped', 'file', 'catalogo', 'pago'];
+const PREFIJOS_RESERVADOS: readonly string[] = ['huesped', 'file', 'catalogo', 'pago', 'acceso'];
 
 const router = createRouter({
     history: createWebHistory('/'),
@@ -78,6 +78,21 @@ const router = createRouter({
             path: '/pago/:token',
             name: 'pago_enlace',
             component: () => import('@/views/pago/PaxPagoView.vue'),
+            props: true
+        },
+
+        // -----------------------------------------------------------------
+        // 0.c FICHA POR ENLACE DEL EQUIPO
+        // -----------------------------------------------------------------
+        // Una ficha de la guía que no sale en ningún menú (la llave de emergencia, el pago en
+        // efectivo): sólo la abre este enlace, firmado y con caducidad, que manda una persona.
+        // Ver `App\Pms\Guia\PmsGuiaEnlaceDelEquipo`. `acceso` va en PREFIJOS_RESERVADOS por lo
+        // mismo que `pago`.
+        // -----------------------------------------------------------------
+        {
+            path: '/acceso/:token',
+            name: 'guia_enlace_equipo',
+            component: () => import('@/views/huesped/PaxGuiaEnlaceView.vue'),
             props: true
         },
 

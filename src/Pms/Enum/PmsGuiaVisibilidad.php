@@ -32,6 +32,17 @@ enum PmsGuiaVisibilidad: string
     /** Además, ventana abierta. Códigos de puerta, caja fuerte, WiFi. */
     case SoloVentana = 'solo-ventana';
 
+    /**
+     * FUERA de la escalera: sólo con un enlace que el equipo manda (`PmsGuiaEnlaceDelEquipo`).
+     *
+     * Para lo que no es de cualquier huésped aunque tenga la ventana abierta: cómo dejar un pago
+     * en la caja del DINERO o sacar la llave de emergencia. Decide una persona, cada vez. Un ítem
+     * así no sale nunca en la guía —ni con candado—, ni en el catálogo, ni en el índice del
+     * agente: `PmsGuiaAcceso::permite()` sólo lo deja pasar con el acceso del enlace. Ver
+     * `docs/PmsGuiaHuesped.md` §7 sexies.
+     */
+    case PorEnlace = 'por-enlace';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -39,6 +50,7 @@ enum PmsGuiaVisibilidad: string
             self::Cliente           => '👤 Cliente (con localizador)',
             self::ClienteConfirmado => '✅ Cliente confirmado (con pago)',
             self::SoloVentana       => '🔑 Solo en ventana (30 h antes del check-in)',
+            self::PorEnlace         => '🔗 Sólo con enlace del equipo (no sale en la guía)',
         };
     }
 

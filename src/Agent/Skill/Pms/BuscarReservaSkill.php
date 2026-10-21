@@ -210,9 +210,8 @@ final readonly class BuscarReservaSkill implements SkillInterface, SkillDominioI
             // (`RESERVAS_WRITE`), y el de las llaves con su skill. Con ellos en el payload, el modelo
             // además podía pegarlos en un mensaje al huésped saltándose la ventana horaria. Misma
             // regla que `ConsultarMiReservaSkill`.
-            $datos = array_diff_key(
+            $datos = PmsMessageDataResolver::sinClavesDeAcceso(
                 $resolver?->getMessageVariables((string) $reserva->getId()) ?? [],
-                array_flip(PmsMessageDataResolver::CLAVES_DE_ACCESO),
             );
 
             $fila = array_filter(

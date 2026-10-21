@@ -27,7 +27,9 @@ class PaxAppController extends AbstractController
      * ⚠️ Una ruta privada nueva en pax con otro prefijo de dos tramos se tomaría por vitrina: va
      * en esta lista.
      */
-    private const array PRIVADAS = ['file', 'catalogo', 'pago', 'huesped'];
+    // `acceso`: la ficha de un enlace del equipo (`/acceso/{token}`), con el código de la caja de
+    // arriba. Tiene dos tramos: sin estar aquí se habría servido como vitrina, indexable.
+    private const array PRIVADAS = ['file', 'catalogo', 'pago', 'huesped', 'acceso'];
 
     /**
      * App Pax (Symfony-first):
@@ -98,6 +100,12 @@ class PaxAppController extends AbstractController
     {
         if (!self::esVitrina($ruta)) {
             $respuesta->headers->set('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        // 🔒 La URL de un enlace del equipo ES la credencial (`/acceso/{token}`): que no salga en
+        // el `Referer` hacia el vídeo de YouTube o la foto que la página embebe.
+        if (str_starts_with($ruta, '/acceso/')) {
+            $respuesta->headers->set('Referrer-Policy', 'no-referrer');
         }
 
         return $respuesta;
