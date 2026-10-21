@@ -1,0 +1,165 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Pms\Command;
+
+use App\Message\Entity\MessageTemplate;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Da cuerpo de Meta a `llave_emergencia` y `caja_dinero` para que salgan FUERA de la ventana de 24 h.
+ *
+ * ── Por qué (Jorge, 21/10/2026) ──────────────────────────────────────────────
+ * Las dos nacieron como texto dentro de la ventana, y casi siempre basta: el huésped acaba de
+ * escribir. Pero puede LLAMAR por teléfono, y entonces el equipo le pide al agente del panel que se
+ * la mande (`enviar_plantilla`) con la ventana cerrada. Por Beds24 (Booking, Airbnb) llega igual; a
+ * una reserva DIRECTA no le llegaba nada, porque fuera de ventana sólo salen plantillas oficiales.
+ *
+ * ── Lo que Meta exige y el texto de dentro de ventana no cumplía ─────────────
+ * - Variables SIN espacios: `{{guest_name}}`, no `{{ guest_name }}`.
+ * - El cuerpo no puede TERMINAR en una variable, y las dos acababan en `{{ video_caja_dinero }}`:
+ *   se añade una línea de cierre.
+ * - Ejemplos de cada variable: los pone `PmsMessageDataResolver` (datos de muestra), no hace falta
+ *   escribirlos aquí.
+ *
+ * El cuerpo se escribe en español y lo traduce `AutoTranslationEventListener` al guardar; en
+ * `llave_emergencia` la etiqueta física «emergencia» se restaura después
+ * (`PmsCrearPlantillaLlaveEmergenciaCommand::conEtiqueta()`). Nace `is_official_meta: false`: la
+ * marca la pone sola `app:whatsapp:sync-templates` cuando Meta la aprueba. Subir:
+ * `msg:meta:push <code> --todos`.
+ *
+ * Idempotente (no toca una plantilla que ya tenga cuerpo de Meta), con `--dry-run`. Nace `hidden`.
+ */
+#[AsCommand(
+    name: 'app:pms:plantillas-caja-a-meta',
+    description: 'Cuerpo oficial de Meta para «llave_emergencia» y «caja_dinero» (envío fuera de ventana).',
+    hidden: true,
+)]
+final class PmsPlantillasCajaAMetaCommand extends Command
+{
+    /** El cierre que evita que el cuerpo termine en variable. */
+    private const string CIERRE = "\n\nCualquier duda, escríbenos por aquí.";
+
+    /**
+     * Lo que se le dice al agente: además de lo que ya decía, que la mande cuando se lo pide el equipo.
+     *
+     * @var array<string, string>
+     */
+    private const array AGENTE_USO = [
+        PmsCrearPlantillaLlaveEmergenciaCommand::CODIGO => 'Instrucciones para sacar la LLAVE DE EMERGENCIA de la '
+            . 'caja fuerte de arriba (la del dinero). La manda el equipo cuando el huésped no puede entrar porque su '
+            . 'llave no estaba en la caja en el check-in o porque la perdió. SI TE LO PIDE ALGUIEN DEL EQUIPO —por '
+            . 'ejemplo, porque el huésped llamó por teléfono—, mándala. EL HUÉSPED NO PUEDE PEDIRLA por su cuenta: '
+            . 'si la pide él, no la mandes y escala al equipo. Si la perdió, el equipo además hace la cobranza.',
+        'caja_dinero' => 'Instrucciones para dejar un pago en EFECTIVO en la caja fuerte del pasaje. La manda el '
+            . 'equipo cuando se ha acordado que el huésped pague así. SI TE LO PIDE ALGUIEN DEL EQUIPO —por ejemplo, '
+            . 'porque lo acordó con el huésped por teléfono—, mándala. EL HUÉSPED NO PUEDE PEDIRLA por su cuenta: si '
+            . 'la pide él, no la mandes y consulta al equipo. El importe no va en el texto: dilo tú en el mensaje.',
+    ];
+
+    public function __construct(private readonly EntityManagerInterface $em)
+    {
+        parent::__construct();
+    }
+
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Option(description: 'Sólo dice qué haría.')] bool $dryRun = false,
+    ): int {
+        $repo = $this->em->getRepository(MessageTemplate::class);
+        $hechas = [];
+
+        foreach (self::AGENTE_USO as $codigo => $agenteUso) {
+            $plantilla = $repo->findOneBy(['code' => $codigo]);
+
+            if (!$plantilla instanceof MessageTemplate) {
+                $io->error(sprintf('No existe «%s». No se toca nada más.', $codigo));
+
+                return Command::FAILURE;
+            }
+
+            $meta = $plantilla->getWhatsappMetaTmpl() ?? [];
+
+            if (($meta['body'] ?? []) !== []) {
+                $io->text(sprintf('= «%s» ya tiene cuerpo de Meta.', $codigo));
+
+                continue;
+            }
+
+            $espanol = $this->espanolDe($plantilla);
+
+            if ($espanol === null) {
+                $io->error(sprintf('«%s» no tiene texto en español del que partir.', $codigo));
+
+                return Command::FAILURE;
+            }
+
+            // Sin espacios dentro de las llaves (Meta), y con cierre para no terminar en variable.
+            $cuerpo = (string) preg_replace('/\{\{\s*([a-z0-9_]+)\s*\}\}/i', '{{$1}}', rtrim($espanol)) . self::CIERRE;
+
+            $io->section($codigo);
+            $io->writeln($cuerpo);
+
+            if ($dryRun) {
+                continue;
+            }
+
+            $plantilla->setWhatsappMetaTmpl([
+                'is_active' => true,
+                'category' => 'UTILITY',
+                // Con sufijo desde el primer día: el nombre en Meta no se edita (docs/Mensajeria.md §18).
+                'meta_template_name' => $codigo . '_v1',
+                'is_official_meta' => false,
+                'header' => [],
+                'footer' => [],
+                'body' => [['language' => 'es', 'content' => $cuerpo]],
+                'buttons_map' => [],
+            ] + $meta);
+            $plantilla->setAgenteUso($agenteUso);
+            $hechas[] = $plantilla;
+        }
+
+        if ($dryRun) {
+            $io->note('Simulación: no se ha escrito nada.');
+
+            return Command::SUCCESS;
+        }
+
+        // Primero se guarda y el listener traduce; después, la etiqueta física de la llave.
+        $this->em->flush();
+
+        foreach ($hechas as $plantilla) {
+            if ($plantilla->getCode() === PmsCrearPlantillaLlaveEmergenciaCommand::CODIGO) {
+                $fijadas = 0;
+                $plantilla->setWhatsappMetaTmpl(PmsCrearPlantillaLlaveEmergenciaCommand::conEtiqueta($plantilla->getWhatsappMetaTmpl(), $fijadas));
+                $plantilla->setEjecutarTraduccion(false);
+                $io->text(sprintf('Etiqueta «emergencia» restaurada en %d idioma(s) del cuerpo de Meta.', $fijadas));
+            }
+        }
+
+        $this->em->flush();
+        $io->success(sprintf(
+            '%d plantilla(s) con cuerpo de Meta. Falta subirlas: msg:meta:push <code> --todos',
+            count($hechas)
+        ));
+
+        return Command::SUCCESS;
+    }
+
+    /** El texto en español del que se parte: el de WhatsApp dentro de ventana, que es el que se usa hoy. */
+    private function espanolDe(MessageTemplate $plantilla): ?string
+    {
+        foreach ($plantilla->getWhatsappLinkTmpl()['body'] ?? [] as $fila) {
+            if (($fila['language'] ?? null) === 'es' && is_string($fila['content'] ?? null) && trim($fila['content']) !== '') {
+                return $fila['content'];
+            }
+        }
+
+        return null;
+    }
+}

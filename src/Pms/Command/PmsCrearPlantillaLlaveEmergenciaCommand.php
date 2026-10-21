@@ -23,7 +23,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * mande por su cuenta, igual que `caja_dinero`, que es su hermana.
  *
  * ── La misma estructura que `caja_dinero` ────────────────────────────────────
- * Texto para Beds24 y para WhatsApp dentro de la ventana; WhatsApp NO como plantilla oficial de
+ * Texto para Beds24 y para WhatsApp dentro de la ventana. (Desde el 21/10/2026 también oficial de Meta, por
+ * `PmsPlantillasCajaAMetaCommand`: el equipo puede pedir que se mande fuera de ventana. Lo de abajo
+ * era el motivo original para no hacerlo.) WhatsApp NO como plantilla oficial de
  * Meta (llevaría el código de la caja del dinero dentro de un texto revisado por Meta, y se manda
  * con el huésped escribiendo, o sea con ventana). Los códigos, la foto y el vídeo de la caja son
  * variables (`PmsMessageDataResolver::CLAVES_DE_ACCESO`): se resuelven al enviar, nunca tecleados.
@@ -138,8 +140,8 @@ final class PmsCrearPlantillaLlaveEmergenciaCommand extends Command
     private function restaurarEtiqueta(MessageTemplate $plantilla): int
     {
         $fijadas = 0;
-        $plantilla->setBeds24Tmpl($this->conEtiqueta($plantilla->getBeds24Tmpl(), $fijadas));
-        $plantilla->setWhatsappLinkTmpl($this->conEtiqueta($plantilla->getWhatsappLinkTmpl(), $fijadas));
+        $plantilla->setBeds24Tmpl(self::conEtiqueta($plantilla->getBeds24Tmpl(), $fijadas));
+        $plantilla->setWhatsappLinkTmpl(self::conEtiqueta($plantilla->getWhatsappLinkTmpl(), $fijadas));
         // Sin esto, el listener volvería a traducir encima de lo que acabamos de fijar.
         $plantilla->setEjecutarTraduccion(false);
         $this->em->flush();
@@ -152,7 +154,7 @@ final class PmsCrearPlantillaLlaveEmergenciaCommand extends Command
      *
      * @return BloqueDeCanal|null
      */
-    private function conEtiqueta(?array $canal, int &$fijadas): ?array
+    public static function conEtiqueta(?array $canal, int &$fijadas): ?array
     {
         if ($canal === null || !isset($canal['body'])) {
             return $canal;

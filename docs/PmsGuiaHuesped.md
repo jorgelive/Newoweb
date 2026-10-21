@@ -1911,7 +1911,8 @@ costo, un puntero —«el equipo se lo detalla»— para que tampoco lo niegue. 
 equipo al cobrar. El texto publicado de la ficha no cambia.
 
 **La plantilla `llave_emergencia`** (`app:pms:crear-plantilla-llave-emergencia`) es hermana de
-`caja_dinero`: envío manual, Beds24 y WhatsApp dentro de ventana, no oficial en Meta, y el código,
+`caja_dinero`: envío manual, Beds24 y WhatsApp —también fuera de ventana desde el 21/10/2026, como
+plantilla oficial de Meta (`docs/Mensajeria.md`, «Plantillas que se ofrecen a mano»)—, y el código,
 la foto y el vídeo de la caja como variables (`{{ codigo_caja_dinero }}`…), nunca tecleados.
 ⚠️ **La etiqueta «emergencia» se restaura tras traducir**: la traducción automática la convirtió en
 «emergency» y el huésped habría buscado una etiqueta que no existe. El comando la vuelve a poner en

@@ -29,6 +29,18 @@ Las «con botones» sí se ofrecen: por el enlace de WhatsApp los botones no sal
 de enlace no los menciona y acaba en pregunta abierta, así que se lee completo y el huésped
 contesta escribiendo.
 
+**Las de la caja fuerte de arriba —`caja_dinero` y `llave_emergencia`— pasaron a oficiales de Meta
+(21/10/2026).** Nacieron como texto dentro de ventana porque casi siempre el huésped acaba de
+escribir. Pero puede **llamar por teléfono**, y entonces el equipo le pide al agente del panel que
+se la mande con la ventana cerrada: por Beds24 llegaba, a una reserva directa no. Les dio cuerpo de
+Meta `app:pms:plantillas-caja-a-meta` (oculto, idempotente, `--dry-run`): el texto español del
+enlace con las variables sin espacios (`{{guest_name}}`) y una línea de cierre, porque Meta no
+admite un cuerpo que **termine en variable** y las dos acababan en `{{ video_caja_dinero }}`. Nombre
+`<code>_v1`, UTILITY; los ejemplos los pone `PmsMessageDataResolver`. Se suben con
+`msg:meta:push <code> --todos` y la marca oficial la pone `app:whatsapp:sync-templates` al
+aprobarse. Su `agenteUso` dice ahora que las manda **si se lo pide alguien del equipo**, y sigue
+prohibiendo mandarlas a petición del propio huésped.
+
 ## Acompañantes: varios hilos para la misma reserva (03/10/2026)
 
 Carla escribió «les escribo sobre mi reserva» desde su número, sin decir de quién (12/09). El hilo
