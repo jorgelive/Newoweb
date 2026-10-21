@@ -106,6 +106,31 @@ final class PmsVerificarMarcadoresGuiaCommand extends Command
                             implode(' ', $idiomas),
                         ];
                     }
+
+                    // 🔥 Y lo que lee el AGENTE (20/10/2026). `agenteContenido` y cada peldaño de
+                    // `agentePasos` pasan por el mismo interpolador (`ConsultarGuiaSkill::
+                    // cuerpoParaElAgente()`) y se le dictan al huésped casi tal cual. Al escribir la
+                    // escalera de las puertas salió `{{ numero_llave }}` —la errata del 11/09 otra
+                    // vez— y este comando no la veía: sólo miraba el texto publicado.
+                    $textosDelAgente = ['agente' => $item->getAgenteContenido()];
+                    foreach ($item->getAgentePasos() as $i => $paso) {
+                        $textosDelAgente['agente, paso ' . ($i + 1)] = $paso;
+                    }
+
+                    foreach ($textosDelAgente as $donde => $texto) {
+                        if ($texto === null || trim($texto) === '') {
+                            continue;
+                        }
+
+                        foreach ($this->sobrantes([['language' => 'es', 'content' => $texto]], $contexto) as $clave => $idiomas) {
+                            $filas[] = [
+                                $unidad->getNombre() ?? '—',
+                                sprintf('%s (%s)', $item->getNombreInterno() ?? '—', $donde),
+                                $clave,
+                                implode(' ', $idiomas),
+                            ];
+                        }
+                    }
                 }
             }
         }

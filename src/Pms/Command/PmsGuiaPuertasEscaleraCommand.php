@@ -1,0 +1,205 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Pms\Command;
+
+use App\Pms\Entity\PmsGuiaItem;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * La escalera de «no puedo entrar» en las siete puertas y en las llaves (20/10/2026).
+ *
+ * ### El caso
+ *
+ * 19/10, 20:05. Los de la Casita 4, recién llegados y de noche: «hemos encontrado la puerta, pero
+ * la llave no abre». **Estaban en la puerta de la Casita 3.** El agente no les preguntó si era su
+ * puerta: escaló tres veces, la última «como emergencia», y les dijo que esperaran con la llave
+ * metida. Diecisiete minutos forcejeando con la cerradura de María Capetillo, que al día siguiente
+ * avisó de que «los de al lado abrieron nuestra puerta». Las cámaras lo aclararon: probó su llave
+ * en la puerta equivocada y no entró. Las puertas no llevan número, a propósito, por seguridad: por
+ * eso la puerta es lo PRIMERO que se confirma.
+ *
+ * ### El protocolo (Jorge, 20/10/2026)
+ *
+ * 1. Primer aviso de problema: TODO de una vez — su puerta con croquis y vídeo, su número de
+ *    llave, el sentido de giro, y el truco si lo hay (Casita 4: el jalador; Casita 2: sólo la
+ *    cerradura de abajo).
+ * 2. Sólo en la 2 y la 4, si sigue sin abrir: reafirmar llave, giro y truco.
+ * 3. Si aun así no abre: escalar como emergencia. Lo dispara solo `consultar_guia` al agotarse los
+ *    pasos (`debes_escalar`), y `escalar_al_equipo` no deja avisar mientras quede un paso.
+ *
+ * Casita 5: todavía sin vídeo de ingreso; se añade cuando lo haya y se vuelve a correr.
+ *
+ * ⚠️ **Las llaves de emergencia NO están aquí, a propósito.** Viven en la caja fuerte de arriba y
+ * el agente no lo sabe: un «no se lo digas al huésped» se incumple (`CLAUDE.md`, «la supresión no
+ * funciona»), y aquí sería contarle a cualquiera dónde están las llaves de todas las casitas. El
+ * agente escala; el dato lo tiene el equipo (`docs/PmsGuiaHuesped.md`).
+ *
+ * Sólo toca `agentePasos`, texto que lee el agente y no se traduce. Idempotente, con `--dry-run`.
+ */
+#[AsCommand(
+    name: 'app:pms:guia:puertas-escalera',
+    description: 'Escalera de «no puedo entrar» en las siete puertas y en las llaves (protocolo del 20/10/2026).',
+)]
+final class PmsGuiaPuertasEscaleraCommand extends Command
+{
+    /** Se repite al final de cada primer paso: lo que se le pide al huésped tras darle todo. */
+    private const string CIERRE = 'Díselo todo junto y con seguridad, como la solución que suele ser, y pídele '
+        . 'que te diga si así abre. Que no fuerce la llave.';
+
+    /** Por qué la puerta va primero: las puertas no llevan número. */
+    private const string SIN_NUMERO = 'Las puertas no llevan número, a propósito, y es fácil probar la llave en '
+        . 'la de otra casita: por eso esto va PRIMERO.';
+
+    public function __construct(private readonly EntityManagerInterface $em)
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Ficha → pasos. El paso 0 de la escalera es su `agenteContenido`; éstos son el 1 y el 2.
+     *
+     * @return array<string, list<string>>
+     */
+    private function pasos(): array
+    {
+        $llave = '2) Que use la llave número {{ numero }}: cada llave lleva su número en el llavero, y en la '
+            . 'caja fuerte hay de otras casitas.';
+
+        return [
+            'Puerta (casa 1)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: la entrada está en la CALLE, no en el pasaje; es la '
+                . 'puerta verde a nivel de calle, justo a la izquierda del portón. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . "3) Que gire la llave en sentido ANTIHORARIO.\n"
+                . self::CIERRE,
+            ],
+            'Puerta (casa 2)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: la entrada está en la CALLE, no en el pasaje; es la '
+                . 'puerta de madera verde a nivel de calle. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . '3) Que use SÓLO la cerradura de ABAJO, girando en sentido ANTIHORARIO. La de arriba está '
+                . "abierta: si intenta con esa, no abre.\n"
+                . self::CIERRE,
+                'SI SIGUE SIN ABRIR: confírmale otra vez, con calma y en este orden, las tres cosas que lo '
+                . 'resuelven casi siempre: que es la puerta de madera verde a nivel de calle; que la llave es la '
+                . 'número {{ numero }}; y que usa SÓLO la cerradura de ABAJO, girando en sentido '
+                . 'ANTIHORARIO. Pídele que te diga si así abre, y que no fuerce la llave.',
+            ],
+            'Puerta (casa 3)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: entrando al pasaje, es la SEGUNDA puerta, justo al pie '
+                . 'de las gradas, de color verde. La primera a la izquierda es OTRA casita. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . "3) Que gire la llave en sentido HORARIO.\n"
+                . self::CIERRE,
+            ],
+            'Puerta (casa 4)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, QUE LA LLAVE SE ATASCA O NO GIRA, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: entrando al pasaje, es la PRIMERA puerta a la izquierda, '
+                . 'muy cerca de la caja fuerte, de color verde. La que está al pie de las gradas es OTRA casita. '
+                . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . '3) Que agarre el jalador de la puerta y tire de ella hacia sí con firmeza MIENTRAS gira la llave '
+                . 'en sentido HORARIO. Sin tirar, la cerradura roza y la llave parece atascada; tirando del '
+                . "jalador, gira. La fuerza va en el jalador, no en la llave.\n"
+                . self::CIERRE,
+                'SI SIGUE SIN ABRIR: confírmale otra vez, con calma y en este orden, las tres cosas que lo '
+                . 'resuelven casi siempre: que es la PRIMERA puerta a la izquierda del pasaje (no la del pie de '
+                . 'las gradas); que la llave es la número {{ numero }}; y que tire del jalador hacia sí '
+                . 'MIENTRAS gira en sentido HORARIO. Pídele que te diga si así abre, y que no fuerce la llave.',
+            ],
+            'Puerta (casa 5)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: sube las gradas del final del pasaje y, al terminarlas, '
+                . 'la tiene de frente, de color verde. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }}.\n"
+                . $llave . "\n"
+                . "3) Que gire la llave en sentido ANTIHORARIO.\n"
+                . self::CIERRE,
+            ],
+            'Puerta (casa 6)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: sube las gradas del final del pasaje, gira a la '
+                . 'izquierda, luego a la derecha, de nuevo a la izquierda y sube las gradas; es la puerta verde '
+                . 'de la DERECHA, y dentro, la del departamento es la ROJA a la izquierda. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . '3) Que gire la llave en sentido HORARIO. Sólo la puerta verde exterior está cerrada; la roja '
+                . "interior está sin asegurar.\n"
+                . self::CIERRE,
+            ],
+            'Puerta (casa 7)' => [
+                "SI NO ENCUENTRA SU PUERTA O DICE QUE NO ABRE, dale todo de una vez:\n"
+                . '1) Que compruebe que está en SU puerta: sube las gradas del final del pasaje y gira a la '
+                . 'derecha; es la PRIMERA puerta del lado derecho, de color ROJO. ' . self::SIN_NUMERO
+                . " Mándale el croquis {{ croquis }} y el vídeo del recorrido {{ video_ingreso }}.\n"
+                . $llave . "\n"
+                . "3) Que gire la llave en sentido HORARIO.\n"
+                . self::CIERRE,
+            ],
+            'Llaves (general)' => [
+                'SI DICE QUE NO ENCUENTRA SU LLAVE EN LA CAJA: que compruebe que abrió la caja de ABAJO, que es '
+                . 'donde está su llave, y que mire TODAS las llaves: cada una lleva su número en el llavero y la '
+                . 'suya es la número {{ numero }}. Si no consigue abrir la caja, mándale el vídeo '
+                . '{{ video_caja_llaves }}. Pídele que te diga si así la encuentra.',
+            ],
+        ];
+    }
+
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Option(description: 'Sólo dice qué cambiaría.')] bool $dryRun = false,
+    ): int {
+        $repo = $this->em->getRepository(PmsGuiaItem::class);
+        $cambios = 0;
+
+        foreach ($this->pasos() as $ficha => $pasos) {
+            $item = $repo->findOneBy(['nombreInterno' => $ficha]);
+
+            if (!$item instanceof PmsGuiaItem) {
+                $io->error(sprintf('No existe la ficha «%s». No se toca nada más.', $ficha));
+
+                return Command::FAILURE;
+            }
+
+            if ($item->getAgentePasos() === $pasos) {
+                $io->text(sprintf('= %s ya está.', $ficha));
+
+                continue;
+            }
+
+            $io->section($ficha);
+            foreach ($pasos as $i => $paso) {
+                $io->writeln(sprintf('<fg=green>paso %d:</> %s', $i + 1, $paso));
+            }
+
+            if (!$dryRun) {
+                $item->setAgentePasos($pasos);
+            }
+            ++$cambios;
+        }
+
+        if ($dryRun) {
+            $io->note(sprintf('Simulación: %d ficha(s) cambiarían.', $cambios));
+
+            return Command::SUCCESS;
+        }
+
+        $this->em->flush();
+        $io->success(sprintf('%d ficha(s) al día.', $cambios));
+
+        return Command::SUCCESS;
+    }
+}

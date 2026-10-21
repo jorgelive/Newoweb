@@ -1828,6 +1828,47 @@ en el publicado** (que se retraduce solo) para que las superficies digan lo mism
 pase por el peldaño 1 antes de avisar lo garantiza la red de `escalar_al_equipo`
 (`docs/Mensajeria.md` §22.5), no el prompt.
 
+### «No puedo entrar»: la misma escalera en las siete puertas y en las llaves (20/10/2026)
+
+**El caso que lo cambió.** 19/10, 20:05: los de la Casita 4, recién llegados y de noche, escriben
+«hemos encontrado la puerta, pero la llave no abre». **Estaban en la puerta de la Casita 3.** El
+agente no preguntó si era su puerta: escaló tres veces —la última «como emergencia»— y les dijo
+que esperaran con la llave metida. Diecisiete minutos forcejeando con la cerradura de María
+Capetillo, que al día siguiente avisó de que «los de al lado abrieron nuestra puerta». Las
+cámaras lo aclararon: probó su llave en la puerta equivocada y no llegó a entrar.
+
+⚠️ **Las puertas no llevan número, a propósito, por seguridad.** Por eso confirmar la puerta es lo
+PRIMERO, antes que la llave y que cualquier truco.
+
+El protocolo, decidido por Jorge y cargado con `app:pms:guia:puertas-escalera` (sólo
+`agentePasos`, idempotente, `--dry-run`):
+
+```
+primer aviso de problema  →  TODO de una vez: su puerta (cuál es, croquis, vídeo), su llave
+                             ({{ numero }}), sentido de giro y su truco
+                               · Casita 4: tirar del jalador mientras gira
+                               · Casita 2: SÓLO la cerradura de abajo (la de arriba está abierta)
+                               · Casita 6: sólo la verde exterior está cerrada
+sigue sin abrir (2 y 4)   →  reafirmar puerta, llave y truco
+sigue sin abrir           →  emergencia al equipo (lo ordena `consultar_guia` al agotarse los pasos)
+```
+
+Las casitas sin truco tienen un solo paso: si con todo junto sigue sin abrir, se escala. La
+Casita 5 no tiene vídeo de ingreso todavía; cuando lo tenga, se añade la línea y se vuelve a correr
+el comando. «Llaves (general)» tiene su paso para quien **no encuentra su llave**: que abrió la caja
+de ABAJO y que mire todas, cada una lleva su número; si aun así no está, se escala.
+
+🔒 **Las llaves de emergencia NO están en la guía, a propósito.** Están en la caja fuerte de
+ARRIBA, en una cartuchera celeste, etiquetadas «emergencia 1», «emergencia 2»… Es un dato para el
+EQUIPO: el agente no lo tiene, porque un «no se lo digas al huésped» se incumple (`CLAUDE.md`, «la
+supresión no funciona») y aquí sería contarle a cualquiera dónde están las llaves de todas las
+casitas. El agente escala; quien atiende el aviso decide si usarlas.
+
+⚠️ **El número de llave es `{{ numero }}`, no `{{ numero_llave }}`.** Al escribir esta escalera
+volvió a salir la errata del 11/09 (§3 ter). Desde ese día `app:pms:verificar-marcadores-guia`
+revisa también `agenteContenido` y cada paso de `agentePasos`, no sólo el texto publicado: los
+dos pasan por el mismo interpolador y se le dictan al huésped casi tal cual.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
@@ -1848,6 +1889,7 @@ las fija tras el primer `flush` conservando el `origenHash`.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar qué se le da a quien no puede entrar o no encuentra su llave | `PmsGuiaPuertasEscaleraCommand` | `pasos()`, y volver a correr `app:pms:guia:puertas-escalera` (§7 quater, «No puedo entrar») |
 | **Cambiar quién ve qué** | `src/Pms/Guia/PmsGuiaAcceso.php` | `permite()` (la matriz, §3) |
 | Que un getter que devuelve `array` salga tipado en el schema | la entidad | el `@return array<int, X>` del docblock — es la única fuente (§7) |
 | Tipos de la vista del huésped en `pax/` | `pax/src/types/paxHuespedModel.ts` | anclados a `components['schemas'][...]`; a mano solo lo que el backend no describe |
