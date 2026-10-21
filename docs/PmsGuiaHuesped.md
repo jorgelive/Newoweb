@@ -1902,6 +1902,14 @@ Lo que hace cada uno:
 | En la llegada, y CONFIRMA que su llave no está | «su llave no estaba en la caja en el check-in: necesita la llave de emergencia» | Le manda la plantilla `llave_emergencia` |
 | Ya alojado, la PERDIÓ y necesita entrar | «perdió su llave y necesita entrar: darle la llave de emergencia y hacer la cobranza de la pérdida» | Le manda la plantilla y hace la cobranza (el costo está en «Pérdida de llaves») |
 
+**«Pérdida de llaves» ya no dice el costo al agente (21/10/2026).** Lo soltaba a quien escribía
+«perdimos la llave», y con «SI PREGUNTA» delante lo soltó igual en el ensayo: la supresión no
+funciona. Su `agenteContenido` lo reescribe ahora `app:pms:guia:puertas-escalera` (`REESCRITAS`):
+si necesita entrar, emergencia con «perdió su llave y necesita entrar: darle la llave de emergencia
+y hacer la cobranza de la pérdida»; si no, el mismo aviso sin emergencia; y si pregunta por el
+costo, un puntero —«el equipo se lo detalla»— para que tampoco lo niegue. El costo lo explica el
+equipo al cobrar. El texto publicado de la ficha no cambia.
+
 **La plantilla `llave_emergencia`** (`app:pms:crear-plantilla-llave-emergencia`) es hermana de
 `caja_dinero`: envío manual, Beds24 y WhatsApp dentro de ventana, no oficial en Meta, y el código,
 la foto y el vídeo de la caja como variables (`{{ codigo_caja_dinero }}`…), nunca tecleados.

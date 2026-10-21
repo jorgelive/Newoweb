@@ -79,6 +79,33 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
         . 'caja en el check-in: necesita la llave de emergencia»; si ya está alojado y la perdió, «perdió su llave '
         . 'y necesita entrar: darle la llave de emergencia y hacer la cobranza de la pérdida». Dile que ya avisaste.';
 
+    /**
+     * Fichas cuyo texto del agente se REESCRIBE entero (no lleva bloque añadido).
+     *
+     * «Pérdida de llaves» decía el costo del cerrajero de entrada, y el agente lo soltaba a quien
+     * escribía «perdimos la llave» (ensayo del 21/10/2026). Con «SI PREGUNTA» delante lo soltó igual:
+     * la supresión no funciona (`CLAUDE.md`). El costo sale del texto del agente y queda un puntero;
+     * lo explica el equipo al cobrar. Y faltaba el motivo de escalada que decidió Jorge: darle la llave
+     * de emergencia y hacer la cobranza.
+     *
+     * @var array<string, string>
+     */
+    private const array REESCRITAS = [
+        'Perdida llaves (general)' => "Se entrega UN solo juego de llaves.\n\n"
+            . 'SI LA HA PERDIDO Y NECESITA ENTRAR AHORA: avisa al equipo como EMERGENCIA con escalar_al_equipo y '
+            . 'este motivo: «perdió su llave y necesita entrar: darle la llave de emergencia y hacer la cobranza de '
+            . 'la pérdida». Dile que ya avisaste y que le escribirán por aquí. No le des instrucciones para entrar: '
+            . "se las da el equipo.\n\n"
+            . 'SI LA HA PERDIDO PERO NO NECESITA ENTRAR AHORA (está dentro, o todavía la busca): dile que lo pasas '
+            . 'al equipo y avisa con escalar_al_equipo, SIN emergencia, con el motivo «perdió su llave: cambiar los '
+            . "pines de la cerradura y hacer la cobranza de la pérdida».\n\n"
+            // ⚠️ El costo NO va aquí, ni siquiera con «SI PREGUNTA»: en el ensayo lo soltó igual en el
+            // primer mensaje. Se queda el puntero —sin él, lo NIEGA (`CLAUDE.md`)— y lo explica el equipo
+            // al cobrar.
+            . 'SI PREGUNTA SI TIENE COSTO O QUÉ PASA AHORA CON LA CERRADURA: dile que el equipo se lo detalla por '
+            . 'aquí. No le digas que no tiene costo.',
+    ];
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -240,6 +267,31 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
             if (!$dryRun) {
                 $item->setAgenteContenido($contenido);
                 $item->setAgentePasos($pasos);
+            }
+            ++$cambios;
+        }
+
+        foreach (self::REESCRITAS as $ficha => $texto) {
+            $item = $repo->findOneBy(['nombreInterno' => $ficha]);
+
+            if (!$item instanceof PmsGuiaItem) {
+                $io->error(sprintf('No existe la ficha «%s». No se toca nada más.', $ficha));
+
+                return Command::FAILURE;
+            }
+
+            if ($item->getAgenteContenido() === $texto) {
+                $io->text(sprintf('= %s ya está.', $ficha));
+
+                continue;
+            }
+
+            $io->section($ficha);
+            $io->writeln('<fg=red>- ' . (string) $item->getAgenteContenido() . '</>');
+            $io->writeln('<fg=green>+ ' . $texto . '</>');
+
+            if (!$dryRun) {
+                $item->setAgenteContenido($texto);
             }
             ++$cambios;
         }
