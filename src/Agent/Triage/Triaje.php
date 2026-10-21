@@ -366,7 +366,10 @@ final readonly class Triaje
         - «emergencia»: algo que está PASANDO AHORA y compromete la seguridad o deja a alguien
           en peligro —fuego, olor a gas, agua inundando, alguien dentro o intentando entrar EN
           ESTE MOMENTO, un problema médico, una persona sola y asustada—, o que NO PUEDE ENTRAR
-          a su alojamiento y ya probó los pasos de su puerta. ⚠️ Lo que YA PASÓ («anoche
+          a su alojamiento y EN ESTE CHAT ya se le dieron los pasos de su puerta y siguen sin
+          servir. ⚠️ El PRIMER «la llave no abre», «no encuentro la puerta» o «no está mi llave»
+          NO es emergencia: es «peticion» con «consultar_guia», porque casi siempre se resuelve
+          con los pasos (la puerta correcta, el número de llave, el giro). ⚠️ Lo que YA PASÓ («anoche
           abrieron nuestra puerta», «ayer se fue la luz») NO es emergencia aunque hable de
           seguridad: es «peticion» —hay que escalarlo y recoger datos, no despertar a nadie—.
           Ante la duda entre esto y «peticion» con algo que SÍ puede estar pasando ahora,

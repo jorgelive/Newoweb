@@ -193,7 +193,9 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                     . 'emergencia aunque sea de seguridad: es un incidente. Ahí lamenta lo '
                     . 'ocurrido, pregúntale cuándo fue y qué pasó exactamente (¿entraron o sólo '
                     . 'abrieron?, ¿estaban dentro?, ¿falta algo?), NO le des consejos sobre '
-                    . 'cerraduras y escala SIN marcar esto. Un huésped enfadado tampoco es '
+                    . 'cerraduras y escala SIN marcar esto. SI NO SE PUEDE SABER si pasa ahora, '
+                    . 'márcala y pregúntale en la misma respuesta si está pasando y si están a '
+                    . 'salvo: avisar de más se aclara en el hilo, avisar tarde no. Un huésped enfadado tampoco es '
                     . 'emergencia; que algo lleve días sin resolverse, tampoco. Con esto el aviso '
                     . 'sale marcado 🚨 y aunque ya se haya avisado hace un rato.'),
                 SkillParameter::booleano('silencioso', 'true cuando YA le has dado al huésped una '
@@ -206,7 +208,8 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                     requerido: false),
                 SkillParameter::booleano('otro_asunto', 'true SÓLO si te he devuelto «antes_de_escalar» '
                     . 'y lo que escalas NO tiene que ver con ese tema de la guía (otra avería, una '
-                    . 'emergencia distinta).'),
+                    . 'emergencia distinta). NUNCA para el mismo problema: si no puede entrar y la '
+                    . 'guía aún tiene un paso, ese paso va antes que el aviso.'),
             ],
         );
     }

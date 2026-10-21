@@ -1853,7 +1853,16 @@ sigue sin abrir (2 y 4)   →  reafirmar puerta, llave y truco
 sigue sin abrir           →  emergencia al equipo (lo ordena `consultar_guia` al agotarse los pasos)
 ```
 
-Las casitas sin truco tienen un solo paso: si con todo junto sigue sin abrir, se escala. La
+⚠️ **El primer problema va en el PASO 0, no en el 1** (corregido tras el ensayo del 21/10/2026). El
+bloque «si no puede entrar o no encuentra su llave» se añade al final de `agenteContenido` tras un
+marcador (`━━ SI NO PUEDE ENTRAR O NO ENCUENTRA SU LLAVE ━━`; lo de antes es del editor y no se
+toca). Motivo: `consultar_guia` sirve el paso 0 ante un «no funciona» a secas y sólo sube si el
+modelo dice que ya lo probó; con la Casita 4 lo dijo y con la 2 y la 3 no, que se quedaron sólo con
+«compruebe la puerta». Cada ficha conserva **al menos un paso**, que es lo que frena
+`escalar_al_equipo` hasta que se ha dado todo: 2 y 4, reafirmar; las demás, escalar; «Llaves»,
+escalar con el motivo según `{{ momento_llave }}`, sólo cuando ha confirmado que no está.
+
+Las casitas sin truco: si con todo junto sigue sin abrir, se escala. La
 Casita 5 no tiene vídeo de ingreso todavía; cuando lo tenga, se añade la línea y se vuelve a correr
 el comando.
 

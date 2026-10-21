@@ -61,6 +61,24 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
     private const string SIN_NUMERO = 'Las puertas no llevan número, a propósito, y es fácil probar la llave en '
         . 'la de otra casita: por eso esto va PRIMERO.';
 
+    /**
+     * Dónde empieza, dentro de `agenteContenido`, el bloque «si no puede entrar» que pone este
+     * comando. Lo de antes del marcador es del editor y no se toca; lo de después se reescribe.
+     */
+    private const string MARCADOR = "\n\n━━ SI NO PUEDE ENTRAR O NO ENCUENTRA SU LLAVE ━━\n";
+
+    /** El último paso de las puertas sin truco: con todo dado, sólo queda avisar. */
+    private const string ESCALAR_PUERTA = 'SI SIGUE SIN ABRIR después de haberle dado todo (su puerta, la llave '
+        . '{{ numero }}, el giro): no se lo repitas. Avisa al equipo como EMERGENCIA con escalar_al_equipo —no '
+        . 'puede entrar—, contando lo que ya comprobó, y dile que ya avisaste.';
+
+    /** El último paso de las llaves: sólo cuando ha CONFIRMADO que no está, o que la perdió. */
+    private const string ESCALAR_LLAVE = 'SI TE HA CONFIRMADO que su llave no está en la caja, o que la perdió y '
+        . 'necesita entrar: ya no queda nada que probar. Ahora mismo: {{ momento_llave }} Avisa al equipo como '
+        . 'EMERGENCIA con escalar_al_equipo y el motivo que toca: si está en su llegada, «su llave no estaba en la '
+        . 'caja en el check-in: necesita la llave de emergencia»; si ya está alojado y la perdió, «perdió su llave '
+        . 'y necesita entrar: darle la llave de emergencia y hacer la cobranza de la pérdida». Dile que ya avisaste.';
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
         parent::__construct();
@@ -183,7 +201,11 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
         $repo = $this->em->getRepository(PmsGuiaItem::class);
         $cambios = 0;
 
-        foreach ($this->pasos() as $ficha => $pasos) {
+        // ⚠️ El primer «no abre» va en el PASO 0 (`agenteContenido`), no en el 1. `consultar_guia`
+        // sirve el 0 ante un «no funciona» a secas y sólo sube si el modelo dice que ya lo probó; en
+        // el ensayo del 21/10/2026 lo dijo con la Casita 4 y no con la 2 ni la 3, que se quedaron
+        // sólo con «compruebe la puerta». El protocolo pide TODO desde el primer problema.
+        foreach ($this->pasos() as $ficha => $porPeldano) {
             $item = $repo->findOneBy(['nombreInterno' => $ficha]);
 
             if (!$item instanceof PmsGuiaItem) {
@@ -192,18 +214,31 @@ final class PmsGuiaPuertasEscaleraCommand extends Command
                 return Command::FAILURE;
             }
 
-            if ($item->getAgentePasos() === $pasos) {
+            $bloque = $porPeldano[0];
+            $resto = array_slice($porPeldano, 1);
+            // Cada ficha deja al menos UN paso: es lo que frena `escalar_al_equipo` hasta que se ha
+            // dado todo (`EscaleraDeTemas::pendienteReciente()`). Sin pasos, escalaba al primer aviso.
+            $pasos = $resto !== [] ? $resto : [$ficha === 'Llaves (general)' ? self::ESCALAR_LLAVE : self::ESCALAR_PUERTA];
+
+            $base = (string) $item->getAgenteContenido();
+            $corte = strpos($base, trim(self::MARCADOR));
+            $base = rtrim($corte === false ? $base : substr($base, 0, $corte));
+            $contenido = $base . self::MARCADOR . $bloque;
+
+            if ($item->getAgentePasos() === $pasos && $item->getAgenteContenido() === $contenido) {
                 $io->text(sprintf('= %s ya está.', $ficha));
 
                 continue;
             }
 
             $io->section($ficha);
+            $io->writeln('<fg=green>paso 0 (bloque):</> ' . $bloque);
             foreach ($pasos as $i => $paso) {
                 $io->writeln(sprintf('<fg=green>paso %d:</> %s', $i + 1, $paso));
             }
 
             if (!$dryRun) {
+                $item->setAgenteContenido($contenido);
                 $item->setAgentePasos($pasos);
             }
             ++$cambios;

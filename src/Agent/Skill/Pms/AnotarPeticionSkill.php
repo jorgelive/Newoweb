@@ -78,6 +78,9 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
                 . 'Lo que hay que resolver ahora —una avería, un cobro que no cuadra, alguien en '
                 . 'la puerta— va por «escalar_al_equipo»; si el mismo mensaje trae además un '
                 . 'pedido, llama a las DOS: el aviso no deja nota y la nota no avisa. '
+                . 'UNA vez por pedido: si ya lo anotaste en esta conversación, no lo vuelvas a anotar, '
+                . 'y no le añadas datos de OTRO asunto (la hora de un incidente no es parte del pedido '
+                . 'de toallas). '
                 . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe, '
                 . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía.',
             parametros: [

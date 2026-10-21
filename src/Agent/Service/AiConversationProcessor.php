@@ -1335,11 +1335,24 @@ final readonly class AiConversationProcessor
             // ⚠️ «Dile qué puede hacer mientras tanto si lo sabes» empujaba a INVENTAR: con María
             // Capetillo (20/10/2026) salió «no deje la puerta solo con llave» para una casita de
             // una sola cerradura. Lo que puede hacer, sólo si lo dice su guía o una herramienta.
-            return 'ESTO PARECE UNA EMERGENCIA. Primero comprueba que esté pasando AHORA: si te '
+            // ⚠️ La duda se resuelve haciendo las DOS cosas a la vez (Jorge, 21/10/2026): escalar
+            // como emergencia Y preguntar en la misma respuesta. Preguntar primero y escalar después
+            // es lo caro si de verdad estaba pasando; un 🚨 de más se aclara solo en el hilo.
+            // ⚠️ «No puedo entrar» es la excepción: primero los pasos de su puerta. La orden
+            // imperativa de escalar pisaba a la escalera (ensayo del 21/10/2026: escaló al primer
+            // «la llave no abre» sin darle el número de llave ni el giro).
+            return 'ESTO PARECE UNA EMERGENCIA. Si lo que pasa es que NO PUEDE ENTRAR o no encuentra '
+                . 'su llave: primero los pasos de su puerta con «consultar_guia» —dáselos enteros— y '
+                . 'NO escales mientras la guía te dé un paso; sólo cuando te diga que escales. '
+                . 'Para todo lo demás: primero comprueba que esté pasando AHORA: si te '
                 . 'cuenta algo que ya pasó (anoche, ayer), no lo es — lamenta lo ocurrido, '
                 . 'pregúntale cuándo fue y qué pasó exactamente, y escala sin marcar emergencia. '
                 . 'Si está pasando ahora, llama a «escalar_al_equipo» con emergencia en este mismo '
-                . 'turno y cuéntale que ya has avisado. Qué puede hacer mientras tanto, SÓLO si lo '
+                . 'turno y cuéntale que ya has avisado. SI NO PUEDES SABER si está pasando ahora '
+                . '(«alguien abrió nuestra puerta», sin decir cuándo), haz las DOS cosas en este mismo '
+                . 'turno: escala con emergencia Y pregúntale si está pasando en este momento y si '
+                . 'están a salvo. No esperes su respuesta para avisar; si después te dice que ya '
+                . 'pasó, no vuelvas a escalar: recoge los datos. Qué puede hacer mientras tanto, SÓLO si lo '
                 . 'dice su guía o una herramienta: no inventes consejos de seguridad ni sobre '
                 . 'cerraduras. No le pidas que espere sin más y no prometas plazos.';
         }

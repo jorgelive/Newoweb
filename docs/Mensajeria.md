@@ -6616,6 +6616,18 @@ hacía falta para revisar las cámaras.
 | `escalar_al_equipo`, parámetro `emergencia` | La misma definición, con el caso de la puerta: primero los pasos (`consultar_guia`), luego emergencia |
 | El aviso al equipo | 🚨 «EMERGENCIA, está pasando ahora» frente a 🔔 «necesita respuesta»; fuera de ventana la marca va al frente de `{{motivo}}` (`EscalarAlEquipoSkill::MARCA_EMERGENCIA`), porque el texto fijo de la plantilla no se puede tocar sin Meta |
 
+**La duda se resuelve haciendo las dos cosas (21/10/2026).** Si no se puede saber si está pasando
+ahora («alguien abrió nuestra puerta», sin cuándo), el agente escala CON emergencia y en la misma
+respuesta pregunta si está pasando y si están a salvo; si después resulta que ya pasó, no vuelve a
+escalar. Preguntar primero y avisar después es lo caro si de verdad estaba pasando.
+
+**El primer «no puedo entrar» NO es emergencia.** Es `peticion` con `consultar_guia`: casi siempre se
+resuelve con los pasos (la puerta, el número de llave, el giro). Lo es cuando en ese chat ya se le
+dieron y siguen sin servir. En el ensayo del 21/10/2026 la orden imperativa de emergencia («escala
+en este mismo turno») pisaba a la escalera de la puerta: escaló al primer «la llave no abre» sin
+darle ni la llave ni el giro. Ahora la pista de emergencia exceptúa ese caso y `otro_asunto` no
+sirve para saltarse un paso del mismo problema.
+
 ⚠️ **La marca `emergencia` sólo cambia dos cosas en código**: el aviso sale con 🚨 y se salta el
 enfriamiento de 30 minutos entre avisos. Que el aviso salga lo decide el escalado, con o sin
 marca. Lo que de verdad hacía daño era el texto que el triaje le ponía delante al modelo.
