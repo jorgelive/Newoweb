@@ -65,6 +65,13 @@ que cada prueba cuesta segundos). Partiendo el texto:
 **Lo que no admite es la idea de dar o usar una clave para abrir algo**, se llame como se llame la
 variable e incluso sin variable. Ni «dinero», ni los enlaces, ni la palabra «código». Una plantilla
 oficial con estas instrucciones tiene que ir **sin la clave**, y la clave salir por otro camino.
+(«La contraseña es {{password_caja_superior}}», también rechazada.)
+
+**Cerrado sin plantilla oficial (Jorge, 21/10/2026): sin la clave no sirve.** Las cuatro (`_v1`,
+`_v2`) se borraron de Meta y el bloque de Meta de las dos volvió a `{body: [], is_official_meta:
+false}`. Siguen saliendo por Beds24 y por WhatsApp dentro de ventana; a una directa sin ventana, se le
+pide por teléfono que escriba. ⚠️ **No relances `app:pms:plantillas-caja-a-meta`**: volvería a
+escribir los cuerpos; queda como receta de lo que se intentó.
 
 Si no, la salida es no tener plantilla propia:
 el mensaje EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada,
