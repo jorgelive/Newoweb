@@ -74,12 +74,21 @@ final readonly class AgendaDeAsunto
     /**
      * La agenda de un asunto persistido.
      *
-     * `esNueva` sólo cuando el enlace aún no se flusheó (`createdAt === null`): es la señal de
-     * «reserva de última hora» cuando el hilo ya existía y el trigger llega como `UPDATE`.
-     * Deliberadamente NO es «creado hace poco»: un poblado masivo flushea antes de que el motor
-     * corra, así que sus enlaces nunca disparan rescates ni bienvenidas retroactivas.
+     * `esNueva` sólo cuando el enlace aún no se flusheó: es la señal de «reserva de última hora»
+     * cuando el hilo ya existía y el trigger llega como `UPDATE`. Deliberadamente NO es «creado
+     * hace poco»: un poblado masivo flushea antes de que el motor corra, así que sus enlaces
+     * nunca disparan rescates ni bienvenidas retroactivas.
+     *
+     * 🔥 **La dice quien llama, mirando la unidad de trabajo** (`UnitOfWork::isScheduledForInsert()`).
+     * Hasta el 21/10/2026 se deducía aquí de `createdAt === null`, y eso **no fue verdad nunca**:
+     * `TimestampTrait` pone la fecha en `#[PrePersist]`, y Doctrine dispara `PrePersist` **dentro
+     * del propio `persist()`**, no al hacer flush. Cuando el motor miraba, la fecha ya estaba.
+     * Resultado: una reserva directa de última hora colgada de un hilo que ya existía (Omar
+     * Valverde, 4XTDSR, sobre el hilo de su cotización) se quedó sin guía de llegada —vencida 16 h
+     * antes, rescatable—, y sin ningún log: con el rescate apagado el motor ni lo menciona.
+     * Ver `docs/Mensajeria.md` §4.4.
      */
-    public static function deEnlace(ConversacionEnlaceInterface $enlace): self
+    public static function deEnlace(ConversacionEnlaceInterface $enlace, bool $esNueva): self
     {
         return new self(
             contextType: $enlace->getContextType(),
@@ -88,7 +97,7 @@ final readonly class AgendaDeAsunto
             origen: $enlace->getOrigen(),
             agencia: $enlace->getAgencia(),
             esLegado: false,
-            esNueva: $enlace->getCreatedAt() === null,
+            esNueva: $esNueva,
             vinculo: $enlace->getVinculo(),
         );
     }

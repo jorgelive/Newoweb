@@ -834,7 +834,7 @@ Todos son constantes de `MessageRuleEngine` y todos se miden en `America/Lima`:
 
 **El rescate** (`canRescue`) crea el mensaje con `runAt = now` cuando su fecha teórica ya pasó.
 Se activa en `INSERT`, en `COMMAND + force` o cuando el ASUNTO acaba de nacer (`esNueva`: enlace
-con `createdAt === null`, es decir, creado en esta misma unidad de trabajo — §20.5), y sólo
+programado para INSERT en la unidad de trabajo, es decir, creado y sin flushear — §20.5), y sólo
 dentro de `RESCUE_WINDOW`. Ese suelo es imprescindible: sin él, importar el histórico de un
 canal —donde toda conversación entra como `INSERT`— disparaba de golpe los mensajes de
 bienvenida de reservas hechas hace meses.
@@ -10592,11 +10592,28 @@ corre: no se puede distinguir «asunto retirado» de «asunto que hoy no cargó�
 una foto rota apagaría mensajes legítimos.
 
 **Asunto nuevo = enlace sin flushear.** El rescate de última hora y las reglas `CREATED`
-aceptan, además de `INSERT` y la reparación manual, un enlace con `createdAt === null` (nació
-en esta misma unidad de trabajo). Es la señal que sustituye al `INSERT` cuando los hilos estén
-fusionados y una reserva nueva llegue como `UPDATE` de una conversación vieja. Un poblado
-masivo nunca la activa, porque flushea antes de que el motor corra — por eso la señal es
-«null», y no «creado hace poco».
+aceptan, además de `INSERT` y la reparación manual, un enlace que la unidad de trabajo tiene
+programado para INSERT (`UnitOfWork::isScheduledForInsert()`, lo pregunta
+`MessageRuleEngine::agendasDe()` y se lo pasa a `AgendaDeAsunto::deEnlace()`). Es la señal que
+sustituye al `INSERT` cuando una reserva nueva llega como `UPDATE` de una conversación vieja. Un
+poblado masivo nunca la activa, porque flushea antes de que el motor corra — por eso la señal es
+«sin flushear», y no «creado hace poco».
+
+🔥 **Hasta el 21/10/2026 se leía de `createdAt === null`, y no fue verdad nunca.** `TimestampTrait`
+pone la fecha en `#[PrePersist]`, y Doctrine dispara `PrePersist` **dentro del `persist()`**, no
+al flushear: cuando el motor miraba, ya la tenía. `esNueva` valía siempre `false`. Las reglas
+`CREATED` no lo notaron porque el recálculo del PMS pasa `force`; **el rescate sí**, y sin dejar
+log (con el rescate apagado el motor no dice nada). Le pasó a Omar Valverde (4XTDSR): reserva
+directa creada a las 00:08 para ese mismo día, colgada del hilo de su cotización; la guía de
+llegada vencía 16 h antes y no se creó. Medido ese día: en septiembre-octubre fue el único caso
+—las demás reservas en hilos viejos llegaban con días de margen—.
+
+Y un segundo fallo detrás, que el primero tapaba: la pasada siguiente del motor (el `postFlush`,
+con el enlace ya en la base) le devolvía al rescatado su hora teórica, y con más de
+`EXPIRY_WINDOW` de retraso la caducidad lo cancelaba. `MessageRuleEngine::esUnRescate()` lo
+impide: si la hora vigente y la teórica están las dos en el pasado y la vigente es posterior,
+es un rescate y se respeta. Test: `una_reserva_de_ultima_hora_en_un_hilo_que_ya_existia_se_rescata`.
+Reproducción contra la base: `var/probar-alta-directa-mensajes.php <teléfono> <estado>`.
 
 **Gotcha pendiente de cableado:** `MessageRuleEngineListener::CAMPOS_CRITICOS` vigila columnas
 de la CONVERSACIÓN; tocar un enlace no dispara el motor. Mientras el flujo que refresque

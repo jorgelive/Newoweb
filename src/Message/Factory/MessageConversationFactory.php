@@ -343,7 +343,8 @@ readonly class MessageConversationFactory
             }
 
             try {
-                if (!AgendaDeAsunto::deEnlace($enlace)->estaMuerta()) {
+                // Sólo se mira si está muerto: la novedad no pinta aquí.
+                if (!AgendaDeAsunto::deEnlace($enlace, esNueva: false)->estaMuerta()) {
                     return true;
                 }
             } catch (Throwable $e) {

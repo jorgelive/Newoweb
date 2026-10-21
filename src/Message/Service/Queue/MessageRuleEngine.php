@@ -312,7 +312,12 @@ final readonly class MessageRuleEngine
             }
 
             try {
-                $agenda = AgendaDeAsunto::deEnlace($enlace);
+                // «Nuevo» = todavía no está en la base. Lo sabe Doctrine, no la fecha de
+                // creación: ésa la pone `PrePersist` en el mismo `persist()`.
+                $agenda = AgendaDeAsunto::deEnlace(
+                    $enlace,
+                    esNueva: $this->em->getUnitOfWork()->isScheduledForInsert($enlace),
+                );
             } catch (Throwable $e) {
                 // Típicamente un proxy de Doctrine que no encuentra su fila. El asunto queda
                 // sin evaluar esta pasada; los demás no tienen la culpa.
@@ -737,6 +742,25 @@ final readonly class MessageRuleEngine
      * Si un canal de la regla ya no es válido para el contexto actual (ej. Beds24 en Directo),
      * se cancela su cola.
      */
+    /**
+     * Si el mensaje es uno RESCATADO: nació con la hora de su rescate porque la teórica ya había
+     * pasado, y las dos siguen en el pasado.
+     *
+     * 🔥 Sin esto, la pasada siguiente del motor —el `postFlush` que sigue al recálculo, en el
+     * mismo segundo— le devolvía la hora teórica. Una guía de llegada rescatada a las 00:08
+     * volvía a las 08:00 del día anterior, y con más de `EXPIRY_WINDOW` de retraso
+     * `healZombieMessages()` la cancelaba por caducada: el rescate deshecho por su propio motor.
+     *
+     * Una fecha que la reserva MUEVE al pasado no entra aquí: su hora vigente era futura.
+     */
+    private function esUnRescate(Message $message, DateTimeImmutable $newRunAt): bool
+    {
+        $vigente = $message->getScheduledAt();
+        $ahora = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+
+        return $vigente !== null && $newRunAt < $vigente && $vigente <= $ahora;
+    }
+
     private function syncPendingMessage(Message $message, MessageRule $rule, DateTimeImmutable $newRunAt): void
     {
         // CORTAFUEGOS DE ESTADOS TERMINALES (Inmutabilidad estricta)
@@ -837,7 +861,7 @@ final readonly class MessageRuleEngine
         $this->cancelQueuesOutsideChannels($message, $validChannelIds);
 
         if (in_array($message->getStatus(), [Message::STATUS_QUEUED, Message::STATUS_PENDING], true)) {
-            if ($message->getScheduledAt() != $newRunAt) {
+            if ($message->getScheduledAt() != $newRunAt && !$this->esUnRescate($message, $newRunAt)) {
                 $message->setScheduledAt($newRunAt);
             }
 

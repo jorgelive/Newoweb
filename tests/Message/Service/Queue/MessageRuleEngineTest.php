@@ -91,6 +91,12 @@ final class MessageRuleEngineTest extends TestCase
         // `getUnitOfWork()` devuelve null y revienta. Vacío = «nada a medio guardar».
         $uow = $this->createStub(UnitOfWork::class);
         $uow->method('getScheduledEntityInsertions')->willReturn([]);
+        // «A medio guardar» lo contesta en producción la unidad de trabajo, no la fecha de creación
+        // (ver `AgendaDeAsunto::deEnlace()`). Sin configurar, el doble devuelve `null` —el método
+        // no declara tipo— y el `bool` revienta: el asunto se saltaba entero.
+        $uow->method('isScheduledForInsert')->willReturnCallback(
+            fn (object $e): bool => in_array($e, $this->aMedioGuardar, true)
+        );
         $em->method('getUnitOfWork')->willReturn($uow);
         $em->method('getRepository')->willReturn($repositorio);
         $em->method('persist')->willReturnCallback(function (object $entidad): void {
@@ -114,6 +120,13 @@ final class MessageRuleEngineTest extends TestCase
 
     /** @var list<ConversacionEnlaceInterface> Los asuntos que verá el motor en esta prueba. */
     private array $enlaces = [];
+
+    /**
+     * Lo que la unidad de trabajo tiene programado para INSERT: persistido y sin flush.
+     *
+     * @var list<object>
+     */
+    private array $aMedioGuardar = [];
 
     /**
      * El servicio de enlaces con un proveedor de mentira.
@@ -945,5 +958,44 @@ final class MessageRuleEngineTest extends TestCase
             ->syncConversationRules($conversacion, MessageRuleEngine::TRIGGER_UPDATE);
 
         self::assertSame(Message::STATUS_CANCELLED, $esperando->getStatus());
+    }
+
+    /**
+     * 🔥 El caso de Omar Valverde (4XTDSR, 19/10/2026): reserva directa creada a las 00:08 para
+     * ese mismo día, colgada del hilo que ya tenía por su cotización. La guía de llegada vencía
+     * 16 h antes —dentro de la ventana de rescate— y no se creó.
+     *
+     * El enlace YA tiene `createdAt` (lo pone `PrePersist` en el propio `persist()`) pero sigue
+     * a medio guardar: eso, y no la fecha, es lo que lo hace nuevo.
+     */
+    #[Test]
+    public function una_reserva_de_ultima_hora_en_un_hilo_que_ya_existia_se_rescata(): void
+    {
+        $regla = $this->regla(offsetMinutos: -1800, canal: new MessageChannel()->setId('whatsapp_meta'));
+        $reserva = new PmsReserva();
+        $hilo = new MessageConversation('cotizacion_file', 'expediente-previo');
+        $enlace = $this->enlace($hilo, MapaDeHitos::de([ConversationMilestoneInterface::START => $this->hito('+14 hours')]), $reserva);
+        $enlace->setCreatedAt(new DateTimeImmutable());
+        $this->aMedioGuardar[] = $enlace;
+
+        $motor = $this->motor([$regla], [$this->enqueuer(valido: true)]);
+        $antes = time();
+        $motor->syncConversationRules($hilo, MessageRuleEngine::TRIGGER_UPDATE);
+
+        $mensajes = $this->mensajesDelSistema($hilo);
+        self::assertCount(1, $mensajes, 'La guía vencida hace 16 h tiene que rescatarse.');
+        $rescatado = $mensajes[0];
+        self::assertGreaterThanOrEqual($antes, $rescatado->getScheduledAt()?->getTimestamp(), 'Rescatado = sale ahora.');
+        $hora = $rescatado->getScheduledAt();
+
+        // La pasada siguiente —el postFlush, con el enlace ya en la base— no puede devolverle la
+        // hora teórica: con 16 h de retraso, la caducidad lo cancelaría.
+        $this->aMedioGuardar = [];
+        $this->fabricarCola($rescatado);
+        $motor->syncConversationRules($hilo, MessageRuleEngine::TRIGGER_UPDATE);
+
+        self::assertCount(1, $this->mensajesDelSistema($hilo));
+        self::assertEquals($hora, $rescatado->getScheduledAt());
+        self::assertSame(Message::STATUS_QUEUED, $rescatado->getStatus());
     }
 }
