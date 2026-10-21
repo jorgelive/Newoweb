@@ -363,11 +363,15 @@ final readonly class Triaje
           («llego a las 12», «estoy en Urubamba», «mi vuelo sale a las 10 de la noche»). Casi
           siempre lleva dentro un «¿puedo entrar ya?» o un «¿dónde dejo las maletas?», y
           contestarlo como charla sale un «te esperamos» que promete lo que nadie ha mirado.
-        - «emergencia»: hay alguien en peligro o algo que no aguanta hasta mañana —fuego, olor
-          a gas, agua inundando, una intrusión, un problema médico, alguien encerrado fuera de
-          noche, una persona sola y asustada—. Ante la duda entre esto y «peticion», elige
-          «emergencia»: equivocarse por exceso despierta a alguien; equivocarse por defecto
-          deja a una persona sola con un problema de verdad.
+        - «emergencia»: algo que está PASANDO AHORA y compromete la seguridad o deja a alguien
+          en peligro —fuego, olor a gas, agua inundando, alguien dentro o intentando entrar EN
+          ESTE MOMENTO, un problema médico, una persona sola y asustada—, o que NO PUEDE ENTRAR
+          a su alojamiento y ya probó los pasos de su puerta. ⚠️ Lo que YA PASÓ («anoche
+          abrieron nuestra puerta», «ayer se fue la luz») NO es emergencia aunque hable de
+          seguridad: es «peticion» —hay que escalarlo y recoger datos, no despertar a nadie—.
+          Ante la duda entre esto y «peticion» con algo que SÍ puede estar pasando ahora,
+          elige «emergencia»: equivocarse por exceso despierta a alguien; equivocarse por
+          defecto deja a una persona sola con un problema de verdad.
 
         HERRAMIENTAS QUE PUEDE USAR EL PASO SIGUIENTE:
         {$catalogo}

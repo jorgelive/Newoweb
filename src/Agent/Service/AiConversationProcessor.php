@@ -1332,9 +1332,16 @@ final readonly class AiConversationProcessor
     private function pistaDelTriaje(DecisionDeTriaje $decision): string
     {
         if ($decision->tipo === TipoDeMensaje::Emergencia) {
-            return 'ESTO PARECE UNA EMERGENCIA. Llama a «escalar_al_equipo» en este mismo turno, '
-                . 'cuéntale al huésped que ya has avisado y dile qué puede hacer mientras tanto '
-                . 'si lo sabes. No le pidas que espere sin más y no prometas plazos.';
+            // ⚠️ «Dile qué puede hacer mientras tanto si lo sabes» empujaba a INVENTAR: con María
+            // Capetillo (20/10/2026) salió «no deje la puerta solo con llave» para una casita de
+            // una sola cerradura. Lo que puede hacer, sólo si lo dice su guía o una herramienta.
+            return 'ESTO PARECE UNA EMERGENCIA. Primero comprueba que esté pasando AHORA: si te '
+                . 'cuenta algo que ya pasó (anoche, ayer), no lo es — lamenta lo ocurrido, '
+                . 'pregúntale cuándo fue y qué pasó exactamente, y escala sin marcar emergencia. '
+                . 'Si está pasando ahora, llama a «escalar_al_equipo» con emergencia en este mismo '
+                . 'turno y cuéntale que ya has avisado. Qué puede hacer mientras tanto, SÓLO si lo '
+                . 'dice su guía o una herramienta: no inventes consejos de seguridad ni sobre '
+                . 'cerraduras. No le pidas que espere sin más y no prometas plazos.';
         }
 
         // El tema exacto vale más que la skill: con él, consultar_guia(tema_id) trae el

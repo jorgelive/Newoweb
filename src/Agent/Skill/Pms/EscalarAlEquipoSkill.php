@@ -142,6 +142,16 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * puede ser que no. Las palabras del ejemplo se copian casi literales: se eligen como si
      * fueran el mensaje.
      */
+    /**
+     * Lo que encabeza `{{motivo}}` cuando es emergencia. Una línea: Meta no admite saltos.
+     *
+     * Qué es emergencia lo fija la descripción del parámetro, decidida el 20/10/2026 tras el caso
+     * de María Capetillo: «anoche los del apartamento de al lado abrieron nuestra puerta» se marcó
+     * emergencia por decir «seguridad», sin mirar que ya había pasado. **Emergencia es lo que está
+     * pasando AHORA y compromete la seguridad**, o no poder entrar tras los pasos de la puerta.
+     */
+    private const string MARCA_EMERGENCIA = '🚨 EMERGENCIA (está pasando ahora): ';
+
     private const string PETICION_PENDIENTE = 'Si lo que pide es algo que hay que conceder —una '
         . 'noche, una reserva, cambiar fechas u horario, un servicio—, todavía NO está concedido: '
         . 'el equipo decide, y puede ser que sí o que no. Díselo así, como petición en curso: «he '
@@ -152,7 +162,10 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
     {
         return new SkillDefinition(
             descripcion: 'Avisa a una persona del equipo de que este huésped necesita '
-                . 'respuesta, y deja su conversación marcada como pendiente. ÚSALA SIEMPRE QUE '
+                . 'respuesta, y deja su conversación marcada como pendiente. Si en el mismo '
+                . 'mensaje pide ADEMÁS algo para su estancia —cambio de toallas, un secador, '
+                . 'limpieza—, anótalo TAMBIÉN con anotar_peticion: avisar no deja nota en ninguna '
+                . 'parte. ÚSALA SIEMPRE QUE '
                 . 'LE DIGAS AL HUÉSPED QUE ALGUIEN LE VA A CONTESTAR: si prometes que lo '
                 . 'consultas y no me llamas, nadie se entera y el huésped se queda esperando. '
                 . 'LA CLAVE ES SI PREGUNTA O SI PIDE. Preguntar es querer saber algo que ya '
@@ -171,11 +184,18 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 SkillParameter::texto('motivo', 'En una frase y EN ESPAÑOL, aunque el huésped '
                     . 'escriba en otro idioma: qué necesita, concreto. Lo lee un operador en el '
                     . 'móvil.'),
-                SkillParameter::booleano('emergencia', 'SÓLO para lo que no puede esperar: fuego, '
-                    . 'fuga de gas o de agua, alguien encerrado o herido, un problema de '
-                    . 'seguridad. Con esto el aviso sale aunque ya se haya avisado hace un rato. '
-                    . 'Un huésped enfadado NO es una emergencia; que algo lleve días sin '
-                    . 'resolverse, tampoco.'),
+                SkillParameter::booleano('emergencia', 'SÓLO si está pasando AHORA MISMO y '
+                    . 'compromete su seguridad: fuego, fuga de gas o de agua, alguien herido o '
+                    . 'encerrado, alguien dentro o intentando entrar EN ESTE MOMENTO. También si '
+                    . 'NO PUEDE ENTRAR a su alojamiento DESPUÉS de haberle dado los pasos de su '
+                    . 'puerta (consultar_guia): primero los pasos, y si siguen sin servir, es '
+                    . 'emergencia. LO QUE YA PASÓ —«anoche», «ayer», «esta mañana»— NO es '
+                    . 'emergencia aunque sea de seguridad: es un incidente. Ahí lamenta lo '
+                    . 'ocurrido, pregúntale cuándo fue y qué pasó exactamente (¿entraron o sólo '
+                    . 'abrieron?, ¿estaban dentro?, ¿falta algo?), NO le des consejos sobre '
+                    . 'cerraduras y escala SIN marcar esto. Un huésped enfadado tampoco es '
+                    . 'emergencia; que algo lleve días sin resolverse, tampoco. Con esto el aviso '
+                    . 'sale marcado 🚨 y aunque ya se haya avisado hace un rato.'),
                 SkillParameter::booleano('silencioso', 'true cuando YA le has dado al huésped una '
                     . 'salida concreta —un enlace de pago, un teléfono al que llamar— y avisar '
                     . 'al equipo es sólo para que lo sepan. Con esto NO se le dice al huésped '
@@ -372,11 +392,14 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // a la versión de MySQL, y el enfriamiento de arriba necesita consultarlo.
         $resultado = $this->avisos->notificar(new AvisoAlEquipo(
             rol: Roles::CUSTOMER_SUPPORT,
-            texto: $this->redactar($conversacion, $motivo),
+            texto: $this->redactar($conversacion, $motivo, $emergencia),
             plantillaCodigo: self::PLANTILLA_AVISO,
-            variables: $this->variablesDelAviso($conversacion, $motivo),
+            // Fuera de ventana el texto fijo de la plantilla dice «necesita respuesta» y no se puede
+            // cambiar sin pasar por Meta: la marca de emergencia viaja al frente de `{{motivo}}`.
+            variables: $this->variablesDelAviso($conversacion, $emergencia ? self::MARCA_EMERGENCIA . $motivo : $motivo),
             metadata: [
                 'aviso_escalado' => true,
+                'emergencia' => $emergencia,
                 'escalado_de' => (string) $conversacion->getId(),
                 // De QUÉ se avisó, sin releer el texto: es lo que falta cuando el enfriamiento
                 // silencia un aviso y alguien pregunta después qué se calló.
@@ -489,7 +512,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * formato que el push de `MessageConversationMercureListener`): el operador toca y está
      * dentro, sin buscar en la lista.
      */
-    private function redactar(MessageConversation $conversacion, string $motivo): string
+    private function redactar(MessageConversation $conversacion, string $motivo, bool $emergencia = false): string
     {
         $huesped = $conversacion->getGuestName() ?: 'Un huésped';
         $enlace = rtrim(Parametro::texto($this->params->get('util_host_url'), 'util_host_url'), '/')
@@ -505,8 +528,10 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         $resumen = trim((string) $conversacion->getResumenIa());
         $contexto = $resumen === '' ? '' : sprintf("\n\n🗒️ Sin contestar: %s", $resumen);
 
+        // 🚨 frente a 🔔: hasta el 20/10/2026 los dos avisos eran idénticos, y una puerta forzada
+        // AHORA no se distinguía en el móvil de un cambio de toallas.
         return sprintf(
-            "🔔 *%s* necesita respuesta\n\n%s%s%s\n\n👉 %s",
+            $emergencia ? "🚨 *%s* — EMERGENCIA, está pasando ahora\n\n%s%s%s\n\n👉 %s" : "🔔 *%s* necesita respuesta\n\n%s%s%s\n\n👉 %s",
             $huesped,
             $motivo,
             $contexto,

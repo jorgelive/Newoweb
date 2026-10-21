@@ -6599,6 +6599,35 @@ skill que no toca y el error no aparecería más que en la respuesta al huésped
 que el de avisar de más — y por eso el propio prompt del triaje le dice que ante la duda entre
 `peticion` y `emergencia` elija `emergencia`.
 
+🚨 **Qué es emergencia: lo que está pasando AHORA y compromete la seguridad (20/10/2026).** O no
+poder entrar al alojamiento después de haber probado los pasos de su puerta. **Lo que ya pasó no
+lo es**, aunque hable de seguridad: es un incidente, que se escala sin marca y para el que se
+recogen datos. Lo decidió Jorge con el caso de María Capetillo (Casita 3): «anoche los del
+apartamento de al lado abrieron nuestra puerta, suponemos que por error» se clasificó emergencia
+porque la lista del triaje decía «una intrusión» sin tiempo, y la pista imperativa —«dile qué
+puede hacer mientras tanto si lo sabes»— empujó al modelo a INVENTAR un consejo: «no deje la
+puerta solo con llave», en una casita de una sola cerradura. No pidió la hora, que era lo que
+hacía falta para revisar las cámaras.
+
+| Pieza | Qué dice ahora |
+|---|---|
+| `Triaje::reglas()`, tipo `emergencia` | Pasando AHORA, o no puede entrar tras los pasos; lo que ya pasó es `peticion`. «Ante la duda, emergencia» sólo vale para lo que SÍ puede estar pasando ahora |
+| `AiConversationProcessor::pistaDelTriaje()` | Primero comprobar que pasa ahora; si ya pasó: lamentarlo, preguntar cuándo y qué pasó, escalar sin marca. Qué hacer mientras tanto, **sólo** si lo dice la guía o una herramienta |
+| `escalar_al_equipo`, parámetro `emergencia` | La misma definición, con el caso de la puerta: primero los pasos (`consultar_guia`), luego emergencia |
+| El aviso al equipo | 🚨 «EMERGENCIA, está pasando ahora» frente a 🔔 «necesita respuesta»; fuera de ventana la marca va al frente de `{{motivo}}` (`EscalarAlEquipoSkill::MARCA_EMERGENCIA`), porque el texto fijo de la plantilla no se puede tocar sin Meta |
+
+⚠️ **La marca `emergencia` sólo cambia dos cosas en código**: el aviso sale con 🚨 y se salta el
+enfriamiento de 30 minutos entre avisos. Que el aviso salga lo decide el escalado, con o sin
+marca. Lo que de verdad hacía daño era el texto que el triaje le ponía delante al modelo.
+
+**Y el pedido que viaja con la emergencia se anota aparte.** María pedía en el mismo mensaje un
+cambio de toallas para el día siguiente; el agente lo metió dentro del motivo de la escalada y no
+llamó a `anotar_peticion`, porque su descripción decía «lo que le DEJEN PUESTO… el día de su
+llegada» y la de `escalar_al_equipo` reclamaba «un servicio extra». Las dos descripciones dicen
+ahora que, si un mensaje trae un aviso y un pedido, se llama a las dos: el aviso no deja nota y
+la nota no avisa. El cambio de toallas de cortesía al cuarto día se anota y se le dice que se
+indicará al equipo.
+
 #### El índice global de la guía: el triaje elige el tema exacto
 
 El triaje lleva en su bloque cacheado un **índice global** de temas de la guía
@@ -7888,7 +7917,7 @@ de un botón de Beds24, que se omite: un enlace sin destino no se puede enseñar
 | **Cambiar qué modelo atiende cada paso** | `.env` | `AGENT_IA_POTENCIA_ALTA` / `_MEDIA` / `_BAJA`, en la forma `proveedor:modelo`. Vacías = como antes, §13.5 |
 | Subir o bajar la potencia del clasificador | `.env` | `AGENT_IA_TRIAJE_POTENCIA` — `alta` \| `media`. Nunca `baja`: corre en TODOS los mensajes, §13.5 |
 | Bajar de tramo el trabajo que queda tras elegir una skill | la propia skill | `definicion()->siguientePaso` — hoy ninguna está bajada, y §13.5 dice por qué |
-| Cambiar qué cuenta como emergencia | `Triaje::reglas()` | El prompt, no un regex. Ante la duda elige `emergencia` a propósito, §13.2 |
+| Cambiar qué cuenta como emergencia | `Triaje::reglas()` **y** el parámetro `emergencia` de `EscalarAlEquipoSkill` **y** `AiConversationProcessor::pistaDelTriaje()` | Las tres dicen lo mismo: pasando AHORA, o no puede entrar tras los pasos. Tocar una sola deja a las otras contradiciéndola, §13.2 |
 | Que el triaje ofrezca otra clase de mensaje | `TipoDeMensaje` | El `case` **y** `opciones()`, que es lo que ve el modelo — `Indeterminado` se omite a propósito, §13.2 |
 | Que la sugerencia del triaje mande de verdad | `AiConversationProcessor::pistaDelTriaje()` | Está redactada como sugerencia a propósito: §13.8. Piénsalo antes |
 | Cambiar qué temas de la guía ve el triaje | `PmsIndiceDeTemas::bloqueParaElPrompt()` | Índice GLOBAL (uuid + etiqueta + casitas), determinista para no romper el caché. Lee `getTitulo()`, no `getTituloParaCliente()` (transitorio, llega vacío), §13.8 |

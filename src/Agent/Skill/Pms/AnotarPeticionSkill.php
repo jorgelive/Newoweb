@@ -69,15 +69,15 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     public function definicion(): SkillDefinition
     {
         return new SkillDefinition(
-            descripcion: 'Anota algo que el huésped pide que le DEJEN PUESTO en su casita: una '
-                . 'plancha, un secador, una estufa, frazadas, almohadas. La petición queda '
-                . 'pegada a su estancia y la ve quien prepara el departamento el día de su '
-                . 'llegada. '
+            descripcion: 'Anota algo que el huésped pide para su estancia —ANTES de llegar o '
+                . 'YA ALOJADO—: que le dejen una plancha, un secador, una estufa, frazadas, '
+                . 'almohadas; un cambio de toallas, una limpieza. La petición queda pegada a su '
+                . 'estancia y la ve el equipo en la ficha de la reserva. '
                 . '⚠️ ÚSALA SIEMPRE QUE DIGAS QUE SE TOMA NOTA: si no la llamas, no hay nota en '
                 . 'ninguna parte y nadie se va a enterar. '
-                . 'NO es para lo que hay que resolver ahora —una avería, un cobro que no cuadra, '
-                . 'alguien en la puerta—: eso es «escalar_al_equipo». Ésta es para lo que se '
-                . 'prepara con tiempo. '
+                . 'Lo que hay que resolver ahora —una avería, un cobro que no cuadra, alguien en '
+                . 'la puerta— va por «escalar_al_equipo»; si el mismo mensaje trae además un '
+                . 'pedido, llama a las DOS: el aviso no deja nota y la nota no avisa. '
                 . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe, '
                 . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía.',
             parametros: [

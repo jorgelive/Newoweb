@@ -1086,6 +1086,8 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 
 | Necesitas… | Archivo | Símbolo |
 |---|---|---|
+| Qué cuenta como EMERGENCIA (lo que pasa AHORA, o no poder entrar tras los pasos de la puerta) | `Triaje::reglas()`, parámetro `emergencia` de `EscalarAlEquipoSkill`, `AiConversationProcessor::pistaDelTriaje()` | Las tres a la vez; el porqué y el caso de María Capetillo en `docs/Mensajeria.md` §13.2 |
+| Que un pedido que llega junto a un aviso se anote | descripciones de `AnotarPeticionSkill` y `EscalarAlEquipoSkill` | «si trae aviso y pedido, las DOS» (`docs/Mensajeria.md` §13.2) |
 | Añadir una herramienta nueva | `src/Agent/Skill/**` | implementar `SkillInterface`; se autolocaliza |
 | Cambiar cuándo se corta un bucle de herramientas (los tres motores) | `src/Agent/Skill/ControlDeVueltas.php` | `MAX_VUELTAS`, `MAX_FALLOS_SEGUIDOS`, `ORDEN_DE_CIERRE`, `yaServida()` |
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
