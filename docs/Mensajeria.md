@@ -32,11 +32,20 @@ contesta escribiendo.
 **Las de la caja fuerte de arriba —`caja_dinero` y `llave_emergencia`— pasaron a oficiales de Meta
 (21/10/2026).** Nacieron como texto dentro de ventana porque casi siempre el huésped acaba de
 escribir. Pero puede **llamar por teléfono**, y entonces el equipo le pide al agente del panel que
-se la mande con la ventana cerrada: por Beds24 llegaba, a una reserva directa no. Les dio cuerpo de
-Meta `app:pms:plantillas-caja-a-meta` (oculto, idempotente, `--dry-run`): el texto español del
-enlace con las variables sin espacios (`{{guest_name}}`) y una línea de cierre, porque Meta no
-admite un cuerpo que **termine en variable** y las dos acababan en `{{ video_caja_dinero }}`. Nombre
-`<code>_v1`, UTILITY; los ejemplos los pone `PmsMessageDataResolver`. Se suben con
+se la mande con la ventana cerrada: por Beds24 llegaba, a una reserva directa no. Les da cuerpo de
+Meta `app:pms:plantillas-caja-a-meta` (oculto, `--dry-run`, reescribe mientras no sea oficial).
+Nombre `<code>_v1`, UTILITY; los ejemplos los pone `PmsMessageDataResolver`.
+
+🔥 **El primer intento se rechazó entero: 14 de 14 con `INCORRECT_CATEGORY`**, y Meta no dice qué
+categoría quería (ni `correct_category` en la API: se preguntó). Era el texto de dentro de ventana
+copiado, con un cierre «escríbenos por aquí». Las sospechas, y el segundo cuerpo, escrito aposta
+para UTILITY: **nombrar la operación** (abre con «Información sobre tu reserva `{{locator}}` en
+`{{room_name}}`»), **no decir «código»** —«marca el código X» es la forma de una de AUTENTICACIÓN,
+que sólo admite el texto fijo de verificación— y **cerrar con el motivo del envío**, no con una
+invitación a conversar. Si también se rechaza, la salida es no tener plantilla propia: el mensaje
+EN ESPERA con `respuesta_pendiente` (`MensajeEnEsperaDeVentana`), que ya está aprobada.
+El motivo de un rechazo se lee pidiendo `fields=rejected_reason` al listado de plantillas
+(`var/probar-rechazo-meta.php`); el correo de Meta no lo trae. Se suben con
 `msg:meta:push <code> --todos` y la marca oficial la pone `app:whatsapp:sync-templates` al
 aprobarse. Su `agenteUso` dice ahora que las manda **si se lo pide alguien del equipo**, y sigue
 prohibiendo mandarlas a petición del propio huésped.

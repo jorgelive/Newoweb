@@ -20,12 +20,23 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * la mande (`enviar_plantilla`) con la ventana cerrada. Por Beds24 (Booking, Airbnb) llega igual; a
  * una reserva DIRECTA no le llegaba nada, porque fuera de ventana sólo salen plantillas oficiales.
  *
- * ── Lo que Meta exige y el texto de dentro de ventana no cumplía ─────────────
+ * ── Lo que Meta exige ───────────────────────────────────────────────────────
  * - Variables SIN espacios: `{{guest_name}}`, no `{{ guest_name }}`.
- * - El cuerpo no puede TERMINAR en una variable, y las dos acababan en `{{ video_caja_dinero }}`:
- *   se añade una línea de cierre.
- * - Ejemplos de cada variable: los pone `PmsMessageDataResolver` (datos de muestra), no hace falta
- *   escribirlos aquí.
+ * - Ni empezar ni TERMINAR en una variable.
+ * - Ejemplos de cada variable: los pone `PmsMessageDataResolver` (datos de muestra).
+ *
+ * 🔥 **El primer intento (copiar el texto de dentro de ventana) se rechazó ENTERO: 14 de 14 con
+ * `INCORRECT_CATEGORY`** (21/10/2026). Meta no dice qué categoría quería. Las tres sospechas, y lo
+ * que este cuerpo hace con cada una:
+ * - **No nombraba ninguna operación.** Un UTILITY tiene que ir sobre una transacción concreta del
+ *   usuario: el cuerpo abre ahora con la reserva (`{{locator}}`) y el alojamiento.
+ * - **«Marca el código X»** huele a AUTENTICACIÓN, cuya única forma admitida es el texto fijo de
+ *   verificación. Se dice «marca en el teclado X», sin la palabra.
+ * - **«Cualquier duda, escríbenos por aquí»** invita a conversar, que es lo que el clasificador
+ *   asocia a marketing (le pasó a `mensaje_pendiente`, ver `MensajeEnEsperaDeVentana::PLANTILLA`).
+ *   El cierre dice ahora POR QUÉ se manda.
+ *
+ * Por eso el cuerpo de Meta ya NO es copia del de dentro de ventana: está escrito aquí.
  *
  * El cuerpo se escribe en español y lo traduce `AutoTranslationEventListener` al guardar; en
  * `llave_emergencia` la etiqueta física «emergencia» se restaura después
@@ -33,7 +44,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * marca la pone sola `app:whatsapp:sync-templates` cuando Meta la aprueba. Subir:
  * `msg:meta:push <code> --todos`.
  *
- * Idempotente (no toca una plantilla que ya tenga cuerpo de Meta), con `--dry-run`. Nace `hidden`.
+ * Idempotente: reescribe el cuerpo de Meta mientras no sea oficial (uno aprobado no se toca), con
+ * `--dry-run`. Nace `hidden`.
  */
 #[AsCommand(
     name: 'app:pms:plantillas-caja-a-meta',
@@ -42,8 +54,43 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class PmsPlantillasCajaAMetaCommand extends Command
 {
-    /** El cierre que evita que el cuerpo termine en variable. */
-    private const string CIERRE = "\n\nCualquier duda, escríbenos por aquí.";
+    /**
+     * El cuerpo de Meta, en español: lo demás lo traduce el listener.
+     *
+     * @var array<string, string>
+     */
+    private const array CUERPOS = [
+        PmsCrearPlantillaLlaveEmergenciaCommand::CODIGO => <<<'TXT'
+            Información sobre tu reserva {{locator}} en {{room_name}}.
+
+            Hola {{guest_name}}, estas son las instrucciones para retirar la llave de emergencia de tu alojamiento:
+
+            1️⃣ En el pasadizo hay dos cajas fuertes digitales. La de la llave de emergencia es la de ARRIBA — la de abajo es la de las llaves de siempre.
+            2️⃣ Marca en el teclado {{codigo_caja_dinero}} y gira la perilla hacia la derecha para abrir.
+            3️⃣ Dentro hay una cartuchera celeste. Toma la llave con la etiqueta «emergencia» y el número de tu casita ({{room_name}}).
+            4️⃣ Cierra la caja girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.
+
+            📷 Así es la caja: {{foto_caja_dinero}}
+            🎥 Cómo se abre: {{video_caja_dinero}}
+
+            Te enviamos estas instrucciones porque las solicitaste a nuestro equipo de recepción.
+            TXT,
+        'caja_dinero' => <<<'TXT'
+            Información sobre el pago de tu reserva {{locator}} en {{room_name}}.
+
+            Hola {{guest_name}}, estas son las instrucciones para dejar el pago en efectivo que acordaste con nuestro equipo:
+
+            1️⃣ En el pasadizo hay dos cajas fuertes digitales. La del pago es la de ARRIBA — la de abajo es la de las llaves.
+            2️⃣ Marca en el teclado {{codigo_caja_dinero}} y gira la perilla hacia la derecha para abrir.
+            3️⃣ Antes de cerrar, toma una foto del dinero dentro de la caja y envíanosla: es tu comprobante y el nuestro.
+            4️⃣ Cierra girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.
+
+            📷 Así es la caja: {{foto_caja_dinero}}
+            🎥 Cómo se abre: {{video_caja_dinero}}
+
+            Te enviamos estas instrucciones para completar el pago de tu reserva.
+            TXT,
+    ];
 
     /**
      * Lo que se le dice al agente: además de lo que ya decía, que la mande cuando se lo pide el equipo.
@@ -85,22 +132,14 @@ final class PmsPlantillasCajaAMetaCommand extends Command
 
             $meta = $plantilla->getWhatsappMetaTmpl() ?? [];
 
-            if (($meta['body'] ?? []) !== []) {
-                $io->text(sprintf('= «%s» ya tiene cuerpo de Meta.', $codigo));
+            // Una aprobada no se toca: el nombre en Meta no se edita y el cuerpo vivo es ése.
+            if (($meta['is_official_meta'] ?? false) === true) {
+                $io->text(sprintf('= «%s» ya es oficial en Meta.', $codigo));
 
                 continue;
             }
 
-            $espanol = $this->espanolDe($plantilla);
-
-            if ($espanol === null) {
-                $io->error(sprintf('«%s» no tiene texto en español del que partir.', $codigo));
-
-                return Command::FAILURE;
-            }
-
-            // Sin espacios dentro de las llaves (Meta), y con cierre para no terminar en variable.
-            $cuerpo = (string) preg_replace('/\{\{\s*([a-z0-9_]+)\s*\}\}/i', '{{$1}}', rtrim($espanol)) . self::CIERRE;
+            $cuerpo = self::CUERPOS[$codigo];
 
             $io->section($codigo);
             $io->writeln($cuerpo);
@@ -149,17 +188,5 @@ final class PmsPlantillasCajaAMetaCommand extends Command
         ));
 
         return Command::SUCCESS;
-    }
-
-    /** El texto en español del que se parte: el de WhatsApp dentro de ventana, que es el que se usa hoy. */
-    private function espanolDe(MessageTemplate $plantilla): ?string
-    {
-        foreach ($plantilla->getWhatsappLinkTmpl()['body'] ?? [] as $fila) {
-            if (($fila['language'] ?? null) === 'es' && is_string($fila['content'] ?? null) && trim($fila['content']) !== '') {
-                return $fila['content'];
-            }
-        }
-
-        return null;
     }
 }
