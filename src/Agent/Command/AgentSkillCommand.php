@@ -202,7 +202,7 @@ final class AgentSkillCommand extends Command
         $conexion = $this->em->getConnection();
         $filas = [
             ...array_map(static fn (array $f): array => ['mensaje', ...array_values($f)], $conexion->fetchAllAssociative(
-                "SELECT CONCAT(COALESCE(t.code, LEFT(m.content_local, 50)), IF(LOCATE(BINARY '🏠', m.content_local) > 0, CONCAT(' · ', SUBSTRING(m.content_local, LOCATE(BINARY '🏠', m.content_local), 34)), '')),
+                "SELECT CONCAT(COALESCE(t.code, LEFT(m.content_local, 50)), COALESCE(CONCAT(' · ', REGEXP_SUBSTR(m.content_local, '[0-9]{2}/[0-9]{2} → [0-9]{2}/[0-9]{2}')), '')),
                         r.localizador, m.status
                    FROM msg_message m LEFT JOIN msg_template t ON t.id = m.template_id
                    LEFT JOIN pms_reserva r ON r.id = UNHEX(REPLACE(m.asunto_id, '-', ''))
