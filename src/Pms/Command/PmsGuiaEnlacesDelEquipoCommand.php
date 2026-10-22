@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Command;
 
+use App\Entity\Maestro\MaestroIdioma;
 use App\Pms\Entity\PmsGuiaItem;
 use App\Pms\Enum\PmsGuiaVisibilidad;
 use App\Pms\Guia\PmsGuiaEnlaceDelEquipo;
@@ -14,8 +15,10 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Las dos fichas que sólo se abren con un enlace del equipo: la llave de emergencia y el pago en
- * efectivo. Las dos van a la caja de ARRIBA, la del dinero (`PmsGuiaVisibilidad::PorEnlace`).
+ * Las fichas que sólo se abren con un enlace del equipo: la llave de emergencia, el pago en
+ * efectivo y las llaves interiores. Todas van a la caja de ARRIBA (`PmsGuiaVisibilidad::PorEnlace`),
+ * cada una a su cartuchera: VERDE el dinero, CELESTE las llaves de emergencia, AZUL las interiores
+ * (Jorge, 22/10/2026).
  *
  * Por qué fichas y no sólo plantillas: Meta no aprueba una plantilla que dé una clave (medido el
  * 21/10/2026, `docs/Mensajeria.md`), y una plantilla con un ENLACE sí sigue el patrón que ya
@@ -33,14 +36,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:guia:enlaces-del-equipo',
-    description: 'Crea las fichas «llave-emergencia» y «pago-efectivo», que sólo abre un enlace del equipo.',
+    description: 'Crea las fichas que sólo abre un enlace del equipo (llave de emergencia, pago en efectivo, llaves interiores).',
     hidden: true,
 )]
 final class PmsGuiaEnlacesDelEquipoCommand extends Command
 {
-    /** La etiqueta que tiene que sobrevivir a la traducción. */
-    private const string ETIQUETA = 'emergencia';
-
     /**
      * código de ficha => [nombre interno, título, descripción HTML].
      *
@@ -70,13 +70,44 @@ final class PmsGuiaEnlacesDelEquipoCommand extends Command
                 <ol>
                 <li>En el pasadizo hay dos cajas fuertes digitales. La del pago es la de <strong>arriba</strong>; la de abajo es la de las llaves.<br>{{ foto_caja_dinero }}</li>
                 <li>Ingresa el código <span>{{ codigo_caja_dinero }}</span> y gira la perilla hacia la derecha para abrir.</li>
-                <li>Antes de cerrar, toma una foto del dinero dentro de la caja y envíanosla por WhatsApp: es tu comprobante y el nuestro.</li>
-                <li>Cierra girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.</li>
+                <li>Dentro hay una cartuchera <strong>verde</strong>: deja el dinero dentro de ella.</li>
+                <li>Antes de cerrar, toma una foto del dinero en la cartuchera y envíanosla por WhatsApp: es tu comprobante y el nuestro.</li>
+                <li>Cierra la caja girando la perilla hacia la izquierda y asegúrate de que quedó bien cerrada.</li>
                 </ol>
                 <p>Así se abre la caja:</p>
                 <p>{{ video_caja_dinero }}</p>
                 HTML,
         ],
+        // Los pomos de las puertas interiores llevan botón de seguro: si se cierra, no hay llave en
+        // la casita —se perdían o se las llevaban (Jorge, 22/10/2026)—. Están en la cartuchera
+        // AZUL, etiquetadas «interior N» con el número de la casita, que es `{{ numero }}`.
+        'llaves-interiores' => [
+            'Llaves interiores (enlace del equipo)',
+            'Llave de una puerta interior',
+            <<<'HTML'
+                <p>Para abrir una puerta interior de {{ room_name }} que se cerró con el botón del pomo:</p>
+                <ol>
+                <li>En el pasadizo hay dos cajas fuertes digitales. Las llaves interiores están en la de <strong>arriba</strong>; la de abajo es la de las llaves de siempre.<br>{{ foto_caja_dinero }}</li>
+                <li>Ingresa el código <span>{{ codigo_caja_dinero }}</span> y gira la perilla hacia la derecha para abrir.</li>
+                <li>Dentro hay una cartuchera <strong>azul</strong>. Toma el llavero con la etiqueta «<span translate="no">interior</span> {{ numero }}», el número de tu casita.</li>
+                <li>Cierra la caja girando la perilla hacia la izquierda.</li>
+                <li>Cuando hayas abierto la puerta, vuelve a dejar el llavero en la cartuchera azul y cierra la caja: las llaves interiores no se quedan en la casita.</li>
+                </ol>
+                <p>Así se abre la caja:</p>
+                <p>{{ video_caja_dinero }}</p>
+                HTML,
+        ],
+    ];
+
+    /**
+     * La etiqueta FÍSICA de cada llave, escrita en español, que tiene que sobrevivir a la
+     * traducción (va en `<span translate="no">`). Se comprueba en los siete idiomas al final.
+     *
+     * @var array<string, string>
+     */
+    private const array ETIQUETAS = [
+        'llave-emergencia' => 'emergencia',
+        'llaves-interiores' => 'interior',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -87,6 +118,7 @@ final class PmsGuiaEnlacesDelEquipoCommand extends Command
     public function __invoke(
         SymfonyStyle $io,
         #[Option(description: 'Sólo dice qué haría.')] bool $dryRun = false,
+        #[Option(description: 'Reescribe también el español de las que ya existen y NADIE ha tocado en el panel (se vuelven a traducir).')] bool $actualizar = false,
     ): int {
         $repo = $this->em->getRepository(PmsGuiaItem::class);
         $creadas = [];
@@ -95,13 +127,37 @@ final class PmsGuiaEnlacesDelEquipoCommand extends Command
             $existente = $repo->findOneBy(['codigo' => $codigo]);
 
             if ($existente instanceof PmsGuiaItem) {
-                // Un código ya usado por una ficha de OTRO nivel no se pisa: habría que decidir
-                // a mano si esa ficha deja de verse en la guía.
-                $io->text(sprintf(
-                    '= «%s» ya existe (%s).',
-                    $codigo,
-                    $existente->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace ? 'enlace del equipo' : '⚠️ con OTRO nivel: revísala a mano'
-                ));
+                $esDelEquipo = $existente->getVisibilidad() === PmsGuiaVisibilidad::PorEnlace;
+                // Sin `updatedAt`: nadie la ha guardado desde el panel desde que la creó este comando.
+                // Editada a mano no se pisa: lo que se escribió allí manda.
+                $intacta = $existente->getUpdatedAt() === null;
+                $espanolActual = MaestroIdioma::textoEn($existente->getDescripcion() ?? [], 'es');
+
+                if (!$actualizar || !$esDelEquipo || !$intacta || $espanolActual === $descripcion) {
+                    $io->text(sprintf(
+                        '= «%s» ya existe (%s).',
+                        $codigo,
+                        match (true) {
+                            !$esDelEquipo => '⚠️ con OTRO nivel: revísala a mano',
+                            // Guardada después de crearla —en el panel o por un --actualizar anterior—.
+                            !$intacta && $actualizar => 'ya guardada después de crearla: no se toca, edítala en el panel',
+                            $espanolActual === $descripcion => 'al día',
+                            default => 'con texto distinto: --actualizar para reescribirla',
+                        }
+                    ));
+
+                    continue;
+                }
+
+                $io->section(sprintf('%s (se reescribe)', $codigo));
+                $io->writeln($descripcion);
+
+                if (!$dryRun) {
+                    // Sólo el español: con el resto fuera, el listener vuelve a traducirlos.
+                    $existente->setTitulo([['language' => 'es', 'content' => $titulo]]);
+                    $existente->setDescripcion([['language' => 'es', 'content' => $descripcion]]);
+                    $creadas[] = $existente;
+                }
 
                 continue;
             }
@@ -135,18 +191,20 @@ final class PmsGuiaEnlacesDelEquipoCommand extends Command
         $this->em->flush();
 
         foreach ($creadas as $item) {
-            if ($item->getCodigo() !== 'llave-emergencia') {
+            $etiqueta = self::ETIQUETAS[(string) $item->getCodigo()] ?? null;
+
+            if ($etiqueta === null) {
                 continue;
             }
 
             foreach ($item->getDescripcion() ?? [] as $fila) {
-                if (!str_contains((string) ($fila['content'] ?? ''), self::ETIQUETA)) {
-                    $io->warning(sprintf('En «%s» la etiqueta «%s» no sobrevivió a la traducción: corrígela en el panel.', $fila['language'] ?? '?', self::ETIQUETA));
+                if (!str_contains((string) ($fila['content'] ?? ''), $etiqueta)) {
+                    $io->warning(sprintf('En «%s» la etiqueta «%s» no sobrevivió a la traducción: corrígela en el panel.', $fila['language'] ?? '?', $etiqueta));
                 }
             }
         }
 
-        $io->success(sprintf('%d ficha(s) creada(s). Úsalas en una plantilla con {{ acceso_<código> }}.', count($creadas)));
+        $io->success(sprintf('%d ficha(s) creada(s) o reescrita(s). Úsalas en una plantilla con {{ acceso_<código> }}.', count($creadas)));
 
         return Command::SUCCESS;
     }

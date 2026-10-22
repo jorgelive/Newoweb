@@ -1927,8 +1927,20 @@ dos pasan por el mismo interpolador y se le dictan al huésped casi tal cual.
 
 ## 7 sexies. Fichas que sólo abre un enlace del equipo (21/10/2026)
 
-Cómo sacar la **llave de emergencia** y cómo dejar un **pago en efectivo**: las dos van a la caja de
-ARRIBA, la del dinero, y su código no es de cualquier huésped aunque tenga la ventana abierta. Lo
+Cómo sacar la **llave de emergencia**, cómo dejar un **pago en efectivo** y cómo sacar la **llave de
+una puerta interior** (22/10/2026): las tres van a la caja de ARRIBA, la del dinero, y su código no
+es de cualquier huésped aunque tenga la ventana abierta. Dentro, una cartuchera por cosa (Jorge):
+
+| Cartuchera | Qué guarda | Ficha / plantilla |
+|---|---|---|
+| verde | el dinero que dejan los huéspedes | `pago-efectivo` / `pago_efectivo_caja` |
+| celeste | las llaves de emergencia, «emergencia N» | `llave-emergencia` / `llave_emergencia` |
+| azul | las llaves interiores, «interior N» (N = número de la casita, `{{ numero }}`) | `llaves-interiores` / `llaves_interiores` |
+
+Las llaves interiores no se dejan en la casita —se perdían o se las llevaban—: los pomos llevan
+botón de seguro, y quien se queda fuera de una habitación necesita la de la caja. La ficha le pide
+que la devuelva a su cartuchera al terminar. Las etiquetas físicas («emergencia», «interior») van en
+`<span translate="no">` y el comando comprueba que sobrevivan en los siete idiomas. Lo
 decide una persona cada vez (decisión de Jorge: la llave de emergencia la da el equipo, nunca el
 agente). Hasta hoy iban como texto dentro de las plantillas `llave_emergencia` y `pago_efectivo_caja` (entonces `caja_dinero`), con
 el código escrito en el mensaje.
@@ -1961,7 +1973,8 @@ el código escrito en el mensaje.
 | `PmsGuiaEnlaceDelEquipo` | Emite y valida el token. Caduca al final del día de salida, nunca antes de `HORAS_MINIMAS` (48 h) ni después de `DIAS_MAXIMOS` (14 días). Una reserva cuya última estancia acabó hace más de `DIAS_TRAS_LA_SALIDA` (2) no da enlace. |
 | `PmsGuiaAcceso::porEnlace($deLaEstancia)` | El acceso de la estancia (`paraEvento()`) **más** la ficha. No abre la ventana: el resto de marcadores que la ficha escriba sigue la escalera. |
 | `{{ acceso_<código> }}` | Una variable por ficha `PorEnlace`, con guiones bajos (`llave-emergencia` → `acceso_llave_emergencia`, `variable()`): Meta no admite guiones. |
-| `app:pms:guia:enlaces-del-equipo` | Crea las dos fichas por ORM (se traducen). No cuelgan de ninguna sección. |
+| `app:pms:guia:enlaces-del-equipo` | Crea las fichas por ORM (se traducen). No cuelgan de ninguna sección. Con `--actualizar` reescribe el español de las que nadie ha guardado desde que se crearon; una editada en el panel no se toca. |
+| `app:pms:crear-plantilla-llaves-interiores` | La plantilla `llaves_interiores`. |
 | `app:pms:plantillas-caja-con-enlace` | Pone las dos plantillas a mandar el enlace en lugar de los pasos. |
 | `pax:textos:enlace-equipo` | Las tres frases de la página (`enl_*`). |
 
