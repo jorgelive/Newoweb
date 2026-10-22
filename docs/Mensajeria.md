@@ -13740,6 +13740,16 @@ y sin el efectivo, que es como se paga de verdad.
 El `0` va **literal** y no por `diasHastaLlegada()`: el tramo *es*, por definición, el que se
 paga al llegar. Sin fecha conocida la pregunta seguiría siendo la misma.
 
+#### 🔥 Sólo tarjeta no es «ningún medio» (21/10/2026)
+
+Un extranjero que llega MAÑANA se queda sin ningún medio manual: efectivo todavía no
+(`diasMaximos = 0`), Western Union ya no (`diasMinimos = 2`), Yape/Plin/transferencia no son para
+quien paga desde fuera. `consultar_medios_pago` devolvía entonces «no hay medios de cobro
+configurados… llama a escalar_al_equipo», con `pago_con_tarjeta.disponible = true` al lado, y el
+agente escalaba a alguien que podía pagar en ese momento (lo vio Jorge simulando la reserva 3Q7ZJ7).
+Ahora, con la lista manual vacía, la instrucción depende de la tarjeta: si está, la ofrece (el
+importe y el enlace salen de `consultar_cuenta`); sólo si tampoco está, escala.
+
 #### La agrupación se mudó a `PmsMedioDeCobro::agruparPorImporte()`
 
 Con dos tramos hay dos sitios que agrupan la misma lista, y la segunda copia de una función de

@@ -198,16 +198,28 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
         // `FinMedioCobro::llegaATiempo()`.
         $medios = $this->medios($this->catalogo->ofrecibles($desdePeru, $this->diasHastaLlegada($reserva)), $idioma);
 
-        // Sin medios configurados NO se devuelve una lista vacía y ya: una lista vacía se lee
-        // como «este alojamiento no cobra» y el modelo improvisa igual. Se dice qué hacer.
+        // Sin medios manuales NO se devuelve una lista vacía y ya: una lista vacía se lee como
+        // «este alojamiento no cobra» y el modelo improvisa igual. Se dice qué hacer.
+        //
+        // 🔥 Y la tarjeta CUENTA (21/10/2026, Jorge): un extranjero que llega mañana no tiene
+        // efectivo (sólo desde el día de llegada), ni Western Union (no da tiempo), ni Yape (sólo
+        // desde Perú) — pero sí tarjeta. La instrucción decía «no hay medios de cobro, escala», y
+        // el agente escalaba a alguien que podía pagar ya. Se escala sólo si tampoco hay tarjeta.
         if ($medios === []) {
+            $tarjeta = $this->tarjeta();
+
             return SkillResult::ok([
                 'reserva_id' => $reservaId,
                 'medios' => [],
-                'pago_con_tarjeta' => $this->tarjeta(),
-                'instruccion' => 'No hay medios de cobro configurados para este cliente. NO te '
-                    . 'inventes una cuenta, un número de Yape ni un enlace: dile al huésped que '
-                    . 'le pasas los datos en un momento y llama a escalar_al_equipo.',
+                'pago_con_tarjeta' => $tarjeta,
+                'instruccion' => $tarjeta['disponible']
+                    ? 'Para este huésped, ahora mismo, el medio de pago es la TARJETA: ofrécesela. El '
+                        . 'importe con el recargo y el enlace los da consultar_cuenta en «pago_con_tarjeta». '
+                        . 'Los demás medios no aplican a su caso en este momento: no inventes cuentas ni '
+                        . 'números de Yape.'
+                    : 'No hay medios de cobro para este huésped en este momento, tampoco tarjeta. NO te '
+                        . 'inventes una cuenta, un número de Yape ni un enlace: dile que le pasas los '
+                        . 'datos en un momento y llama a escalar_al_equipo.',
             ]);
         }
 
