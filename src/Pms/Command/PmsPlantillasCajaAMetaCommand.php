@@ -12,7 +12,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Da cuerpo de Meta a `llave_emergencia` y `caja_dinero` para que salgan FUERA de la ventana de 24 h.
+ * Da cuerpo de Meta a `llave_emergencia` y `pago_efectivo_caja` para que salgan FUERA de la ventana de 24 h.
  *
  * ── Por qué (Jorge, 21/10/2026) ──────────────────────────────────────────────
  * Las dos nacieron como texto dentro de la ventana, y casi siempre basta: el huésped acaba de
@@ -53,7 +53,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:plantillas-caja-a-meta',
-    description: 'Cuerpo oficial de Meta para «llave_emergencia» y «caja_dinero» (envío fuera de ventana).',
+    description: 'Cuerpo oficial de Meta para «llave_emergencia» y «pago_efectivo_caja» (envío fuera de ventana).',
     hidden: true,
 )]
 final class PmsPlantillasCajaAMetaCommand extends Command
@@ -67,7 +67,7 @@ final class PmsPlantillasCajaAMetaCommand extends Command
      */
     private const array NOMBRES_EN_META = [
         PmsCrearPlantillaLlaveEmergenciaCommand::CODIGO => 'llave_emergencia_v2',
-        'caja_dinero' => 'pago_en_efectivo_v2',
+        'pago_efectivo_caja' => 'pago_en_efectivo_v2',
     ];
 
     /**
@@ -91,7 +91,7 @@ final class PmsPlantillasCajaAMetaCommand extends Command
 
             Te enviamos estas instrucciones porque las solicitaste a nuestro equipo de recepción.
             TXT,
-        'caja_dinero' => <<<'TXT'
+        'pago_efectivo_caja' => <<<'TXT'
             Información sobre el pago de tu reserva {{locator}} en {{room_name}}.
 
             Hola {{guest_name}}, estas son las instrucciones para dejar el pago en efectivo que acordaste con nuestro equipo:
@@ -119,7 +119,7 @@ final class PmsPlantillasCajaAMetaCommand extends Command
             . 'llave no estaba en la caja en el check-in o porque la perdió. SI TE LO PIDE ALGUIEN DEL EQUIPO —por '
             . 'ejemplo, porque el huésped llamó por teléfono—, mándala. EL HUÉSPED NO PUEDE PEDIRLA por su cuenta: '
             . 'si la pide él, no la mandes y escala al equipo. Si la perdió, el equipo además hace la cobranza.',
-        'caja_dinero' => 'Instrucciones para dejar un pago en EFECTIVO en la caja fuerte del pasaje. La manda el '
+        'pago_efectivo_caja' => 'Instrucciones para dejar un pago en EFECTIVO en la caja fuerte del pasaje. La manda el '
             . 'equipo cuando se ha acordado que el huésped pague así. SI TE LO PIDE ALGUIEN DEL EQUIPO —por ejemplo, '
             . 'porque lo acordó con el huésped por teléfono—, mándala. EL HUÉSPED NO PUEDE PEDIRLA por su cuenta: si '
             . 'la pide él, no la mandes y consulta al equipo. El importe no va en el texto: dilo tú en el mensaje.',

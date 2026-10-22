@@ -19,7 +19,7 @@ la siguiente persona lo investiga otra vez.
 
 ## ⏸️ En espera (Jorge): mandar la llave de emergencia o la caja del dinero FUERA de ventana — 21/10/2026
 
-`llave_emergencia` y `caja_dinero` salen por Beds24 y por WhatsApp dentro de la ventana de 24 h. A
+`llave_emergencia` y `pago_efectivo_caja` salen por Beds24 y por WhatsApp dentro de la ventana de 24 h. A
 una reserva **directa** sin ventana no le llegan, y el caso real es justo ése: el huésped llama por
 teléfono. Meta **no aprueba ninguna plantilla que dé o mencione una clave** (cinco redacciones,
 medido con sondas: `docs/Mensajeria.md`, «Plantillas que se ofrecen a mano»), y sin la clave no

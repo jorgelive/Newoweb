@@ -1912,9 +1912,9 @@ costo, un puntero —«el equipo se lo detalla»— para que tampoco lo niegue. 
 equipo al cobrar. El texto publicado de la ficha no cambia.
 
 **La plantilla `llave_emergencia`** (`app:pms:crear-plantilla-llave-emergencia`) es hermana de
-`caja_dinero`: envío manual, Beds24 y WhatsApp —también fuera de ventana desde el 21/10/2026, como
-plantilla oficial de Meta (`docs/Mensajeria.md`, «Plantillas que se ofrecen a mano»)—, y el código,
-la foto y el vídeo de la caja como variables (`{{ codigo_caja_dinero }}`…), nunca tecleados.
+`pago_efectivo_caja` (hasta el 22/10/2026 `caja_dinero`): envío manual, Beds24 y WhatsApp dentro de
+ventana —Meta no aprueba una plantilla con la clave, ver `docs/Mensajeria.md`, «Plantillas que se
+ofrecen a mano»—. Desde el 21/10/2026 las dos mandan el ENLACE a su ficha (§7 sexies), no el código.
 ⚠️ **La etiqueta «emergencia» se restaura tras traducir**: la traducción automática la convirtió en
 «emergency» y el huésped habría buscado una etiqueta que no existe. El comando la vuelve a poner en
 la línea de la cartuchera de cada idioma conservando el `origenHash`, como `PaxCrearTextosGuiaCommand`.
@@ -1930,7 +1930,7 @@ dos pasan por el mismo interpolador y se le dictan al huésped casi tal cual.
 Cómo sacar la **llave de emergencia** y cómo dejar un **pago en efectivo**: las dos van a la caja de
 ARRIBA, la del dinero, y su código no es de cualquier huésped aunque tenga la ventana abierta. Lo
 decide una persona cada vez (decisión de Jorge: la llave de emergencia la da el equipo, nunca el
-agente). Hasta hoy iban como texto dentro de las plantillas `llave_emergencia` y `caja_dinero`, con
+agente). Hasta hoy iban como texto dentro de las plantillas `llave_emergencia` y `pago_efectivo_caja` (entonces `caja_dinero`), con
 el código escrito en el mensaje.
 
 ```

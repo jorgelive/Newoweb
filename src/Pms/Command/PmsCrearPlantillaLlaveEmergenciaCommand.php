@@ -20,9 +20,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * 2»…). Darla obliga a dar el código de la caja del DINERO, así que lo decide una persona: el
  * agente escala («no estaba su llave en el check-in» / «perdió su llave, cobrar») y el operador
  * manda esta plantilla. Por eso `envioManual` y un `agenteUso` que le dice al agente que no la
- * mande por su cuenta, igual que `caja_dinero`, que es su hermana.
+ * mande por su cuenta, igual que `pago_efectivo_caja`, que es su hermana.
  *
- * ── La misma estructura que `caja_dinero` ────────────────────────────────────
+ * ── La misma estructura que `pago_efectivo_caja` ────────────────────────────────────
  * Texto para Beds24 y para WhatsApp dentro de la ventana. (Desde el 21/10/2026 también oficial de Meta, por
  * `PmsPlantillasCajaAMetaCommand`: el equipo puede pedir que se mande fuera de ventana. Lo de abajo
  * era el motivo original para no hacerlo.) WhatsApp NO como plantilla oficial de
@@ -117,7 +117,7 @@ final class PmsCrearPlantillaLlaveEmergenciaCommand extends Command
             ->setBeds24Tmpl(['is_active' => true, 'body' => $cuerpo])
             ->setWhatsappLinkTmpl(['is_active' => true, 'body' => $cuerpo])
             // Activa para elegirla en el chat, sin cuerpo propio ni oficial en Meta: igual que
-            // `caja_dinero`. Sale como texto dentro de la ventana.
+            // `pago_efectivo_caja`. Sale como texto dentro de la ventana.
             ->setWhatsappMetaTmpl(['is_active' => true, 'is_official_meta' => false, 'body' => []])
             ->setEmailTmpl(['is_active' => false, 'subject' => [], 'body' => []]);
 

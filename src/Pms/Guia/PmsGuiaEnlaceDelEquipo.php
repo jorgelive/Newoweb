@@ -44,7 +44,7 @@ final readonly class PmsGuiaEnlaceDelEquipo
     public const int HORAS_MINIMAS = 48;
 
     /**
-     * Lo máximo, aunque la estancia acabe después. Sin tope, un `caja_dinero` mandado al reservar
+     * Lo máximo, aunque la estancia acabe después. Sin tope, un `pago_efectivo_caja` mandado al reservar
      * valía hasta el check-out —meses— y no se puede revocar uno suelto.
      */
     public const int DIAS_MAXIMOS = 14;

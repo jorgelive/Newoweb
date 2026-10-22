@@ -12,7 +12,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * `llave_emergencia` y `caja_dinero` dejan de llevar los pasos y el código: llevan el ENLACE a su
+ * `llave_emergencia` y `pago_efectivo_caja` dejan de llevar los pasos y el código: llevan el ENLACE a su
  * ficha (`{{ acceso_llave_emergencia }}`, `{{ acceso_pago_efectivo }}`), que los enseña.
  *
  * ── Por qué ──────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:pms:plantillas-caja-con-enlace',
-    description: '«llave_emergencia» y «caja_dinero» mandan el enlace a su ficha en vez de los pasos.',
+    description: '«llave_emergencia» y «pago_efectivo_caja» mandan el enlace a su ficha en vez de los pasos.',
     hidden: true,
 )]
 final class PmsPlantillasCajaConEnlaceCommand extends Command
@@ -43,7 +43,7 @@ final class PmsPlantillasCajaConEnlaceCommand extends Command
 
             El enlace es sólo para ti: no lo compartas.
             TXT,
-        'caja_dinero' => <<<'TXT'
+        'pago_efectivo_caja' => <<<'TXT'
             Hola {{ guest_name }}, aquí tienes cómo dejar el pago en efectivo en la caja fuerte, con el código, la foto y el vídeo:
 
             {{ acceso_pago_efectivo }}

@@ -187,7 +187,7 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      * ⚠️ **La lista vive aquí y no en la skill** porque quien añade una clave nueva edita ESTE
      * archivo. Una lista en el consumidor es una lista que el que amplía el diccionario no ve.
      *
-     * Las plantillas SÍ las usan —`caja_dinero` no existe sin ellas—: ahí el filtro es quién puede
+     * Las plantillas SÍ las usan —`pago_efectivo_caja` no existe sin ellas—: ahí el filtro es quién puede
      * mandarlas, `ROLE_MENSAJES_WRITE` sobre `enviar_plantilla`.
      */
     /**

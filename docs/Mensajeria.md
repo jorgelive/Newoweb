@@ -29,8 +29,9 @@ Las «con botones» sí se ofrecen: por el enlace de WhatsApp los botones no sal
 de enlace no los menciona y acaba en pregunta abierta, así que se lee completo y el huésped
 contesta escribiendo.
 
-**Las de la caja fuerte de arriba —`caja_dinero` y `llave_emergencia`— pasaron a oficiales de Meta
-(21/10/2026).** Nacieron como texto dentro de ventana porque casi siempre el huésped acaba de
+**Las de la caja fuerte de arriba —`pago_efectivo_caja` (hasta el 22/10/2026 `caja_dinero`, que se
+confundía con sus variables `*_caja_dinero`) y `llave_emergencia`— se intentaron pasar a oficiales de
+Meta (21/10/2026), sin éxito: ver abajo.** Nacieron como texto dentro de ventana porque casi siempre el huésped acaba de
 escribir. Pero puede **llamar por teléfono**, y entonces el equipo le pide al agente del panel que
 se la mande con la ventana cerrada: por Beds24 llegaba, a una reserva directa no. Les da cuerpo de
 Meta `app:pms:plantillas-caja-a-meta` (oculto, `--dry-run`, reescribe mientras no sea oficial).
