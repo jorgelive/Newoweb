@@ -17,6 +17,8 @@ import { useRoute } from 'vue-router';
 import { apiClient } from '@/services/apiClient';
 import { useMaestroStore } from '@/stores/maestroStore';
 import RichTextRenderer from '@/components/RichText/RichTextRenderer.vue';
+import VueEasyLightbox from 'vue-easy-lightbox';
+import { thumbUrl } from '@/services/imageThumb';
 import type { PaxGuiaEnlace } from '@/types/paxGuiaEnlaceModel';
 
 const route = useRoute();
@@ -26,6 +28,23 @@ const token = computed(() => String(route.params.token || '').trim());
 const ficha = ref<PaxGuiaEnlace | null>(null);
 const cargando = ref(true);
 const error = ref<'no_disponible' | 'throttle' | 'red' | null>(null);
+
+/**
+ * Las fotos de la ficha que el texto no trae ya insertadas: así basta con subirlas en el panel y
+ * no salen dos veces si alguien las metió también con `{{ img: … }}`.
+ */
+const fotosAlPie = computed(() => {
+    if (!ficha.value) return [];
+    const texto = maestroStore.traducir(ficha.value.descripcion);
+    return ficha.value.galeria.filter(f => !texto.includes(f.imageUrl));
+});
+
+const visorVisible = ref(false);
+const visorIndice = ref(0);
+const abrirFoto = (indice: number): void => {
+    visorIndice.value = indice;
+    visorVisible.value = true;
+};
 
 const caduca = computed(() => {
     if (!ficha.value) return '';
@@ -81,6 +100,15 @@ const mensajeError = computed(() => {
                 <div class="mt-4">
                     <RichTextRenderer :content="maestroStore.traducir(ficha.descripcion)" />
                 </div>
+                <div v-if="fotosAlPie.length" class="mt-5 grid grid-cols-2 gap-3">
+                    <button v-for="(foto, i) in fotosAlPie" :key="foto.imageUrl" type="button" @click="abrirFoto(i)"
+                            class="aspect-4/3 rounded-2xl overflow-hidden ring-1 ring-black/5 cursor-zoom-in">
+                        <img :src="thumbUrl(foto.imageUrl, 'travel_thumb_admin')" :alt="maestroStore.traducir(foto.descripcion)"
+                             loading="lazy" class="w-full h-full object-cover">
+                    </button>
+                </div>
+                <VueEasyLightbox :visible="visorVisible" :imgs="fotosAlPie.map(f => thumbUrl(f.imageUrl, 'travel_cliente'))"
+                                 :index="visorIndice" @hide="visorVisible = false" />
                 <p class="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
                     {{ maestroStore.t('enl_privado', { fecha: caduca }) || `Este enlace es sólo para ti y vale hasta el ${caduca}. No lo compartas.` }}
                 </p>

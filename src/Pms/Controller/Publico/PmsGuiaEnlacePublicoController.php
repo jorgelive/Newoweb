@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Pms\Controller\Publico;
 
+use App\Pms\Entity\PmsGuiaItem;
+use App\Pms\Entity\PmsGuiaItemGaleria;
 use App\Pms\Guia\PmsGuiaAcceso;
 use App\Pms\Guia\PmsGuiaContexto;
 use App\Pms\Guia\PmsGuiaEnlaceDelEquipo;
@@ -67,6 +69,7 @@ final class PmsGuiaEnlacePublicoController extends AbstractController
             'titulo' => $this->interpolador->interpolar($item->getTitulo(), $contexto, $acceso),
             'descripcion' => $this->interpolador->interpolar($item->getDescripcion(), $contexto, $acceso),
             'casita' => $abierto->evento->getPmsUnidadOrFail()->getNombre(),
+            'galeria' => $this->galeria($item),
             'idioma' => $abierto->reserva->getIdioma()?->getId(),
             'expiraEn' => $abierto->expiraEn->format(\DateTimeInterface::ATOM),
         ]);
@@ -76,5 +79,31 @@ final class PmsGuiaEnlacePublicoController extends AbstractController
         $respuesta->headers->set('Cache-Control', 'no-store, private');
 
         return $respuesta;
+    }
+
+    /**
+     * Las fotos propias de la ficha (la cartuchera, los llaveros…), en su orden.
+     *
+     * La foto y el vídeo de la caja son del ESTABLECIMIENTO y entran por marcador; éstas son de la
+     * ficha y se suben en su «Fotos» del panel. La página pinta al pie las que el texto no haya
+     * insertado ya con `{{ img: … }}`, así que basta con subirlas.
+     *
+     * @return list<array{imageUrl: string, descripcion: list<array{language?: string, content?: string|null}>}>
+     */
+    private function galeria(PmsGuiaItem $item): array
+    {
+        $fotos = $item->getGaleria()->toArray();
+        usort($fotos, static fn (PmsGuiaItemGaleria $a, PmsGuiaItemGaleria $b): int => $a->getOrden() <=> $b->getOrden());
+
+        $salida = [];
+        foreach ($fotos as $foto) {
+            $url = $foto->getImageUrl();
+
+            if ($url !== null && $url !== '') {
+                $salida[] = ['imageUrl' => $url, 'descripcion' => $foto->getDescripcion()];
+            }
+        }
+
+        return $salida;
     }
 }

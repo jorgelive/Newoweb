@@ -12,6 +12,12 @@ export interface PaxGuiaEnlace {
     /** HTML con los bloques de `RichContentEngine` (`{{ img: … }}`, `{{ video: … }}`). */
     descripcion: PmsContenidoTraducible[];
     casita: string | null;
+    /**
+     * Las fotos propias de la ficha (cartuchera, llaveros…), en orden. `imageUrl` es una ruta del
+     * sitio (`/carga/…`), igual que en la galería de la guía. La página pinta las que el texto no
+     * haya insertado ya.
+     */
+    galeria: { imageUrl: string; descripcion: PmsContenidoTraducible[] }[];
     /** Idioma de la reserva: con él se abre la página. */
     idioma: string | null;
     /** ISO 8601. */

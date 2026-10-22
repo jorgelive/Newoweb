@@ -1972,6 +1972,13 @@ por qué firmado y sin fila: las variables de plantilla se calculan también en 
 dejaría guardado un enlace válido. El precio es no poder revocar uno suelto: lo acotan la caducidad
 y que al abrirlo se vuelva a comprobar la estancia.
 
+**Fotos propias de la ficha** (la cartuchera, los llaveros…): se suben en «Fotos» de la ficha en el
+panel y la página las pinta al pie, con visor (`PmsGuiaEnlacePublicoController::galeria()`,
+`PaxGuiaEnlaceView::fotosAlPie`). Las que el texto ya inserte con `{{ img: … }}` no se repiten. La
+foto y el vídeo de la CAJA son del establecimiento («Medios del establecimiento») y los comparten
+todas estas fichas. Decisión de Jorge (22/10/2026): estas fotos viven sólo aquí; el agente no las
+enseña.
+
 **El dato se resuelve al ABRIR, no al mandar.** Si la caja de arriba cambia de código, el enlace ya
 enviado enseña el nuevo. Y el código ya no se queda escrito en el chat.
 
