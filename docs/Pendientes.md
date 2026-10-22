@@ -27,7 +27,11 @@ sirve. Descartados también el mensaje en espera con `respuesta_pendiente` y la 
 autenticación. Mientras tanto: se le pide por teléfono que escriba por WhatsApp, y con eso se abre
 la ventana.
 
-**Actualizado el mismo día:** la página existe. Las dos plantillas mandan ya un enlace firmado a una
+**Resuelto el 22/10/2026** —pendiente sólo de que Meta apruebe las tres—: aviso con botón al enlace,
+aprobado en sonda como UTILITY (`docs/Mensajeria.md`, «Plantillas que se ofrecen a mano»). Cuando
+las tres estén aprobadas, esta entrada se borra.
+
+**Actualizado el 21/10:** la página existe. Las dos plantillas mandan ya un enlace firmado a una
 ficha que sólo abre ese enlace (`docs/PmsGuiaHuesped.md` §7 sexies). Lo que queda para fuera de
 ventana: una plantilla oficial con ese enlace y sin la clave, probada antes con una sonda
 (`var/probar-clasificador-meta.php`), y su cuerpo de Meta.

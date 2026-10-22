@@ -152,7 +152,13 @@ final readonly class PmsGuiaEnlaceDelEquipo
     /** La URL que se le manda al huésped. */
     public function url(string $token): string
     {
-        return rtrim($this->paxHostUrl, '/') . '/acceso/' . $token;
+        return rtrim($this->paxHostUrl, '/') . '/' . self::ruta($token);
+    }
+
+    /** La ruta sin dominio (`acceso/<token>`): el final variable del botón de Meta. */
+    public static function ruta(string $token): string
+    {
+        return 'acceso/' . $token;
     }
 
     /**

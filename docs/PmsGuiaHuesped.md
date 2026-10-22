@@ -1975,6 +1975,7 @@ el código escrito en el mensaje.
 | `{{ acceso_<código> }}` | Una variable por ficha `PorEnlace`, con guiones bajos (`llave-emergencia` → `acceso_llave_emergencia`, `variable()`): Meta no admite guiones. |
 | `app:pms:guia:enlaces-del-equipo` | Crea las fichas por ORM (se traducen). No cuelgan de ninguna sección. Con `--actualizar` reescribe el español de las que nadie ha guardado desde que se crearon; una editada en el panel no se toca. |
 | `app:pms:crear-plantilla-llaves-interiores` | La plantilla `llaves_interiores`. |
+| `app:pms:plantillas-instrucciones-meta` | El cuerpo OFICIAL de Meta de las tres: aviso + botón al enlace (`{{ acceso_<código>_path }}`). Para fuera de ventana. |
 | `app:pms:plantillas-caja-con-enlace` | Pone las dos plantillas a mandar el enlace en lugar de los pasos. |
 | `pax:textos:enlace-equipo` | Las tres frases de la página (`enl_*`). |
 

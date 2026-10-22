@@ -84,6 +84,11 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             $salida[PmsGuiaEnlaceDelEquipo::variable($codigo)] = $token !== null
                 ? $this->enlacesDelEquipo->url($token)
                 : '';
+            // La variante SIN dominio, para el botón `url` de Meta: allí la base va fija
+            // (`https://pax.openperu.pe/{{1}}`) y sólo el final es variable. Igual que `guide_path`.
+            $salida[PmsGuiaEnlaceDelEquipo::variable($codigo) . '_path'] = $token !== null
+                ? PmsGuiaEnlaceDelEquipo::ruta($token)
+                : '';
         }
 
         return $salida;
@@ -198,6 +203,9 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      * plataforma. Al añadir una variable con un importe, va aquí — la skill vuelca el diccionario
      * entero y lo que no se reste, sale.
      */
+    /** No abre nada: no lleva firma válida (`PmsGuiaEnlaceDelEquipo::leer()`). */
+    private const string TOKEN_DE_EJEMPLO = 'MDFhMDJiZWMtZTMwYy03YTc1LWVqZW1wbG8.ejemploejemploejemploejemplo';
+
     public const array CLAVES_DE_IMPORTE = [
         'accommodation_amount',
         'balance',
@@ -671,12 +679,24 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'tours_catalog_path'    => rtrim($this->paxCatalogUrlNd, '/'),
         ] + $this->whatsappDelAlojamiento(null)
           // Un token de mentira: es el `example` de Meta y la vista previa, y no puede abrir nada.
-          + array_map(
-              fn (): string => $this->enlacesDelEquipo->url('EJEMPLO.EJEMPLO'),
-              array_flip(array_map(
-                  static fn (string $codigo): string => PmsGuiaEnlaceDelEquipo::variable($codigo),
-                  array_keys($this->enlacesDelEquipo->items()),
-              )),
-          );
+          + $this->enlacesDeEjemplo();
+    }
+
+    /**
+     * Los `{{ acceso_* }}` de la vista previa y del `example` de Meta, con un token de mentira.
+     *
+     * @return array<string, string>
+     */
+    private function enlacesDeEjemplo(): array
+    {
+        $salida = [];
+
+        foreach (array_keys($this->enlacesDelEquipo->items()) as $codigo) {
+            $variable = PmsGuiaEnlaceDelEquipo::variable($codigo);
+            $salida[$variable] = $this->enlacesDelEquipo->url(self::TOKEN_DE_EJEMPLO);
+            $salida[$variable . '_path'] = PmsGuiaEnlaceDelEquipo::ruta(self::TOKEN_DE_EJEMPLO);
+        }
+
+        return $salida;
     }
 }

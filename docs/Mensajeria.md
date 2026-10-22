@@ -68,6 +68,22 @@ variable e incluso sin variable. Ni «dinero», ni los enlaces, ni la palabra «
 oficial con estas instrucciones tiene que ir **sin la clave**, y la clave salir por otro camino.
 («La contraseña es {{password_caja_superior}}», también rechazada.)
 
+**Y con el enlace, Meta SÍ (22/10/2026).** Una sonda con un aviso que nombra la reserva y un BOTÓN
+al enlace —sin clave, sin «código», sin «caja»— fue **APROBADA como UTILITY** en menos de 8 minutos:
+
+```
+Hola {{guest_name}}, te enviamos las instrucciones de tu reserva {{locator}} en {{room_name}}.
+Las tienes en el botón de abajo; el enlace es solo para ti.      [ Ver instrucciones ]
+                                         → https://pax.openperu.pe/{{1}} = {{ acceso_<código>_path }}
+```
+
+Las tres plantillas (`llave_emergencia`, `pago_efectivo_caja`, `llaves_interiores`) llevan ese
+cuerpo de Meta (`app:pms:plantillas-instrucciones-meta`), cada una con su nombre
+(`instrucciones_<…>_v1`) y su variable de botón —la ruta sin dominio que publica el resolver junto al
+enlace, como `guide_path`—. Mismo texto para las tres: el botón decide qué ficha abre. Dentro de
+ventana y por Beds24 sale el texto de siempre con el enlace; fuera de ventana, este aviso. **No se
+cambia el texto sin repetir la sonda.**
+
 **Y después, el enlace (21/10/2026).** Las dos plantillas ya no llevan los pasos ni el código:
 llevan `{{ acceso_llave_emergencia }}` / `{{ acceso_pago_efectivo }}`, un enlace firmado y con
 caducidad a una ficha de la guía que sólo abre ese enlace (`docs/PmsGuiaHuesped.md` §7 sexies).
