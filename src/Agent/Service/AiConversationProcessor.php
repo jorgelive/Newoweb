@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Contract\MapaDeHitos;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
 use App\Agent\Conversation\InstruccionesDominioRegistry;
@@ -620,10 +621,22 @@ final readonly class AiConversationProcessor
         // `Beds24ReceivePersister` llama a `upsertFromContext()` al recibir cada mensaje, así
         // que acaba de reescribirse cuando llegamos aquí. El fallback a `deStatusTag()` cubre
         // las conversaciones anteriores al campo, cuyo upsert todavía no ha vuelto a correr.
-        $vinculo = $conversacion->getContextVinculo()
+        // 🗓️ De QUÉ asunto se habla: el que está en curso o es el próximo, no la cabecera. Un
+        // huésped que repite tiene dos reservas en el mismo hilo, y la cabecera es la primera.
+        // 🔥 José Antonio (21/10/2026): avisó de su llegada de mañana y el agente la buscó en la
+        // estancia que acabó hace dos días. Ver `EnlacesDeConversacion::asuntoEnCurso()`. Sin
+        // enlaces —los hilos de siempre— manda la cabecera, como hasta ahora.
+        $asunto = $this->enlaces->asuntoEnCurso($conversacion);
+        $contextoTipo = $asunto?->getContextType() ?? $conversacion->getContextType();
+        $contextoId = $asunto?->getContextId() ?? $conversacion->getContextId();
+
+        $vinculo = $asunto?->getVinculo()
+            ?? $conversacion->getContextVinculo()
             ?? VinculoComercial::deStatusTag($conversacion->getContextStatusTag());
 
-        $restriccion = RestriccionCanal::deOrigenYVinculo($conversacion->getContextOrigin(), $vinculo);
+        // El origen también es del asunto: una reserva de Booking y otra directa en el mismo hilo
+        // no se atienden igual (importes, ver `RestriccionCanal`).
+        $restriccion = RestriccionCanal::deOrigenYVinculo($asunto?->getOrigen() ?? $conversacion->getContextOrigin(), $vinculo);
 
         // 🌍 Prospecto es «no hay vínculo», NO «su contexto no es una reserva del PMS».
         //
@@ -638,9 +651,10 @@ final readonly class AiConversationProcessor
         $esProspecto = $delEquipo === null && VinculoComercial::Ninguno === $vinculo;
 
         $actor = match (true) {
-            $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $conversacion->getContextType(), $conversacion->getContextId(), tambienHuesped: true, conversacionId: $conversacionId),
+            $delEquipo !== null => $this->actores->delEquipoPorChat($delEquipo, $origen, $contextoTipo, $contextoId, tambienHuesped: true, conversacionId: $conversacionId),
             $esProspecto => $this->actores->prospecto($origen, $conversacionId),
-            default => $this->actores->huesped($origen, $conversacion->getContextType(), $conversacion->getContextId(), $conversacionId, $vinculo, $restriccion, $this->esAcompanante($conversacion)),
+            // Un asunto elegido por `asuntoEnCurso()` es titular por definición: sólo los mira a ellos.
+            default => $this->actores->huesped($origen, $contextoTipo, $contextoId, $conversacionId, $vinculo, $restriccion, $asunto === null && $this->esAcompanante($conversacion)),
         };
 
         if (!$esProspecto && $delEquipo === null && VinculoComercial::Cliente !== $vinculo) {
@@ -1254,7 +1268,7 @@ final readonly class AiConversationProcessor
         $dominio = $this->dominios->contextoVolatil(
             $conversacion->getContextType(),
             $actor,
-            $conversacion->getMapaDeHitos()
+            $this->hitosDelAsunto($conversacion, $actor)
         );
 
         // 🎭 Quién escribe. Va aquí y no en las reglas porque el prompt del triaje es idéntico
@@ -1510,6 +1524,27 @@ final readonly class AiConversationProcessor
         }
 
         return array_slice($turnos, -self::HISTORIAL_MAX);
+    }
+
+    /**
+     * Los hitos del asunto del que habla el actor: los de SU enlace si no es el de la cabecera
+     * (ver `asuntoEnCurso()` en `generar()`). Con los de la cabecera, el agente se habría
+     * enterado de «en qué punto va la estancia» de la reserva que ya terminó.
+     */
+    private function hitosDelAsunto(MessageConversation $conversacion, ActorInterface $actor): MapaDeHitos
+    {
+        $tipo = $actor->contextoTipo();
+        $id = $actor->contextoId();
+
+        if ($tipo !== null && $id !== null && $id !== $conversacion->getContextId()) {
+            $enlace = $this->enlaces->enlaceDe($conversacion, $tipo, $id);
+
+            if ($enlace !== null) {
+                return MapaDeHitos::desdeCrudo($enlace->getMilestones());
+            }
+        }
+
+        return $conversacion->getMapaDeHitos();
     }
 
     /**

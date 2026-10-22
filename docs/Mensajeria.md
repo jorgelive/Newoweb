@@ -3779,6 +3779,30 @@ Lo que se corrigió y la regla que deja cada caso; el detalle, en el docblock de
 `ConversionException`). Lo que **no** era un fallo: las fechas sin `America/Lima` (`Kernel::boot()`
 fija la zona, ver `docs/ZonasHorarias.md`) y la extensión `intl` (está en producción).
 
+### De qué reserva habla el hilo: la en curso, no la cabecera (21/10/2026)
+
+Un hilo puede colgar de varias reservas (§20): un huésped que repite escribe desde el mismo
+número. La **cabecera** del hilo (`contextType`/`contextId`) es la primera y no cambia a propósito
+(`promoverDesdeManual()`, más abajo), pero el agente sólo miraba la cabecera.
+
+🔥 **José Antonio Álvarez (21/10/2026).** Cabecera 9CYZZF (17→19 oct, terminada) y en el mismo
+hilo 3Q7ZJ7 (22→25 oct). Pulsó «Llegaré más tarde», escribió «15:00», y `confirmar_hora` la buscó
+en la estancia del 17→19: *«no he podido apuntar su llegada… las fechas de su reserva no
+coinciden»*, más un escalado. Ese día había dos hilos así (él y Jean Erik); crece con cada huésped
+que repite.
+
+**La regla:** el actor del agente se construye con `EnlacesDeConversacion::asuntoEnCurso()`: entre
+los enlaces titulares y vivos del hilo, del tipo de la cabecera, el que está en curso o es el
+próximo; si todos pasaron, el último. De ese enlace salen también el **vínculo** y el **origen**
+—una reserva de Booking y otra directa en el mismo hilo no se atienden igual—, y los hitos del
+contexto volátil (`AiConversationProcessor::hitosDelAsunto()`), para que «en qué punto va la
+estancia» no hable de la que terminó. Sin enlaces, la cabecera, como siempre.
+
+**Lo que NO cambia:** la cabecera del hilo, los mensajes automáticos (el motor ya programa por
+asunto, §20.5) ni las skills, que siguen leyendo `ActorInterface::contextoId()`: lo que cambió es
+qué reserva hay detrás. El pre-router y el resumen siguen con la cabecera porque no usan skills.
+Test: `AsuntoEnCursoTest`.
+
 ### 11.1 Qué modelo aguanta este prompt
 
 El catálogo son ~1.600 tokens en 12 descripciones. La dificultad no está en el tamaño, sino en
@@ -13423,9 +13447,9 @@ añade un cuarto proveedor de contexto y no se añade allí, la sonda deja de cu
 
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
 - ~~Que algo **cree** enlaces de Travel~~ — hecho el 20/08/2026, ver «Turismo entra en la mensajería».
-- **Que el agente lea los enlaces en vez de la cabecera.** Es el paso que vuelve la promoción
-  innecesaria y el que hace de verdad multi-asunto al agente: hoy, de las varias reservas de un
-  hilo, sólo ve la de la cabecera.
+- **Que el agente lea los enlaces en vez de la cabecera.** Hecho a medias el 21/10/2026: el
+  agente atiende la reserva **en curso o próxima** del hilo (§11, «De qué reserva habla el
+  hilo»). Sigue viendo UNA: si el huésped pregunta por la otra a la vez, no la conoce.
 
 ---
 
