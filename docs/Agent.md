@@ -168,6 +168,17 @@ escritura sigue fuera: depende del canal y la decide quien arma el catálogo.
 hacía `contextoId() ?? parametro` sin mirar el tipo, y en el hilo de avisos del equipo
 (`staff:<uuid>`) el «contexto» era el UUID de una persona: el parámetro se ignoraba.
 
+### 2.0 bis El agente sabe la HORA, no sólo el día (22/10/2026)
+
+El contexto de cada turno decía «Hoy es 2026-10-22 (Thursday)», sin hora. Para el modelo las 17:54
+y las 10:00 eran lo mismo, y a José Paredes (AG2CZY), que pidió la plancha a las 17:54 «para poder
+salir», le prometió «se la llevamos» cuando el personal ya no estaba en la zona. Ahora lleva la hora
+de Cusco en el huésped (`AiConversationProcessor::contexto()`, con una línea para que cuente con
+ella en lo que se hace en persona), en el panel (`PanelAssistant`) y en la voz (`VoiceAssistant`).
+
+La hora sola no basta: la ficha tiene que decir CUÁNDO se hace cada cosa. La de la plancha lo dice
+desde el mismo día (`docs/PmsGuiaHuesped.md`, «Plancha y secadora»).
+
 ### 2.1 `sistema()`, y por qué no vale `prospecto()`
 
 El actor de sistema nace **sin roles, sin `User`, sin contexto y sin conversación**, y las cinco

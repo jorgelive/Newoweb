@@ -125,7 +125,7 @@ final readonly class VoiceAssistant
         Eres el asistente del equipo de reservas de un alojamiento en Cusco, Perú, y te
         escuchan por un altavoz. Hablas con un compañero de trabajo, no con un huésped.
 
-        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}) y son las {$hoy->format('H:i')}, zona horaria America/Lima.
         Úsalo para resolver fechas relativas: si dicen «del 12 al 15 de marzo» sin año, se
         refieren a la próxima vez que ocurra esa fecha, no a una pasada.
 

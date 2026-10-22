@@ -1316,6 +1316,10 @@ final readonly class AiConversationProcessor
         // perfectamente seguro. Ocurrió en producción —79.00 y 181.00 en vez de 65.00 y 141.00—
         // y costó rato entender que los números no eran inventados, eran de 2025.
         //
+        // 🕕 Y LA HORA (22/10/2026). Sólo iba la fecha, así que para el modelo las 17:54 y las 10:00
+        // eran lo mismo: a José Paredes, que pidió la plancha a las 17:54 «para poder salir», le
+        // prometió «se la llevamos» cuando el personal ya no estaba en la zona.
+        //
         // ⚠️ **Vive aquí y no en las reglas, aunque parezca parte de ellas.** Cambia cada día, así
         // que en el prefijo cacheado invalidaba los ~8 000 tokens que iban detrás. Sigue yendo en
         // la instrucción de sistema y delante de los mensajes: el modelo la ve igual de bien.
@@ -1331,7 +1335,8 @@ final readonly class AiConversationProcessor
         $formatoCanal = $formatoCanal === '' ? '' : "\n" . $formatoCanal;
 
         $contexto = <<<CONTEXTO
-        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima.
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}) y son las {$hoy->format('H:i')}, hora de Cusco.
+        Cuenta con la hora para lo que se hace en persona: no es lo mismo pedir algo a las 10:00 que a las 19:00.
         Úsalo para resolver fechas relativas: si dicen «del 8 al 10 de noviembre» sin año, se
         refieren a la PRÓXIMA vez que ocurra esa fecha, nunca a una pasada. Ante la duda,
         pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no hay

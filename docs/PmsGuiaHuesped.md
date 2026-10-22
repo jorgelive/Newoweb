@@ -2042,6 +2042,19 @@ topes, reserva vieja, ficha que deja de ser `PorEnlace`, reserva cancelada, la m
 la caja sólo en el contexto del enlace y `sinClavesDeAcceso()`), y
 `app:pms:verificar-marcadores-guia` revisa también estas fichas.
 
+## 7 septies. «Plancha y secadora»: la secadora ya está, la plancha de un día para otro (22/10/2026)
+
+Decisión de Jorge: la **secadora de cabello se deja siempre** en la casita —ya no se pide— y la
+**plancha y la tabla se piden de un día para otro**. La ficha decía lo contrario («secadora previa
+solicitud», «pídenos la plancha y te la llevamos», sin cuándo), y el agente prometió la plancha a
+las 17:54 a quien la quería para salir esa noche (José Paredes, AG2CZY).
+
+La reescribe `app:pms:guia:plancha-y-secadora`: título, cuerpo del huésped (se traduce), lo del
+agente —si la necesita HOY, no se promete: se escala diciendo para cuándo— y, sobre todo,
+`agenteTerminos`. **No tenía ninguno**: el índice de temas sólo la encontraba por el título, y en el
+ensayo «¿la secadora hay que pedirla?» acabó en «la guía no dice si hay secador». Ensayado 3 de 3
+después del cambio, con el modelo real y la hora en el contexto (`docs/Agent.md` §2.0 bis).
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
