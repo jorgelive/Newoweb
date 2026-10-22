@@ -1937,6 +1937,13 @@ es de cualquier huésped aunque tenga la ventana abierta. Dentro, una cartuchera
 | celeste | las llaves de emergencia, «emergencia N» | `llave-emergencia` / `llave_emergencia` |
 | azul | las llaves interiores, «interior N» (N = número de la casita, `{{ numero }}`) | `llaves-interiores` / `llaves_interiores` |
 
+**Lo que sabe el agente** (ensayado con el modelo real el 22/10/2026): la ficha normal «Puertas
+interiores» (`app:pms:guia:puertas-interiores`, en el manual de las siete) le dice al huésped que el
+pomo tiene seguro y que escriba si se cierra, y al agente que la llave la tiene el equipo y con qué
+motivo escalar (`agenteRequiereHumano`). Sin ella, al pedir «el código de la caja para sacar la
+llave», el agente dio el de la caja de ABAJO. Por eso `consultar_codigos` lleva además el campo
+`llaves_interiores`: el puntero va en el dato que el modelo acaba de leer, no en una regla general.
+
 Las llaves interiores no se dejan en la casita —se perdían o se las llevaban—: los pomos llevan
 botón de seguro, y quien se queda fuera de una habitación necesita la de la caja. La ficha le pide
 que la devuelva a su cartuchera al terminar. Las etiquetas físicas («emergencia», «interior») van en

@@ -381,6 +381,15 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 ? sprintf('%s %s', $frase, $enlace)
                 : $frase,
             'enlace_guia' => $enlace,
+            // 🚪 Lo que NO abre esta caja, dicho en el dato y no en el prompt (22/10/2026). Ensayado
+            // con el modelo real: a quien se le cerró la puerta del baño y pidió «el código de la
+            // caja para sacar la llave», el agente le dio ESTE —el de la caja de abajo— y su número
+            // de llave. No era una fuga (son suyos), pero no le servía y lo mandaba a buscar una
+            // llave que no está ahí. Las interiores las da el equipo (`llaves_interiores`).
+            'llaves_interiores' => 'Esta caja guarda las llaves de ENTRADA. Las de las puertas interiores '
+                . '(habitación, baño) no están aquí ni en la casita: las da el equipo. Si se le cerró una '
+                . 'puerta interior, no le des este código para eso: escala con «se le cerró la puerta '
+                . 'interior de <cuál>: mandarle llaves_interiores».',
             // ☎️ Los teléfonos salen SIEMPRE, no sólo cuando el código está bloqueado.
             //
             // Estaban además copiados a mano en el ítem «Horario solicitudes» de la guía, que
