@@ -142,4 +142,13 @@ interface ActorInterface
 
     /** Para los logs, sin volcar la entidad entera. */
     public function etiqueta(): string;
+
+    /**
+     * Los asuntos del hilo entre los que puede elegir, por clave (`R1`, `R2`…). Vacío cuando el
+     * hilo tiene uno solo —casi siempre— o el actor no viene de un chat: entonces manda
+     * `contextoId()`. Ver {@see AsuntoDelHilo}.
+     *
+     * @return array<string, AsuntoDelHilo>
+     */
+    public function asuntosDelHilo(): array;
 }

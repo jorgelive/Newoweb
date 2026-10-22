@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Access\AsuntosDelHiloParaElAgente;
 use App\Contract\MapaDeHitos;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
@@ -149,6 +150,7 @@ final readonly class AiConversationProcessor
         private ConocimientoGenerico $conocimiento,
         private VigilanteDelMotor $vigilante,
         private EnlacesDeConversacion $enlaces,
+        private AsuntosDelHiloParaElAgente $asuntosDelHilo,
         private bool $habilitado,
     ) {}
 
@@ -626,7 +628,8 @@ final readonly class AiConversationProcessor
         // 🔥 José Antonio (21/10/2026): avisó de su llegada de mañana y el agente la buscó en la
         // estancia que acabó hace dos días. Ver `EnlacesDeConversacion::asuntoEnCurso()`. Sin
         // enlaces —los hilos de siempre— manda la cabecera, como hasta ahora.
-        $asunto = $this->enlaces->asuntoEnCurso($conversacion);
+        $asuntos = $this->enlaces->asuntosVivos($conversacion);
+        $asunto = $asuntos[0] ?? null;
         $contextoTipo = $asunto?->getContextType() ?? $conversacion->getContextType();
         $contextoId = $asunto?->getContextId() ?? $conversacion->getContextId();
 
@@ -656,6 +659,13 @@ final readonly class AiConversationProcessor
             // Un asunto elegido por `asuntoEnCurso()` es titular por definición: sólo los mira a ellos.
             default => $this->actores->huesped($origen, $contextoTipo, $contextoId, $conversacionId, $vinculo, $restriccion, $asunto === null && $this->esAcompanante($conversacion)),
         };
+
+        // 🗂️ Con VARIOS asuntos vivos, el actor los conoce por clave (R1 = el de por defecto) y las
+        // skills dejan elegir otro con `asunto: "R2"` (`ReservaDeLaConsulta`). La clave sólo existe
+        // para este hilo: es la lista blanca. Con uno solo no se le dice nada —97 % de los hilos—.
+        if (!$esProspecto && count($asuntos) > 1) {
+            $actor = $actor->conAsuntosDelHilo($this->asuntosDelHilo->de($conversacion));
+        }
 
         if (!$esProspecto && $delEquipo === null && VinculoComercial::Cliente !== $vinculo) {
             $this->logger->info(sprintf(
@@ -1311,6 +1321,11 @@ final readonly class AiConversationProcessor
         // la instrucción de sistema y delante de los mensajes: el modelo la ve igual de bien.
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
 
+        // 🗂️ Varios asuntos en el hilo: cuáles, con su clave. Sin esto el agente sólo conocía la
+        // reserva de por defecto, y de la otra o la negaba o se la inventaba. Las condiciones van
+        // en positivo y con el hecho delante (CLAUDE.md, «El agente: lo que el modelo obedece»).
+        $varios = $this->bloqueDeAsuntos($actor);
+
         // 📱 Cómo se escribe en este canal. Mismo motivo: depende del actor, no de las reglas.
         $formatoCanal = $this->formatoSegunCanal($actor);
         $formatoCanal = $formatoCanal === '' ? '' : "\n" . $formatoCanal;
@@ -1322,7 +1337,7 @@ final readonly class AiConversationProcessor
         pregunta el año antes de cotizar: una tarifa del año que no es parece correcta y no hay
         forma de que el cliente lo note.
         {$formatoCanal}
-        Hablas con {$huesped}.{$dominio}{$quien}{$limites}{$temas}
+        Hablas con {$huesped}.{$dominio}{$varios}{$quien}{$limites}{$temas}
         Responde SIEMPRE en el idioma con código "{$idioma}".
         CONTEXTO;
 
@@ -1524,6 +1539,32 @@ final readonly class AiConversationProcessor
         }
 
         return array_slice($turnos, -self::HISTORIAL_MAX);
+    }
+
+    /**
+     * La lista de asuntos del hilo para el prompt, o `''` si hay uno solo.
+     *
+     * La etiqueta la redacta el dominio (casita y fechas, sin localizador): es lo que el modelo
+     * puede repetirle al huésped. Ver `docs/Mensajeria.md` §11, «Varias reservas en un hilo».
+     */
+    private function bloqueDeAsuntos(ActorInterface $actor): string
+    {
+        $asuntos = $actor->asuntosDelHilo();
+
+        if (count($asuntos) < 2) {
+            return '';
+        }
+
+        $lineas = [];
+        foreach ($asuntos as $asunto) {
+            $lineas[] = sprintf('- %s: %s%s', $asunto->clave, $asunto->etiqueta, $asunto->porDefecto ? ' — POR DEFECTO' : '');
+        }
+
+        return "\nEsta persona tiene VARIAS reservas en esta conversación:\n" . implode("\n", $lineas) . "\n"
+            . 'Lo de arriba sobre su estancia, y todas tus herramientas, son de la marcada POR DEFECTO. '
+            . 'Cuando habla de otra, pasa su clave en el parámetro «asunto» de la herramienta («R2»). '
+            . 'Cuando no está claro de cuál habla y la respuesta cambia según cuál (fechas, cuenta, hora), '
+            . 'pregúntale de cuál antes de responder, nombrándolas por la casita y las fechas.';
     }
 
     /**

@@ -263,6 +263,7 @@ final class LineasDeConsumoTest extends TestCase
                 public function origen(): string { return 'test'; }
                 public function contextoTipo(): ?string { return null; }
                 public function contextoId(): ?string { return null; }
+                public function asuntosDelHilo(): array { return []; }
                 public function conversacionId(): ?string { return null; }
                 public function vinculo(): VinculoComercial { return VinculoComercial::Ninguno; }
                 public function restriccion(): RestriccionCanal { return RestriccionCanal::Ninguna; }

@@ -113,6 +113,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
                 . 'trae y es más barata. Hablando con un huésped NO pases reserva_id: se usa '
                 . 'siempre la reserva de esta conversación, la suya.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva, tal cual lo '
                     . 'devolvió buscar_reserva. Sólo desde el panel: en el chat con un huésped '
                     . 'se ignora.', requerido: false),
@@ -145,6 +146,11 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         // La cuenta es del TITULAR. Un acompañante —escribe desde su número por la reserva de
         // otro— sabe de qué estancia le hablan, pero no ve lo que se debe ni lo que se pagó. Es
         // código y no una línea del prompt: «no le des la cuenta» es una supresión, y ésas el
@@ -159,7 +165,7 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         }
 
         $e = new EntradaDeSkill($entrada);
-        $reservaId = $this->reservaDelContexto($actor)
+        $reservaId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada))
             ?? trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
@@ -645,17 +651,6 @@ final readonly class ConsultarCuentaSkill implements SkillInterface, SkillDomini
         ], static fn ($v) => $v !== null && $v !== '');
     }
 
-    /**
-     * 🔒 La reserva que impone la conversación, si la hay.
-     *
-     * Devolver algo aquí significa «no se admite otra»: el `reserva_id` del modelo ni se mira.
-     * El equipo desde el panel no tiene contexto de chat, así que para ellos devuelve `null` y
-     * el parámetro manda como siempre.
-     */
-    private function reservaDelContexto(ActorInterface $actor): ?string
-    {
-        return $actor->contextoTipo() === 'pms_reserva' ? $actor->contextoId() : null;
-    }
 
     /**
      * La cuenta de un huésped cuyo canal ya le cobró todo.

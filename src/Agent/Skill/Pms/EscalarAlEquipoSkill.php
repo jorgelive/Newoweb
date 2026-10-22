@@ -181,6 +181,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 . '10:00»), porque es lo que el operador lee antes de abrir el chat. Después de '
                 . 'llamarme, dile al huésped que ya avisaste, sin prometerle un plazo.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('motivo', 'En una frase y EN ESPAÑOL, aunque el huésped '
                     . 'escriba en otro idioma: qué necesita, concreto. Lo lee un operador en el '
                     . 'móvil.'),
@@ -255,6 +256,11 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         $motivo = trim($e->texto('motivo'));
 
@@ -395,7 +401,9 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
         // a la versión de MySQL, y el enfriamiento de arriba necesita consultarlo.
         $resultado = $this->avisos->notificar(new AvisoAlEquipo(
             rol: Roles::CUSTOMER_SUPPORT,
-            texto: $this->redactar($conversacion, $motivo, $emergencia),
+            // La reserva de la que se habla —con varias en el hilo, no la cabecera—: sus márgenes
+            // (casita y fechas) son además lo que le dice al operador cuál es.
+            texto: $this->redactar($conversacion, $motivo, $emergencia, ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada))),
             plantillaCodigo: self::PLANTILLA_AVISO,
             // Fuera de ventana el texto fijo de la plantilla dice «necesita respuesta» y no se puede
             // cambiar sin pasar por Meta: la marca de emergencia viaja al frente de `{{motivo}}`.
@@ -515,7 +523,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * formato que el push de `MessageConversationMercureListener`): el operador toca y está
      * dentro, sin buscar en la lista.
      */
-    private function redactar(MessageConversation $conversacion, string $motivo, bool $emergencia = false): string
+    private function redactar(MessageConversation $conversacion, string $motivo, bool $emergencia = false, ?string $reservaId = null): string
     {
         $huesped = $conversacion->getGuestName() ?: 'Un huésped';
         $enlace = rtrim(Parametro::texto($this->params->get('util_host_url'), 'util_host_url'), '/')
@@ -538,7 +546,7 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
             $huesped,
             $motivo,
             $contexto,
-            $this->margenes($conversacion),
+            $this->margenes($reservaId),
             $enlace
         );
     }
@@ -669,14 +677,14 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
      * Si falla el cálculo no se rompe el aviso: se manda sin esta línea. Que el operador reciba
      * el escalado importa más que el extra.
      */
-    private function margenes(MessageConversation $conversacion): string
+    private function margenes(?string $reservaId): string
     {
-        if ($conversacion->getContextType() !== 'pms_reserva') {
+        if ($reservaId === null) {
             return '';
         }
 
         try {
-            $reserva = $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
+            $reserva = $this->em->getRepository(PmsReserva::class)->find($reservaId);
             $eventos = $reserva?->getEventosActivosGuia() ?? [];
 
             if ($eventos === []) {

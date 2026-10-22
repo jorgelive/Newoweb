@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -57,7 +58,8 @@ use App\Agent\Skill\EntradaDeSkill;
 final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDominioInterface
 {
     public function __construct(
-        private EntityManagerInterface $em
+        private EntityManagerInterface $em,
+        private EnlacesDeConversacion $enlaces,
     ) {}
 
     public function nombre(): string
@@ -236,6 +238,10 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
         // Los canales NO se pasan: con plantilla, resolveChannels() ya toma los suyos. Pasarlos
         // aquí sólo serviría para recortarlos, y eso lo decide el operador en el panel.
         $mensaje->setTemplate($plantilla);
+        // Las variables salen del asunto del MENSAJE (`*SendMappingStrategy`); sin él, de la cabecera.
+        if (($reservaId = $this->reservaIdDe($conversacion)) !== null) {
+            $mensaje->setAsunto('pms_reserva', $reservaId);
+        }
         $mensaje->setLanguageCode($idioma);
         $mensaje->addMetadata('enviado_por_agente', $actor->etiqueta());
 
@@ -350,10 +356,24 @@ final readonly class EnviarPlantillaSkill implements SkillInterface, SkillDomini
 
     private function reserva(MessageConversation $conversacion): ?PmsReserva
     {
-        if ($conversacion->getContextType() !== 'pms_reserva') {
-            return null;
+        $id = $this->reservaIdDe($conversacion);
+
+        return $id === null ? null : $this->em->getRepository(PmsReserva::class)->find($id);
+    }
+
+    /**
+     * La reserva de la que habla el hilo AHORA: la en curso o la próxima, no la cabecera
+     * (`EnlacesDeConversacion::asuntoEnCurso()`, la misma regla que el agente). Con dos reservas
+     * en el hilo, la cabecera es la primera y puede haber terminado. Ver `docs/Mensajeria.md` §11.
+     */
+    private function reservaIdDe(MessageConversation $conversacion): ?string
+    {
+        $asunto = $this->enlaces->asuntoEnCurso($conversacion);
+
+        if ($asunto !== null && $asunto->getContextType() === 'pms_reserva') {
+            return $asunto->getContextId();
         }
 
-        return $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
+        return $conversacion->getContextType() === 'pms_reserva' ? $conversacion->getContextId() : null;
     }
 }

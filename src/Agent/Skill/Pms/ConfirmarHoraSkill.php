@@ -106,6 +106,7 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
                 . 'horario extra. Si llega de madrugada el MISMO día de entrada, antes del check-in, '
                 . 'eso sí es una entrada temprana: sin despues_de_medianoche.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('extremo', '"llegada" o "salida".'),
                 SkillParameter::texto('hora', 'HH:MM de 24 horas: "16:00", "09:30".'),
                 SkillParameter::booleano('despues_de_medianoche', 'true si llega pasada la medianoche '
@@ -134,6 +135,11 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         $extremo = strtolower(trim($e->texto('extremo')));
         $hora = HoraDeLaEstancia::normalizar($e->texto('hora'));
@@ -147,7 +153,8 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             return SkillResult::error('La hora va en HH:MM de 24 horas, por ejemplo "16:00".');
         }
 
-        $reservaId = $actor->contextoId();
+        // La del asunto elegido, o la de por defecto (`ReservaDeLaConsulta`).
+        $reservaId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada));
         if ($actor->contextoTipo() !== 'pms_reserva' || $reservaId === null) {
             return SkillResult::error('Esta conversación no cuelga de ninguna reserva: no hay estancia donde apuntarlo. '
                 . 'Avisa al equipo con escalar_al_equipo.');

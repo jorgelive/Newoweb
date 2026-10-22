@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -62,6 +63,7 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
         private EntityManagerInterface $em,
         #[AutowireIterator('app.message.enqueuer')]
         private iterable $enqueuers,
+        private EnlacesDeConversacion $enlaces,
     ) {}
 
     public function nombre(): string
@@ -283,11 +285,24 @@ final readonly class EnviarMensajeHuespedSkill implements SkillInterface, SkillD
      */
     private function reservaCancelada(MessageConversation $conversacion): bool
     {
-        if ($conversacion->getContextType() !== 'pms_reserva') {
-            return false;
+        $id = $this->reservaIdDe($conversacion);
+
+        return $id !== null && ($this->em->getRepository(PmsReserva::class)->find($id)?->isCancelada() ?? false);
+    }
+
+    /**
+     * La reserva de la que habla el hilo AHORA: la en curso o la próxima, no la cabecera
+     * (`EnlacesDeConversacion::asuntoEnCurso()`, la misma regla que el agente). Con dos reservas
+     * en el hilo, la cabecera es la primera y puede haber terminado. Ver `docs/Mensajeria.md` §11.
+     */
+    private function reservaIdDe(MessageConversation $conversacion): ?string
+    {
+        $asunto = $this->enlaces->asuntoEnCurso($conversacion);
+
+        if ($asunto !== null && $asunto->getContextType() === 'pms_reserva') {
+            return $asunto->getContextId();
         }
 
-        return $this->em->getRepository(PmsReserva::class)
-            ->find($conversacion->getContextId())?->isCancelada() ?? false;
+        return $conversacion->getContextType() === 'pms_reserva' ? $conversacion->getContextId() : null;
     }
 }

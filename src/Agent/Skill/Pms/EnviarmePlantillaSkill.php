@@ -77,6 +77,7 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
                 . ' Si no encaja con ninguna, no fuerces una: responde tú con tus otras '
                 . 'herramientas. No necesita confirmación: se lo está pidiendo él.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('plantilla', 'Código exacto de la plantilla, de la lista '
                     . 'de arriba. No inventes códigos.'),
             ],
@@ -109,6 +110,11 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         $codigo = trim($e->texto('plantilla'));
 
@@ -156,7 +162,9 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
 
         // La correspondencia de OTA, igual que en la skill del operador: si la plantilla está
         // acotada a un origen, la reserva tiene que venir de él.
-        $origen = $this->reserva($conversacion)?->getChannel()?->getId();
+        // La reserva de la que habla (`ReservaDeLaConsulta`): con varias en el hilo, no la cabecera.
+        $reservaId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada));
+        $origen = $this->reserva($reservaId)?->getChannel()?->getId();
         $permitidos = $plantilla->getAllowedSources();
 
         if ($permitidos !== [] && $origen !== null && !in_array($origen, $permitidos, true)) {
@@ -180,6 +188,11 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
         $mensaje->setStatus(Message::STATUS_PENDING);
         // Los canales no se pasan: con plantilla, resolveChannels() toma los suyos activos.
         $mensaje->setTemplate($plantilla);
+        // 🗂️ Las variables se rellenan con el asunto del MENSAJE, y sin él con la cabecera del
+        // hilo (`*SendMappingStrategy`): con dos reservas, la plantilla habría salido con la otra.
+        if ($reservaId !== null) {
+            $mensaje->setAsunto('pms_reserva', $reservaId);
+        }
         $mensaje->setLanguageCode($idioma);
         $mensaje->addMetadata('generado_por', 'ia');
         $mensaje->addMetadata('autoenvio', $actor->etiqueta());
@@ -249,12 +262,8 @@ final readonly class EnviarmePlantillaSkill implements SkillInterface, SkillDomi
         ]);
     }
 
-    private function reserva(MessageConversation $conversacion): ?PmsReserva
+    private function reserva(?string $reservaId): ?PmsReserva
     {
-        if ($conversacion->getContextType() !== 'pms_reserva') {
-            return null;
-        }
-
-        return $this->em->getRepository(PmsReserva::class)->find($conversacion->getContextId());
+        return $reservaId === null ? null : $this->em->getRepository(PmsReserva::class)->find($reservaId);
     }
 }

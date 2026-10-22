@@ -3803,6 +3803,54 @@ asunto, §20.5) ni las skills, que siguen leyendo `ActorInterface::contextoId()`
 qué reserva hay detrás. El pre-router y el resumen siguen con la cabecera porque no usan skills.
 Test: `AsuntoEnCursoTest`.
 
+### Varias reservas en un hilo: el modelo elige por la clave del asunto (21/10/2026)
+
+El paso siguiente al de arriba. Atender la reserva en curso arregla el caso normal, pero el agente
+seguía viendo UNA: si el huésped preguntaba por la otra, la negaba o se la inventaba. Medido ese
+día: de 256 hilos con reservas vivas, 6 tienen dos y 1 tiene ocho.
+
+```
+ hilo con ≥ 2 asuntos vivos
+   │  AsuntosDelHiloParaElAgente::de()  →  R1 (por defecto = asuntoEnCurso), R2, …
+   ▼
+ AgentActor::conAsuntosDelHilo()        el actor los conoce POR CLAVE
+   │
+   ├─ prompt (AiConversationProcessor::bloqueDeAsuntos): la lista con la etiqueta del dominio
+   │  —casita y fechas, sin localizador—, y en positivo: «cuando habla de otra, pasa su clave
+   │  en "asunto"; si no está claro y la respuesta cambia, pregunta de cuál»
+   ▼
+ skill(…, asunto: "R2")
+   ├─ ReservaDeLaConsulta::noPermitido()  ← LO PRIMERO: una clave que no es de este hilo, error
+   └─ ReservaDeLaConsulta::contexto()     → la reserva de R2 (o la de por defecto)
+```
+
+**La clave es la lista blanca.** `R2` sólo existe en este hilo y este turno: un UUID, un
+localizador o la clave de otro hilo no abren nada. Y aunque una skill olvidara llamar a
+`noPermitido()`, `contexto()` con una clave ajena cae en la reserva por defecto, no en otra.
+
+| Skill | Qué hace con `asunto` |
+|---|---|
+| `consultar_mi_reserva`, `consultar_cuenta`, `consultar_medios_pago` | consulta esa reserva (las dos últimas tenían su copia privada de la regla: borrada, ahora es la central) |
+| `consultar_guia`, `consultar_codigos`, `consultar_wifi` | por `ReservaDeLaConsulta::de()`, que ya era su regla |
+| `confirmar_hora`, `anotar_peticion` | escriben en esa reserva |
+| `enviarme_plantilla` | la plantilla sale con los datos de esa reserva: **estampa el asunto en el mensaje**, porque al enviar las variables salen de `Message::getAsuntoId()` y, sin él, de la cabecera |
+| `escalar_al_equipo` | los márgenes del aviso (casita y fechas) son los de esa reserva, que es además lo que le dice al operador cuál es |
+| `consultar_disponibilidad` | **sin** parámetro: no trabaja sobre una reserva, sólo mira desde qué plataforma escribe |
+
+⚠️ **Lo que leía la cabecera sin que se viera.** Al repasar las skills salieron tres que buscaban
+la reserva en `MessageConversation::getContextId()` en vez de en el actor: `escalar_al_equipo`
+(los márgenes), `enviarme_plantilla` (la OTA de origen) y, del lado del EQUIPO, `enviar_plantilla`
+y `enviar_mensaje_huesped`. Las dos del equipo usan ahora `asuntoEnCurso()`, y `enviar_plantilla`
+estampa el asunto: con dos reservas, «mándale la llave de emergencia» habría salido con el enlace
+de la reserva vieja, que ya no da enlace (`docs/PmsGuiaHuesped.md` §7 sexies).
+
+**Cómo se prueba:** `app:agent:skill <skill> '{"asunto":"R2"}' --como-huesped
+--conversacion=<hilo> --ensayo`. Con el hilo, el actor se arma con la MISMA pieza que el chat;
+`--ensayo` deshace todo al terminar (transacción con savepoints + `ModoEnsayo`) y antes enseña lo
+que habría quedado escrito —mensajes con su reserva, peticiones, estancias tocadas—, que es como se
+ve a cuál fue cada escritura. Las colas y Messenger viven en la misma base: nada sale.
+Tests: `ReservaDeLaConsultaTest`, `AsuntoEnCursoTest`.
+
 ### 11.1 Qué modelo aguanta este prompt
 
 El catálogo son ~1.600 tokens en 12 descripciones. La dificultad no está en el tamaño, sino en
@@ -13447,9 +13495,8 @@ añade un cuarto proveedor de contexto y no se añade allí, la sonda deja de cu
 
 - El canal de correo sobre Exchange, y la lectura del buzón para traer las respuestas.
 - ~~Que algo **cree** enlaces de Travel~~ — hecho el 20/08/2026, ver «Turismo entra en la mensajería».
-- **Que el agente lea los enlaces en vez de la cabecera.** Hecho a medias el 21/10/2026: el
-  agente atiende la reserva **en curso o próxima** del hilo (§11, «De qué reserva habla el
-  hilo»). Sigue viendo UNA: si el huésped pregunta por la otra a la vez, no la conoce.
+- ~~**Que el agente lea los enlaces en vez de la cabecera.**~~ Hecho el 21/10/2026: atiende la
+  reserva en curso o próxima y conoce las demás por clave (§11, «Varias reservas en un hilo»).
 
 ---
 

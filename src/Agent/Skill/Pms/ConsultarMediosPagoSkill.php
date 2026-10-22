@@ -102,6 +102,7 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
                 . 'lista. Si te piden el CCI y la cuenta no lo trae, no lo compongas a partir '
                 . 'del número: di que se lo pasamos y llama a escalar_al_equipo.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('reserva_id', 'Identificador de la reserva. Sólo desde el '
                     . 'panel: hablando con el huésped se usa siempre la suya y se ignora.',
                     requerido: false),
@@ -134,6 +135,11 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         // 🚧 Por un canal restringido esto no sale, y se corta AQUÍ y no en el prompt.
         //
@@ -152,7 +158,7 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
             );
         }
 
-        $reservaId = $this->reservaDelContexto($actor)
+        $reservaId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada))
             ?? trim($e->texto('reserva_id'));
 
         if (!Uuid::isValid($reservaId)) {
@@ -298,14 +304,4 @@ final readonly class ConsultarMediosPagoSkill implements SkillInterface, SkillDo
         return max(0, (int) $hoy->diff($dia)->format('%r%a'));
     }
 
-    /**
-     * 🔒 La reserva que impone la conversación, si la hay.
-     *
-     * Igual que en {@see ConsultarCuentaSkill}: si el chat fija una reserva, el `reserva_id`
-     * del modelo ni se mira.
-     */
-    private function reservaDelContexto(ActorInterface $actor): ?string
-    {
-        return $actor->contextoTipo() === 'pms_reserva' ? $actor->contextoId() : null;
-    }
 }

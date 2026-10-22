@@ -152,6 +152,7 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
                 . 'cuando vaya a pagar, y avisa. Lo interno es dónde se guarda la recaudación, '
                 . 'que eso no se cuenta.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('reserva_id', 'La reserva de la que se quieren los '
                     . 'códigos. Hablando con el propio huésped no hace falta: sale de su chat. '
                     . 'Y si un OPERADOR pregunta por la caja en general —«¿cuál es el código de '
@@ -189,10 +190,15 @@ final readonly class ConsultarCodigosSkill implements SkillInterface, SkillDomin
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         // 🔒 El contexto de RESERVA manda sobre el parámetro: un huésped no puede pedir lo de otra
         // casita escribiendo un UUID. Ver `ReservaDeLaConsulta::de()`.
-        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')), ReservaDeLaConsulta::clave($entrada));
 
         if (ReservaDeLaConsulta::contexto($actor) === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');

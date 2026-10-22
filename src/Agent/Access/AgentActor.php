@@ -37,7 +37,44 @@ final readonly class AgentActor implements ActorInterface
         /** @var list<string> Los dominios que el actor puede tocar. Vacío ⇒ sin acotar. */
         private array $dominios = [],
         private bool $acompanante = false,
+        /** @var array<string, AsuntoDelHilo> Por clave. Vacío ⇒ el hilo tiene un solo asunto. */
+        private array $asuntosDelHilo = [],
     ) {}
+
+    /** @return array<string, AsuntoDelHilo> */
+    public function asuntosDelHilo(): array
+    {
+        return $this->asuntosDelHilo;
+    }
+
+    /**
+     * El mismo actor, sabiendo que su hilo tiene varios asuntos. Sólo lo llama quien construye el
+     * actor del chat (`AiConversationProcessor`), con los asuntos titulares y vivos del hilo.
+     *
+     * @param list<AsuntoDelHilo> $asuntos
+     */
+    public function conAsuntosDelHilo(array $asuntos): self
+    {
+        $porClave = [];
+
+        foreach ($asuntos as $asunto) {
+            $porClave[$asunto->clave] = $asunto;
+        }
+
+        return new self(
+            $this->usuario,
+            $this->origen,
+            $this->roles,
+            $this->contextoTipo,
+            $this->contextoId,
+            $this->conversacionId,
+            $this->vinculo,
+            $this->restriccion,
+            $this->dominios,
+            $this->acompanante,
+            $porClave,
+        );
+    }
 
     /**
      * {@inheritDoc}

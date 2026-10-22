@@ -149,6 +149,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
                 . 'motivo. Y si en el catálogo no hay nada que encaje, dilo y pasa el enlace de '
                 . 'la guía en vez de improvisar.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('tema_id', 'El id del tema que has elegido del '
                     . '«catalogo». Es la forma buena de pedir contenido: ya has decidido tú '
                     . 'cuál sirve.', requerido: false),
@@ -198,6 +199,11 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $resultado = $this->consultar($entrada, $actor);
 
         // 🔒 En una consulta de OTA sin reservar no viaja NINGÚN enlace (16/10/2026). La política
@@ -251,7 +257,7 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
         // —un huésped por chat—, es la suya y sólo la suya: aceptar aquí un `reserva_id` sería
         // regalarle la guía de cualquiera, con sus códigos de puerta, escribiendo un UUID.
         // Ver `ReservaDeLaConsulta::de()`.
-        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')), ReservaDeLaConsulta::clave($entrada));
 
         // 🚪 SEGUNDA PUERTA: por casita y sin reserva ninguna.
         //

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
+use Doctrine\ORM\EntityManagerInterface;
+use App\Service\Ensayo\ModoEnsayo;
+use App\Message\Service\Conversacion\EnlacesDeConversacion;
+use App\Message\Entity\MessageConversation;
+use App\Agent\Access\AsuntosDelHiloParaElAgente;
 use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\AgentActor;
 use App\Agent\Access\AgentActorFactory;
@@ -46,6 +51,10 @@ final class AgentSkillCommand extends Command
         private readonly UserRepository $usuarios,
         private readonly AgentActorFactory $actores,
         private readonly GuardiaDeSkills $guardia,
+        private readonly EntityManagerInterface $em,
+        private readonly ModoEnsayo $ensayo,
+        private readonly AsuntosDelHiloParaElAgente $asuntosDelHilo,
+        private readonly EnlacesDeConversacion $enlaces,
     ) {
         parent::__construct();
     }
@@ -66,6 +75,8 @@ final class AgentSkillCommand extends Command
         ?string $conversacion = null,
         #[Option('Username de un usuario REAL: ejecuta con su identidad y sus roles', name: 'usuario')]
         ?string $username = null,
+        #[Option('Simular: todo lo que escriba la skill se DESHACE al terminar, y ni push ni Mercure (ModoEnsayo)')]
+        bool $ensayo = false,
     ): int {
         $skill = $this->registro->buscar($nombre);
 
@@ -110,7 +121,20 @@ final class AgentSkillCommand extends Command
             // que no los lleva mide un catálogo que en producción no existe.
             $actor = $this->actores->prospecto('cli', $conversacion);
         } elseif ($comoHuesped) {
+            // 🗂️ Con el HILO, el huésped se arma como en el chat: la reserva de por defecto es la en
+            // curso del hilo y conoce los demás asuntos por clave (`AsuntosDelHiloParaElAgente`, la
+            // misma pieza que `AiConversationProcessor`). Sin hilo, el de siempre.
+            $hilo = $conversacion !== null ? $this->em->getRepository(MessageConversation::class)->find($conversacion) : null;
+            $contexto ??= $hilo !== null ? $this->enlaces->asuntoEnCurso($hilo)?->getContextId() : null;
             $actor = $this->actores->huesped('cli', 'pms_reserva', $contexto, $conversacion);
+
+            if ($hilo !== null) {
+                $actor = $actor->conAsuntosDelHilo($this->asuntosDelHilo->de($hilo));
+                $io->comment(sprintf('Asuntos del hilo: %s', implode(' · ', array_map(
+                    static fn ($a): string => sprintf('%s=%s%s', $a->clave, $a->etiqueta, $a->porDefecto ? ' (por defecto)' : ''),
+                    $actor->asuntosDelHilo(),
+                )) ?: 'uno solo'));
+            }
         } else {
             $actor = $this->actorAdmin($contexto);
         }
@@ -127,6 +151,18 @@ final class AgentSkillCommand extends Command
 
         $inicio = microtime(true);
 
+        // 🧪 Ensayo: la misma red que `app:agent:replay` (transacción con savepoints que se deshace,
+        // y ModoEnsayo para lo que sale de la base en el momento). Las colas de envío y Messenger
+        // viven en esta misma base, así que un aviso o una plantilla encolados se van con el rollback.
+        $conexion = $this->em->getConnection();
+        $desde = (new \DateTimeImmutable('-1 second'))->format('Y-m-d H:i:s');
+        if ($ensayo) {
+            $conexion->setNestTransactionsWithSavepoints(true);
+            $conexion->beginTransaction();
+            $this->ensayo->activar();
+            $io->comment('ENSAYO: nada de lo que haga la skill quedará escrito.');
+        }
+
         try {
             // También por el guardia: una escritura confirmada desde la consola tiene que haberse
             // previsualizado antes con los mismos datos, igual que en el chat.
@@ -134,6 +170,11 @@ final class AgentSkillCommand extends Command
         } catch (Throwable $e) {
             $io->error($e->getMessage());
             return Command::FAILURE;
+        } finally {
+            if ($ensayo && $conexion->isTransactionActive()) {
+                $this->huella($io, $desde);
+                $conexion->rollBack();
+            }
         }
 
         // Sin formatear: es exactamente lo que llega al modelo.
@@ -150,6 +191,40 @@ final class AgentSkillCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Lo que la skill dejó escrito, leído DENTRO de la transacción del ensayo, justo antes de
+     * deshacerla: con varias reservas en el hilo, lo que hay que ver es a CUÁL fue cada escritura.
+     */
+    private function huella(SymfonyStyle $io, string $desde): void
+    {
+        $conexion = $this->em->getConnection();
+        $filas = [
+            ...array_map(static fn (array $f): array => ['mensaje', ...array_values($f)], $conexion->fetchAllAssociative(
+                "SELECT COALESCE(t.code, LEFT(m.content_local, 50)), r.localizador, m.status
+                   FROM msg_message m LEFT JOIN msg_template t ON t.id = m.template_id
+                   LEFT JOIN pms_reserva r ON r.id = UNHEX(REPLACE(m.asunto_id, '-', ''))
+                  WHERE m.created_at >= ?",
+                [$desde],
+            )),
+            ...array_map(static fn (array $f): array => ['petición', ...array_values($f)], $conexion->fetchAllAssociative(
+                "SELECT LEFT(p.texto, 50), r.localizador, '' FROM pms_peticion p
+                   JOIN pms_evento_calendario e ON e.id = p.evento_id JOIN pms_reserva r ON r.id = e.reserva_id
+                  WHERE p.created_at >= ?",
+                [$desde],
+            )),
+            ...array_map(static fn (array $f): array => ['estancia', ...array_values($f)], $conexion->fetchAllAssociative(
+                "SELECT CONCAT(DATE_FORMAT(e.inicio, '%d/%m %H:%i'), ' → ', DATE_FORMAT(e.fin, '%d/%m %H:%i')), r.localizador, '' FROM pms_evento_calendario e
+                   JOIN pms_reserva r ON r.id = e.reserva_id WHERE e.updated_at >= ?",
+                [$desde],
+            )),
+        ];
+
+        $io->section('Lo que habría quedado escrito (se deshace ahora)');
+        $filas === []
+            ? $io->writeln('  nada')
+            : $io->table(['qué', 'detalle', 'reserva', 'estado'], $filas);
     }
 
     private function actorAdmin(?string $contexto): AgentActor

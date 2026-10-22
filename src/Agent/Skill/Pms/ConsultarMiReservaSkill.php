@@ -57,8 +57,9 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
                 . 'alguien el día que se va. Sirve para responder «¿puede entrar antes?» sin '
                 . 'abrir el calendario. Son datos INTERNOS de ocupación: no se le repiten a un '
                 . 'huésped, y hablando con uno ni siquiera vienen. '
-                . 'No necesita parámetros: siempre '
-                . 'consulta la reserva de esta conversación.',
+                . 'Consulta la reserva de esta conversación; si el contexto te lista varias, la de '
+                . 'por defecto salvo que le pases otra en «asunto».',
+            parametros: [ReservaDeLaConsulta::parametro()],
         );
     }
 
@@ -87,7 +88,15 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
-        if ($actor->contextoTipo() === null || $actor->contextoId() === null) {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
+        // La reserva del asunto elegido (o la de por defecto); fuera del PMS, el contexto tal cual.
+        $contextoId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada)) ?? $actor->contextoId();
+
+        if ($actor->contextoTipo() === null || $contextoId === null) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');
         }
 
@@ -96,7 +105,7 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
             return SkillResult::error('No hay datos de reserva para este tipo de conversación.');
         }
 
-        $variables = $resolver->getMessageVariables($actor->contextoId());
+        $variables = $resolver->getMessageVariables($contextoId);
 
         // Sólo escalares: las variables del resolver alimentan plantillas, y colar aquí
         // estructuras internas sería filtrar más de lo que se pidió.
@@ -148,7 +157,7 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
         // 🔗 El id es lo que permite ENCADENAR: sin él, el modelo no puede pasar esta
         // reserva a la siguiente skill y cada consulta muere en sí misma. `getMessageVariables()`
         // no lo trae porque nació para rellenar plantillas, donde un UUID no pinta nada.
-        $datos['reserva_id'] = $actor->contextoId();
+        $datos['reserva_id'] = $contextoId;
 
         // 🚪 Qué hay ANTES y DESPUÉS en su casita, con la reserva ya localizada.
         //
@@ -165,7 +174,7 @@ final readonly class ConsultarMiReservaSkill implements SkillInterface, SkillDom
         // después: en su chat esto viaja por el contexto y marcado como interno, para decidir.
         // Ver docs/Mensajeria.md §17.3.
         if ($actor->esDelEquipo()) {
-            $datos += $this->espacioDeLaCasita($actor->contextoId());
+            $datos += $this->espacioDeLaCasita($contextoId);
         }
 
         return SkillResult::ok($datos);

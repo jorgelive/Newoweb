@@ -71,6 +71,7 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
                 . 'bloqueada, NO te inventes una clave ni la busques en otro sitio: explica el '
                 . 'motivo y, si trae fecha, di desde cuándo estará disponible.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('reserva_id', 'Sólo para el equipo, cuando consulta el WiFi '
                     . 'de OTRO huésped. Al hablar con el propio huésped no hace falta.',
                     requerido: false),
@@ -104,10 +105,15 @@ final readonly class ConsultarWifiSkill implements SkillInterface, SkillDominioI
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         // 🔒 El contexto de RESERVA manda sobre el parámetro: un huésped no puede pedir lo de otra
         // casita escribiendo un UUID. Ver `ReservaDeLaConsulta::de()`.
-        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')));
+        $reservaId = ReservaDeLaConsulta::de($actor, trim($e->texto('reserva_id')), ReservaDeLaConsulta::clave($entrada));
 
         if (ReservaDeLaConsulta::contexto($actor) === null && !$actor->esDelEquipo()) {
             return SkillResult::error('Esta conversación no está asociada a ninguna reserva.');

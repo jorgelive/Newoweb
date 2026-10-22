@@ -175,6 +175,20 @@ final readonly class EnlacesDeConversacion
      */
     public function asuntoEnCurso(MessageConversation $hilo, ?\DateTimeImmutable $ahora = null): ?ConversacionEnlaceInterface
     {
+        return $this->asuntosVivos($hilo, $ahora)[0] ?? null;
+    }
+
+    /**
+     * Los asuntos de los que puede hablar el hilo, en orden: primero los que están en curso o
+     * vienen (por inicio), luego los pasados (el más reciente primero). El primero es el de por
+     * defecto ({@see self::asuntoEnCurso()}). Mismos filtros: titular, vivo, del tipo de la cabecera.
+     *
+     * Lo usa el agente para saber que hay más de uno y dejar elegir (`AsuntoDelHilo`).
+     *
+     * @return list<ConversacionEnlaceInterface>
+     */
+    public function asuntosVivos(MessageConversation $hilo, ?\DateTimeImmutable $ahora = null): array
+    {
         $ahora ??= new \DateTimeImmutable();
         $proximos = [];
         $pasados = [];
@@ -202,19 +216,10 @@ final readonly class EnlacesDeConversacion
             }
         }
 
-        if ($proximos !== []) {
-            usort($proximos, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+        usort($proximos, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+        usort($pasados, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
 
-            return $proximos[0][1];
-        }
-
-        if ($pasados !== []) {
-            usort($pasados, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
-
-            return $pasados[0][1];
-        }
-
-        return null;
+        return array_map(static fn (array $par): ConversacionEnlaceInterface => $par[1], [...$proximos, ...$pasados]);
     }
 
     /** El enlace de UN asunto en UN hilo, titular o no, de quien lo reconozca. */

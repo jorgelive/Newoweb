@@ -84,6 +84,7 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
                 . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe, '
                 . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía.',
             parametros: [
+                ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('peticion', 'Qué pide, en una línea y con sus palabras: '
                     . '«plancha y tabla», «secador de pelo», «dos almohadas bajas». Lo va a leer '
                     . 'quien prepara la casita, no el huésped.'),
@@ -114,6 +115,11 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
 
     public function ejecutar(array $entrada, ActorInterface $actor): SkillResult
     {
+        // Un asunto nombrado que no es de este hilo, fuera antes de tocar nada (`ReservaDeLaConsulta`).
+        if (($fuera = ReservaDeLaConsulta::noPermitido($actor, $entrada)) !== null) {
+            return $fuera;
+        }
+
         $e = new EntradaDeSkill($entrada);
         $texto = trim($e->texto('peticion'));
 
@@ -123,7 +129,8 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
             );
         }
 
-        $reservaId = $actor->contextoId();
+        // La del asunto elegido, o la de por defecto (`ReservaDeLaConsulta`).
+        $reservaId = ReservaDeLaConsulta::contexto($actor, ReservaDeLaConsulta::clave($entrada));
 
         if ($actor->contextoTipo() !== 'pms_reserva' || $reservaId === null) {
             return SkillResult::error(
