@@ -198,12 +198,11 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     }
 
     /**
-     * El horario en que el equipo RECIBE solicitudes; se preparan para el día siguiente. Lo mismo
-     * dice la ficha «Solicitudes y requerimientos» (`app:pms:guia:horario-solicitudes`): si cambia,
-     * cambian las dos.
+     * El cierre del horario en que el equipo RECIBE solicitudes (9:00 a 21:00); se preparan para el
+     * día siguiente. Lo mismo dice la ficha «Solicitudes y requerimientos»
+     * (`app:pms:guia:horario-solicitudes`): si cambia, cambian las dos. La apertura no decide nada: lo
+     * que llega antes de las 9:00 lo ve el equipo ese día.
      */
-    private const int RECEPCION_DESDE = 9;
-
     private const int RECEPCION_HASTA = 21;
 
     /**
@@ -229,17 +228,19 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
                 . 'queda apuntado para su llegada. NO le prometas una hora ni que se lo suben ahora mismo.';
         }
 
-        // 🕘 Dentro del horario de recepción, mañana con convicción; fuera, se intenta, sin prometerlo
-        // (Jorge, 22/10/2026). Las dos ramas en positivo y con el hecho delante.
-        $hora = (int) $ahora->format('G');
-        $enHorario = $hora >= self::RECEPCION_DESDE && $hora < self::RECEPCION_HASTA;
+        // 🕘 Lo incierto es sólo lo que llega DESPUÉS del cierre de las 21:00: entonces se intenta para
+        // mañana, sin prometerlo. Lo que llega antes de las 9:00 cuenta como del día —el equipo tiene
+        // todo el día para verlo— y va para mañana con la misma convicción (Jorge, 22/10/2026; la
+        // primera versión metía las 7:30 en «fuera de horario»). Las dos ramas en positivo.
+        $trasElCierre = (int) $ahora->format('G') >= self::RECEPCION_HASTA;
 
-        return $enHorario
-            ? 'Queda anotado en su estancia. Ya está alojado y lo pide dentro del horario de solicitudes (9:00 a '
-                . '21:00): se prepara para el DÍA SIGUIENTE. Díselo así: que queda anotado y se lo llevan mañana. Si '
-                . 'lo necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.'
-            : 'Queda anotado en su estancia. Lo pide FUERA del horario de solicitudes (9:00 a 21:00): díselo con '
-                . 'amabilidad, y que igual lo dejas anotado y se intentará llevárselo mañana, sin asegurárselo. Si lo '
-                . 'necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.';
+        return !$trasElCierre
+            ? 'Queda anotado en su estancia. Ya está alojado: se prepara para el DÍA SIGUIENTE. Díselo así: que '
+                . 'queda anotado y se lo llevan mañana. Si lo necesita HOY, no le prometas que llega hoy: escala '
+                . 'diciendo qué necesita y para cuándo.'
+            : 'Queda anotado en su estancia. Lo pide DESPUÉS de las 21:00, cuando ya cerró el horario de solicitudes '
+                . '(9:00 a 21:00): díselo con amabilidad, y que igual lo dejas anotado y se intentará llevárselo '
+                . 'mañana, sin asegurárselo. Si lo necesita HOY, no le prometas que llega hoy: escala diciendo qué '
+                . 'necesita y para cuándo.';
     }
 }

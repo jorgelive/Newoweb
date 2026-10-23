@@ -20,8 +20,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * la plancha a las 17:54 a quien la quería para salir esa noche (José Paredes, AG2CZY), cuando el
  * personal ya no estaba en la zona. Ver `docs/PmsGuiaHuesped.md` §7 septies.
  *
- * Fuera de ese horario (de 21:00 a 9:00) se le informa, se anota igual y se intenta para el día
- * siguiente sin prometerlo. La misma regla, con las mismas horas, en `AnotarPeticionSkill::cuandoSeAtiende()`.
+ * Después de las 21:00 se le informa, se anota igual y se intenta para el día siguiente sin
+ * prometerlo; lo que llega antes de las 9:00 cuenta como del día. La misma regla, con las mismas horas, en `AnotarPeticionSkill::cuandoSeAtiende()`.
  *
  * Reescribe el ESPAÑOL de `descripcion` (el listener traduce los demás), `agenteContenido` y los
  * términos. El párrafo del teléfono del agente se conserva tal cual. Con `--dry-run`. Nace `hidden`.
@@ -46,8 +46,9 @@ final class PmsGuiaHorarioSolicitudesCommand extends Command
     private const string AGENTE = 'De 9:00 a 21:00 el equipo RECIBE las solicitudes y las programa para el DÍA '
         . 'SIGUIENTE: no hay entregas el mismo día. Para lo que haya que llevar a la casita (papel higiénico, jabón, '
         . 'la plancha, toallas…): anótalo con anotar_peticion y dile que se lo llevan mañana. '
-        . 'Si lo pide FUERA de ese horario (de 21:00 a 9:00), díselo con amabilidad: se anota igual y se intentará '
-        . 'llevárselo al día siguiente, pero sin asegurárselo. '
+        . 'Si lo pide DESPUÉS de las 21:00, díselo con amabilidad: se anota igual y se intentará llevárselo al día '
+        . 'siguiente, pero sin asegurárselo. Lo que pide antes de las 9:00 lo ve el equipo ese mismo día: va para '
+        . 'mañana, como lo de horario. '
         . 'Si lo necesita HOY con urgencia, no le prometas que llega hoy: escala con escalar_al_equipo diciendo qué '
         . 'necesita y para cuándo, y dile que el equipo le confirma si hay forma. '
         . 'Lo que no puede esperar —no puede entrar, una avería, algo que pasa ahora— no es una solicitud: va por su '
