@@ -25,16 +25,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * faltaban el traslado del hotel a Wanchaq y el bus bimodal hasta la estación, que el Full Day
  * bimodal sí tiene. Jorge: «es mejor que esté completo, es más fácil sacarlo que ponerlo».
  *
- * Los dos tramos se copian del Full Day bimodal —mismo segmento, mismo componente, mismo modo— con
- * las horas corridas al tren del día 1 de esta plantilla (16:36). El Full Day deja el bus 35 minutos
- * antes del tren y el traslado media hora antes del bus, y eso se conserva:
+ * Los dos tramos se copian del Full Day bimodal —mismo segmento, mismo componente, mismo modo—.
+ * La primera pasada corrió sus horas al tren de las 16:36 que tenía la plantilla; Jorge prefirió el
+ * de las 07:45–09:15 (`Version20261023233000`), y con ese tren el día 1 es el del Full Day:
  *
- *   13:10–13:30  hotel → Wanchaq / Av. El Sol
- *   14:00–16:00  bus bimodal → Ollantaytambo
- *   16:36        tren a Machu Picchu Pueblo
- *
- * ⚠️ Son horas DERIVADAS, no de un horario de PeruRail: el bimodal de la tarde puede salir a otra
- * hora. Se ajustan en la plantilla cuando se confirme.
+ *   04:20–04:40  hotel → Wanchaq / Av. El Sol
+ *   05:10–07:10  bus bimodal → Ollantaytambo
+ *   07:45–09:15  tren a Machu Picchu Pueblo
  *
  * Los nombres —la plantilla pasa a «CUZ OLLA MAPI OLLA CUZ (bimodal)», el componente del bus deja
  * de decir «Ollantatyambo»— van por `Version20261023230000`, que corre antes en el despliegue.
@@ -52,8 +49,8 @@ final class TwoDayMapiBimodalCompletoCommand extends Command
 
     /** @var list<array{segmento: string, componente: string, hora: string, fin: string}> en el orden del día */
     private const array TRAMOS = [
-        ['segmento' => 'TRANS_BIM_IDA-MAPI-HTL_WAN_OLL', 'componente' => 'Transporte Wanchaq/Sol ↔ Hotel (ida o vuelta)', 'hora' => '13:10', 'fin' => '13:30'],
-        ['segmento' => 'TRANS_BIM_IDA-MAPI-CUZ_OLL', 'componente' => 'Bus Bimodal Cusco ↔ Ollantaytambo (ida o vuelta)', 'hora' => '14:00', 'fin' => '16:00'],
+        ['segmento' => 'TRANS_BIM_IDA-MAPI-HTL_WAN_OLL', 'componente' => 'Transporte Wanchaq/Sol ↔ Hotel (ida o vuelta)', 'hora' => '04:20', 'fin' => '04:40'],
+        ['segmento' => 'TRANS_BIM_IDA-MAPI-CUZ_OLL', 'componente' => 'Bus Bimodal Cusco ↔ Ollantaytambo (ida o vuelta)', 'hora' => '05:10', 'fin' => '07:10'],
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
