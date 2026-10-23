@@ -1,5 +1,6 @@
 import { extractIdStr } from '@/utils/recurso';
 import { avisoIgvDeHotel, peruanosQueViajan } from './igvHoteleria';
+import { clonarServicio, type ServicioCopiado } from './clonarServicio';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import { comoCalculo, multiplicaPorCantidad, seProrratea, visibleParaCliente } from '@dominio/cotizacion/index.ts';
@@ -3594,10 +3595,12 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * @param fecha `YYYY-MM-DD`: el día en que nace, desde el botón de cada día (Jorge, 23/10/2026).
      *              Sin ella, el día siguiente al último del viaje (ver abajo).
      */
-    const agregarServicio = (fecha?: string): void => {
-        if (!cotizacion.value) return;
-
-        const cots = cotizacion.value.cotservicios || [];
+    /**
+     * Dónde nace un servicio nuevo: el día y el orden dentro del día. Lo usan el alta en blanco y
+     * el pegado de un servicio copiado (`pegarServicio`), que tienen que caer en el mismo sitio.
+     */
+    const lugarParaServicioNuevo = (fecha?: string): { fechaBase: string; orden: number } => {
+        const cots = cotizacion.value?.cotservicios || [];
 
         /**
          * ⚠️ **El servicio nuevo nace el DÍA SIGUIENTE al último del viaje.** Nacía en la fecha del
@@ -3635,6 +3638,14 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             : [];
         const orden = ordenesDelDia.some((o) => o > 0) ? Math.max(...ordenesDelDia) + 10 : 0;
 
+        return { fechaBase, orden };
+    };
+
+    const agregarServicio = (fecha?: string): void => {
+        if (!cotizacion.value) return;
+
+        const { fechaBase, orden } = lugarParaServicioNuevo(fecha);
+
         const nuevoServicio = {
             id: crypto.randomUUID(),
             servicioMaestroId: null,
@@ -3656,6 +3667,82 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         cotizacion.value.cotservicios.push(nuevoServicio);
         abrirNivel('servicio', nuevoServicio);
     };
+
+    // ── Portapapeles de servicios: clonar en esta propuesta o en otra ──────────────────────────
+    //
+    // Copiar guarda el servicio tal como está en el editor —con lo que no se haya guardado— y
+    // pegar lo mete en el día que se elija. El porqué de hacerlo así y no en el servidor, y qué
+    // arregla la copia, en `clonarServicio.ts`.
+    //
+    // ⚠️ En `localStorage` y no sólo en el store: lo que se quiere es copiar en la P1 y pegar en la
+    // P2, o en otro expediente, y eso es cambiar de pantalla — a veces de pestaña. Escucha el
+    // evento `storage` para que una pestaña vea lo que copió la otra. Con `try` porque en modo
+    // privado escribir lanza, y perder el portapapeles no puede tumbar el editor.
+    const CLAVE_PORTAPAPELES = 'cotizacion.editor.servicioCopiado';
+
+    const leerPortapapeles = (): ServicioCopiado | null => {
+        try {
+            const crudo = localStorage.getItem(CLAVE_PORTAPAPELES);
+            return crudo ? JSON.parse(crudo) as ServicioCopiado : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const servicioCopiado = ref<ServicioCopiado | null>(leerPortapapeles());
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === CLAVE_PORTAPAPELES) servicioCopiado.value = leerPortapapeles();
+        });
+    }
+
+    const guardarPortapapeles = (valor: ServicioCopiado | null): void => {
+        servicioCopiado.value = valor;
+        try {
+            if (valor) localStorage.setItem(CLAVE_PORTAPAPELES, JSON.stringify(valor));
+            else localStorage.removeItem(CLAVE_PORTAPAPELES);
+        } catch { /* sin persistencia: se puede pegar en esta misma pantalla */ }
+    };
+
+    const copiarServicio = (servicioId: string): void => {
+        const servicio = cotizacion.value?.cotservicios?.find((s: CotServicio) => s.id === servicioId);
+        if (!servicio || !cotizacion.value) return;
+
+        guardarPortapapeles({
+            servicio: structuredClone(toRaw(servicio)),
+            nombre: getI18nText(servicio.nombreInternoSnapshot, 'es') || 'Servicio',
+            origen: {
+                cotizacionId: extractIdStr(cotizacion.value.id) || null,
+                fileId: extractIdStr(cotizacion.value.file) || null,
+                propuesta: cotizacion.value.propuesta ?? null,
+            },
+        });
+    };
+
+    /**
+     * Mete el servicio copiado en `fecha` (o, sin fecha, el día siguiente al último del viaje),
+     * con el mismo orden que un alta nueva. El portapapeles se queda: pegar el mismo traslado en
+     * tres días es el caso normal.
+     */
+    const pegarServicio = (fecha?: string): void => {
+        const copiado = servicioCopiado.value;
+        if (!cotizacion.value || !copiado) return;
+
+        const { fechaBase, orden } = lugarParaServicioNuevo(fecha);
+        const fileActual = extractIdStr(cotizacion.value.file) || null;
+
+        const copia = clonarServicio(copiado.servicio, {
+            fechaDestino: fechaBase.slice(0, 10),
+            mismoExpediente: fileActual !== null && fileActual === copiado.origen.fileId,
+        });
+        copia.orden = orden;
+
+        if (!cotizacion.value.cotservicios) cotizacion.value.cotservicios = [];
+        cotizacion.value.cotservicios.push(copia);
+    };
+
+    const descartarServicioCopiado = (): void => guardarPortapapeles(null);
 
     const eliminarServicio = (servicioId: string): void => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return;
@@ -6094,7 +6181,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         getTipoComponente, requiereHoraExacta, componenteRequiereHora, sinHorarioDeTipo, cantidadPorFechas,
         isComponenteConAlerta, isServicioConAlerta, avisoIgvDe, getI18nText, setI18nText, getTarifaLabel, getTarifaSublabel, getProveedorDeTarifa, getPapelesDeTarifa, extractIdStr,
         inicializarEditor, guardarCotizacion, abrirNivel, retrocederNivel, cerrarInspectorMobile,
-        updateNumPaxGlobal, agregarServicio, eliminarServicio, agregarComponente, eliminarComponente, duplicarComponente,
+        updateNumPaxGlobal, agregarServicio, eliminarServicio, servicioCopiado, copiarServicio, pegarServicio, descartarServicioCopiado, agregarComponente, eliminarComponente, duplicarComponente,
         agregarSnapshotItem, eliminarSnapshotItem, toggleUpsellComponent, isComponenteBloqueado,
         agregarTarifa, eliminarTarifa, fetchComponenteMaestroSilencioso,
         abrirEditorSegmentos, cerrarEditorSegmentos, aplicarPlantilla,

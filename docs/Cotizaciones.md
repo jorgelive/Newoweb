@@ -6924,6 +6924,46 @@ Comprobado con datos reales (transacción con `rollback`) sobre una v1 confirmad
 operación: la foto sale `v1 / historico / derivadaDe = la viva`, no pública; la viva conserva sus
 42 componentes y sus 42 filas, y el enlace `/v/1` sigue resolviendo a la viva.
 
+## 6.j.8 Clonar UN servicio: copiar y pegar, en ésta o en otra propuesta (23/10/2026)
+
+Clonar la cotización entera ya existía (§6.j). Esto es clonar **un servicio**: el botón de copia de
+su tarjeta (junto a la papelera) lo guarda en un portapapeles, y desde entonces cada día de
+cualquier propuesta enseña «Pegar «nombre» aquí», más uno al final del viaje con la «x» que lo
+vacía. El botón de la tarjeta se queda en verde con un ✓ mientras ese servicio sea el copiado.
+
+```
+P1 · Alojamiento en Cusco  [⧉] → portapapeles (localStorage) → P2 · día 5  [Pegar aquí]
+                                                                   │
+                                     clonarServicio(): ids nuevos, fechas por delta,
+                                     subgrupos sólo si es el mismo expediente
+                                                                   │
+                                                  guardado normal de la P2
+```
+
+⚠️ **Por qué en el editor y no en el servidor.** `CotizacionCotservicio::duplicar()` ya copia un
+servicio, pero meterlo en OTRA propuesta desde el servidor la dejaba a medias: los totales y el «qué
+incluye» (`clasificacionFinanciera*`) los calcula el editor al guardar, así que esa propuesta
+seguiría enseñando el total de antes hasta que alguien la abriera y guardara. Pegando en el editor
+la copia entra por el guardado de siempre. Y es un solo mecanismo: la misma propuesta es «pegar
+aquí mismo».
+
+Lo que hace la copia (`util/src/stores/cotizacion/clonarServicio.ts`, con tests):
+
+| Qué | Cómo | Por qué |
+|---|---|---|
+| Ids | nuevos para todo el árbol —servicio, segmentos, componentes, tarifas, ítems, detalles— **sustituyendo cada id viejo en el árbol entero** | así se reapuntan solas las referencias internas (`cotsegmento`, `duplicadoDe`, el componente inyectado de un ítem), y una que se añada mañana también. Lo que apunta fuera (catálogo, moneda) no está en el mapa |
+| Fechas | todas corridas los mismos días hasta el día elegido, como `Cotizacion::desplazarA()` | un traslado de 05:30 y su tren de 07:45 siguen separados igual |
+| Subgrupos | se conservan en el mismo expediente; **en otro se vacían** | cuelgan del expediente: fuera serían reservas ajenas |
+| Orden | el de un alta nueva en ese día (`lugarParaServicioNuevo()`, compartido con «Inyectar servicio») | cae donde está el botón |
+
+⚠️ **Copia el servicio como está en pantalla**, con lo no guardado. Y el portapapeles **se queda**
+tras pegar: pegar el mismo traslado en tres días es el caso normal.
+
+⚠️ **Las cantidades de las tarifas NO se ajustan a los pax del destino.** Si la otra propuesta es
+para otro número de personas, se revisan a mano — el aviso «Faltan Pax» de la tarifa lo marca
+cuando no cubren a todos. Ajustarlas aquí sería escribir otra vez la regla de
+`Cotizacion::ajustarPax()`.
+
 ## 6.k `Filedocumento` → `Filearchivo`: el nombre que hacía leerla al revés (23/08/2026)
 
 `CotizacionFiledocumento` **nunca guardó documentos de identidad**. Es `Vich\Uploadable` con
@@ -9927,6 +9967,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
   segundos se guarda en `propuestaCopiada` como NÚMERO y no como booleano, porque la cabecera se
   repite por propuesta y un flag compartido ponía el visto en las tres.
 - **Que un dato más salga en la tarjeta del componente** → el bloque de pastillas junto a `prestadorNombreSnapshot` en `CotizacionEditorView.vue` (§6.d).
+- **Qué arregla la copia de un servicio al pegarla (ids, fechas, subgrupos)** → `clonarServicio()` en `util/src/stores/cotizacion/clonarServicio.ts`; el portapapeles, `copiarServicio`/`pegarServicio` en el store (§6.j.8).
 - **Cuándo se abren solos los nombres del servicio o del componente** → `faltaNombreServicio` / `faltaNombrePublico` en `CotizacionEditorView.vue`.
 - **Que el bloque «Catálogo Maestro» arranque cerrado** → `leerPreferencia()` en `CotizacionEditorView.vue`; hoy abre salvo que se haya cerrado antes (§6.d).
 - **Cómo se calcula costo/venta/markup/alternativas** → `resumenFinanciero` en `util/.../cotizacionEditorStore.ts`.

@@ -2464,12 +2464,21 @@ store.$onAction(({ name, args }) => {
                      store.isServicioConAlerta(servicio) ? 'border-red-400 bg-red-50/10' : ''
                    ]">
 
+                <!-- Clonar = copiar al portapapeles; se pega en cualquier día de ésta o de otra
+                     propuesta (`pegarServicio`). Queda en verde mientras sea el copiado: es el aviso
+                     de que funcionó, sin un mensaje más. -->
+                <button @click.stop="store.copiarServicio(servicio.id!)"
+                        :title="store.servicioCopiado?.servicio.id === servicio.id ? 'Copiado: pégalo en cualquier día de esta u otra propuesta' : 'Clonar: copiarlo para pegarlo en esta u otra propuesta'"
+                        class="absolute right-14 top-4 transition-colors z-10 w-8 h-8 rounded-full flex items-center justify-center shadow-sm"
+                        :class="store.servicioCopiado?.servicio.id === servicio.id ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 hover:text-[#376875]'">
+                  <i class="fas text-sm" :class="store.servicioCopiado?.servicio.id === servicio.id ? 'fa-check' : 'fa-clone'"></i>
+                </button>
                 <button @click.stop="store.eliminarServicio(servicio.id!)" class="absolute right-4 top-4 text-slate-400 hover:text-red-500 transition-colors z-10 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
                   <i class="fas fa-trash-alt text-sm"></i>
                 </button>
 
                 <div class="flex items-start justify-between gap-4">
-                  <div class="pr-10 w-full">
+                  <div class="pr-20 w-full">
 
                     <p v-if="!store.modoCatalogo" class="text-[10px] font-black text-slate-600 uppercase flex items-center gap-1.5 mb-2 bg-slate-100 w-max px-2 py-1 rounded border border-slate-200">
                       <i class="far fa-calendar-check text-[#E07845]"></i> FECHA BASE: {{ formatFecha(servicio.fechaInicioAbsoluta) }}
@@ -2558,11 +2567,28 @@ store.$onAction(({ name, args }) => {
                     class="mt-3 w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[11px] uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all">
               <i class="fas fa-plus mr-1.5"></i> Inyectar servicio en este día
             </button>
+            <button v-if="store.servicioCopiado" @click="store.pegarServicio(dia.fechaAbsoluta)"
+                    class="mt-2 w-full py-3 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-600 font-black text-[11px] uppercase tracking-widest hover:border-emerald-400 hover:bg-white transition-all truncate px-3">
+              <i class="fas fa-paste mr-1.5"></i> Pegar «{{ store.servicioCopiado.nombre }}» aquí
+            </button>
           </div>
 
           <button @click="store.agregarServicio()" class="w-full py-6 border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 font-black text-xs uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all shadow-sm">
             <i class="fas fa-plus-circle mr-2 text-lg"></i> Inyectar nuevo servicio al itinerario
           </button>
+
+          <!-- Al final del viaje, y el único sitio para pegar en una propuesta todavía vacía. La «x»
+               vacía el portapapeles: si no, los botones de pegar siguen en todos los días. -->
+          <div v-if="store.servicioCopiado" class="mt-3 flex items-stretch gap-2">
+            <button @click="store.pegarServicio()"
+                    class="flex-1 min-w-0 py-4 border-2 border-dashed border-emerald-300 rounded-3xl text-emerald-600 font-black text-xs uppercase tracking-widest hover:border-emerald-500 hover:bg-white transition-all truncate px-3">
+              <i class="fas fa-paste mr-2"></i> Pegar «{{ store.servicioCopiado.nombre }}» al final
+            </button>
+            <button @click="store.descartarServicioCopiado()" title="Vaciar el portapapeles"
+                    class="shrink-0 w-14 border-2 border-dashed border-slate-300 rounded-3xl text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
 
         </div>
         </div>
