@@ -3764,9 +3764,9 @@ store.$onAction(({ name, args }) => {
                    Ocupaban lo alto del panel y en un componente de catálogo casi nunca se tocan.
                    Cuándo se abren solos, y por qué «ajustado a mano» es lo que hace seguro
                    plegarlos, en `nombresAbiertos` y `nombreAjustadoAMano`. -->
-              <div class="mt-4 pt-3 border-t border-slate-100">
+              <div class="mt-3 pt-2 border-t border-slate-100">
                 <button type="button" @click="nombresAbiertos = !nombresAbiertos"
-                        class="w-full flex items-center justify-between gap-2 py-1 text-left">
+                        class="w-full flex items-center justify-between gap-2 text-left">
                   <span class="text-[10px] font-black text-sky-600 uppercase tracking-widest">
                     <i class="fas fa-chevron-right mr-1 transition-transform" :class="{ 'rotate-90': nombresAbiertos }"></i>
                     Nombres
@@ -3916,7 +3916,9 @@ store.$onAction(({ name, args }) => {
 
             <div class="grid grid-cols-2 gap-4">
 
-              <div class="col-span-2 grid grid-cols-2 gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+              <!-- Inicio, fin y cantidad en UNA fila (Jorge, 23/10/2026): la cantidad es un número de solo
+                   lectura y ocupaba una fila entera para ella sola. -->
+              <div class="col-span-2 grid grid-cols-[1fr_1fr_3rem] gap-2 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
 
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Inicio Exacto *</label>
@@ -4003,10 +4005,11 @@ store.$onAction(({ name, args }) => {
                   </VueDatePicker>
                 </div>
 
-              </div>
-              <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Cantidad / Noches</label>
-                <input v-model="store.componenteActivo.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
+                <div title="Cantidad / Noches">
+                  <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 text-center">Cant.</label>
+                  <input v-model="store.componenteActivo.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-lg px-1 py-2 text-[10px] font-black text-center outline-none shadow-inner cursor-not-allowed">
+                </div>
+
               </div>
 
               <!-- ══ TARIFAS, justo bajo la cantidad (Jorge, 23/10/2026) ══════════════

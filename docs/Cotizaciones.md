@@ -9225,8 +9225,8 @@ línea plegada: la cabecera del inspector ya enseña el párrafo y el insumo.
 
 `nombresAbiertos`, `nombreAjustadoAMano` y `faltaNombrePublico` en `CotizacionEditorView.vue`.
 
-El orden del inspector, desde entonces: insumo (con los nombres plegados) → inicio y fin →
-cantidad → **tarifas** → modo, estado, a quién aplica, prestador y comprador → inclusiones. Las
+El orden del inspector, desde entonces: insumo (con los nombres plegados) → inicio, fin y
+cantidad en una sola fila —la cantidad es de sólo lectura y no merecía fila propia— → **tarifas** → modo, estado, a quién aplica, prestador y comprador → inclusiones. Las
 tarifas subieron bajo la cantidad (Jorge, 23/10/2026): después de la hora son lo que se viene a
 revisar, y quedaban al fondo.
 
