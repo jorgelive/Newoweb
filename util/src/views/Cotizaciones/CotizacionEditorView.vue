@@ -1067,7 +1067,14 @@ const alternarNombrarPrestador = (e: Event): void => {
 
   const quien = comp.prestadorNombreSnapshot || 'este proveedor';
 
-  if (window.confirm(`El cliente verá que «${quien}» opera este servicio. ¿Lo nombramos?`)) {
+  // Sin título público en su ficha no hay nada que pintar: se marca igual —la decisión es de esta
+  // propuesta y vale en cuanto la ficha se complete—, pero se dice ANTES, no después de buscarlo
+  // en la guía y no encontrarlo (Jorge, 23/10/2026, con Hotel Habitat).
+  const pregunta = prestadorSinFicha(comp)
+    ? `«${quien}» no tiene título público en su ficha de Organizaciones: aunque lo marques, el cliente NO lo verá hasta que se le ponga. ¿Lo marcamos igualmente?`
+    : `El cliente verá que «${quien}» opera este servicio. ¿Lo nombramos?`;
+
+  if (window.confirm(pregunta)) {
     comp.prestadorVisible = true;
 
     return;
@@ -1077,6 +1084,24 @@ const alternarNombrarPrestador = (e: Event): void => {
   // propiedad no basta —Vue no ve cambio— y por eso se toca el DOM directamente.
   (e.target as HTMLInputElement).checked = false;
   comp.prestadorVisible = false;
+};
+
+/**
+ * ¿El prestador de este componente no tiene con qué mostrarse? La guía sólo pinta la tarjeta si
+ * la organización tiene **título público** (`titulo`, i18n); el nombre comercial es operativo y
+ * no llega al cliente. Sin la organización cargada no se sabe, y entonces no se avisa.
+ *
+ * ⚠️ Sólo el título, no `visibleParaCliente` de la organización: ésa es la SEMILLA al asignar,
+ * y aquí ya decidió la bandera del componente (ver `puedeMostrarseAlCliente` en
+ * `organizacionModel.ts`).
+ */
+const prestadorSinFicha = (comp: ComponenteCompleto | null | undefined): boolean => {
+  const id = comp?.prestadorMaestroId ? store.extractIdStr(comp.prestadorMaestroId) : null;
+  if (!id) return false;
+
+  const org = store.catalogos.proveedores.find((p) => store.extractIdStr(p) === id);
+
+  return !!org && (org.titulo ?? []).length === 0;
 };
 
 const reponerNombreDelCatalogoSiQuedoVacio = (): void => {
@@ -4478,12 +4503,16 @@ store.$onAction(({ name, args }) => {
                            tras el desplegable. Va en la cabecera. -->
                       <i v-if="prestadorComponenteResuelto"
                          class="fas text-[9px] shrink-0"
-                         :class="store.componenteActivo.prestadorVisible
-                             ? 'fa-eye text-emerald-500'
-                             : 'fa-eye-slash text-slate-300'"
-                         :title="store.componenteActivo.prestadorVisible
-                             ? 'Se le nombra al cliente'
-                             : 'Sólo operativo: no se le nombra al cliente'"></i>
+                         :class="!store.componenteActivo.prestadorVisible
+                             ? 'fa-eye-slash text-slate-300'
+                             : prestadorSinFicha(store.componenteActivo)
+                               ? 'fa-eye text-amber-500'
+                               : 'fa-eye text-emerald-500'"
+                         :title="!store.componenteActivo.prestadorVisible
+                             ? 'Sólo operativo: no se le nombra al cliente'
+                             : prestadorSinFicha(store.componenteActivo)
+                               ? 'Marcado, pero el cliente no lo verá: su ficha no tiene título público'
+                               : 'Se le nombra al cliente'"></i>
                       <span class="text-[11px] font-bold truncate max-w-[10rem]"
                             :class="prestadorComponenteResuelto ? 'text-slate-700' : 'text-slate-300 italic'">
                         {{ prestadorComponenteResuelto?.nombre || 'Sin definir' }}
@@ -4572,8 +4601,15 @@ store.$onAction(({ name, args }) => {
                       </span>
                     </label>
 
-                    <!-- El aviso de «marcado sin título» vive ahora en la ficha de la
-                         empresa (OrganizacionFormulario), que es donde se puede arreglar. -->
+                    <!-- Marcado pero sin título público en la ficha: el cliente no lo ve. Se avisa
+                         AQUÍ además de en la ficha de la empresa, porque es aquí donde se marca y
+                         donde se espera el efecto. Se arregla en Organizaciones. -->
+                    <p v-if="store.componenteActivo.prestadorVisible && prestadorSinFicha(store.componenteActivo)"
+                       class="mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 leading-snug">
+                      <i class="fas fa-triangle-exclamation mr-1"></i>
+                      El cliente no lo verá: su ficha en Organizaciones no tiene título público.
+                      Pónselo allí (y una descripción y fotos, si las hay) y aparecerá sin tocar esta propuesta.
+                    </p>
 
                     <!-- El contacto ya no se copia aquí: sale del catálogo cuando se
                          despacha y cuando se manda la orden, así que el número que se marca

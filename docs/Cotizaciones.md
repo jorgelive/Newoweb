@@ -4816,6 +4816,25 @@ nombre.
 así que esto se verifica a mano: colgar una tarifa con prestador de una línea vacía y ver que la
 toma; colgar después una de otra empresa y ver que la línea **no** cambia y sale el aviso.
 
+
+### Marcado para el cliente pero sin ficha: se avisa al marcar (23/10/2026)
+
+La guía sólo pinta la tarjeta del prestador si su organización tiene **título público**
+(`TravelOrganizacion::$titulo`); el nombre comercial es operativo y no llega al cliente. Hotel
+Habitat estaba marcado «Nombrarlo al cliente», guardado, y no salía: su ficha no tenía título, ni
+descripción, ni web, ni fotos. El aviso de ese hueco vivía sólo en la ficha de la empresa, que no
+es donde se marca.
+
+Ahora el editor lo dice donde se decide (`prestadorSinFicha()` en `CotizacionEditorView.vue`):
+
+- **Al marcar**, la confirmación cambia: «no tiene título público en su ficha: aunque lo marques,
+  el cliente NO lo verá». Se puede marcar igual —la decisión es de esta propuesta y vale en cuanto
+  la ficha se complete, sin tocarla—.
+- **Mientras siga así**, un aviso ámbar bajo la casilla y el ojo de la cabecera en ámbar.
+
+⚠️ Mira sólo el título, no `visibleParaCliente` de la organización: ésa es la semilla al asignar, y
+en la propuesta ya decidió la bandera del componente.
+
 ## 6.e Dónde recoge y dónde deja cada servicio (22/08/2026)
 
 En la tarjeta de cada servicio del editor sale una línea con `fa-route`:
