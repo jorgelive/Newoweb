@@ -307,6 +307,16 @@ salida desde Cusco el operador lo buscaba —con razón— en «Transporte en Cu
 sentido (§2), así que vive en los **dos** pools: sin él, el segmento de Cusco se arrastra sin nada
 que cobrar.
 
+**Las tarifas, por proveedor (23/10/2026).** El componente traía «Bus estándar» S/60 y «Bus
+Superior» S/80 de un tarifario desactualizado, sin prestador ni ninguna por defecto. Jorge usa la
+salida de las **22:00**, y Cruz del Sur vende en esa ruta sólo dos servicios: **Bus Evolution
+Regular** (S/55, por defecto) y **Bus Evolution VIP** (S/75), precios de su web. Prestador y
+comprador Cruz del Sur, y lo que se le pide al proveedor en `nombreParaPrestador`
+(`app:travel:bus-puno-cusco-cruz-del-sur`). Transzela, su otro proveedor, entra cuando haya
+precio. ⚠️ **Cruz del Sur no sale del Terminal Terrestre**: en Cusco usa Av. Industrial 121
+(Bancopata) y en Puno Jr. 1 de Mayo 703, así que los traslados al terminal no sirven igual para
+las dos empresas — pendiente.
+
 ### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
 
 El servicio Coco Bongo tenía sus dos entradas (general y fiesta blanca) y ningún traslado. Al
