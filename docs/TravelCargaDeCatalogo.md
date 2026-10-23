@@ -298,6 +298,15 @@ Van estaban **intercambiadas** entre el componente de terminal y el de aeropuert
 dos cosas se ve leyendo un componente: sólo aparecen al poner los cinco cuadros uno al lado del
 otro.
 
+### Un transporte entre ciudades va en el servicio de la ciudad de SALIDA (23/10/2026)
+
+Los dos sentidos del bus Cusco ↔ Puno estaban en «Transporte en Puno», y al armar el día de la
+salida desde Cusco el operador lo buscaba —con razón— en «Transporte en Cusco» y no aparecía.
+**El segmento va en el servicio de la ciudad de donde sale**: `TRANS-CUZ-PUNO` en `TRF_CUZ`,
+`TRANS-PUNO-CUZ` en `TRF_PUN` (`Version20261023120000`). El componente es uno por ruta, no por
+sentido (§2), así que vive en los **dos** pools: sin él, el segmento de Cusco se arrastra sin nada
+que cobrar.
+
 ### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
 
 El servicio Coco Bongo tenía sus dos entradas (general y fiesta blanca) y ningún traslado. Al
