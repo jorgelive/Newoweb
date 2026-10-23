@@ -410,7 +410,7 @@ async function preguntar(): Promise<void> {
         // El backend manda `{error: string}` en 4xx/5xx; cualquier otra cosa es un fallo de red.
         const datos =
             typeof e === 'object' && e !== null && 'response' in e
-                ? (e as { response?: { data?: { error?: string; motorFueraDeServicio?: boolean } } }).response?.data
+                ? (e as { response?: { data?: { error?: string; motorFueraDeServicio?: boolean; hubo_escritura?: boolean } } }).response?.data
                 : undefined;
         error.value = datos?.error ?? 'No se pudo consultar al asistente.';
         // El motor se quedó sin crédito: el backend ya lo marcó, así que el catálogo nuevo lo trae
@@ -419,7 +419,13 @@ async function preguntar(): Promise<void> {
         // Se retira la pregunta del hilo: si falló, no formó parte de la conversación y
         // mandarla en el siguiente historial confundiría al modelo.
         hilo.value.pop();
-        pregunta.value = texto;
+        // 🔒 Falló DESPUÉS de escribir (23/10/2026): el error ya dice qué quedó hecho. La pantalla
+        // se refresca para verlo, y la pregunta NO vuelve al campo: reenviarla lo duplicaría.
+        if (datos?.hubo_escritura) {
+            emit('datosCambiados');
+        } else {
+            pregunta.value = texto;
+        }
     } finally {
         cargando.value = false;
         // Tanto si respondió como si falló: en los dos casos lo siguiente es escribir —la

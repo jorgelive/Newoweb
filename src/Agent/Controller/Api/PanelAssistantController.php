@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Controller\Api;
 
+use App\Agent\Access\EscrituraAntesDelFallo;
 use App\Dto\Lee;
 use App\Agent\Service\MotorFueraDeServicioException;
 use App\Agent\Service\PanelAssistant;
@@ -128,6 +129,19 @@ final class PanelAssistantController extends AbstractController
             );
         } catch (InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (EscrituraAntesDelFallo $e) {
+            // Se aplicó algo y después falló el motor: el mensaje dice qué, y `hubo_escritura` hace
+            // que el front refresque la pantalla y no le devuelva la pregunta al campo para reenviarla.
+            $this->logger->error('Asistente del panel, tras escribir: ' . ($e->getPrevious()?->getMessage() ?? ''), ['exception' => $e->getPrevious()]);
+
+            return $this->json(
+                [
+                    'error' => $e->getMessage(),
+                    'hubo_escritura' => true,
+                    'motorFueraDeServicio' => $e->getPrevious() instanceof MotorFueraDeServicioException,
+                ],
+                JsonResponse::HTTP_BAD_GATEWAY
+            );
         } catch (MotorFueraDeServicioException $e) {
             // El front lee `motorFueraDeServicio` para volver a pedir el catálogo: el motor ya sale
             // deshabilitado y el operador no repite la pregunta contra el mismo.

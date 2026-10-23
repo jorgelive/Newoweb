@@ -63,6 +63,7 @@ final readonly class GuardiaDeSkills
         #[Autowire(service: 'agente.previsualizaciones')]
         private CacheItemPoolInterface $cache,
         private PrevisualizacionesDelTurno $delTurno,
+        private EscriturasDelTurno $escrituras = new EscriturasDelTurno(),
     ) {}
 
     /**
@@ -128,7 +129,16 @@ final readonly class GuardiaDeSkills
         if ($item->isHit() && $item->get() === $huella) {
             $this->cache->deleteItem($clave);
 
-            return $skill->ejecutar($entrada, $actor);
+            $resultado = $skill->ejecutar($entrada, $actor);
+
+            // Se apunta lo APLICADO, para que un fallo posterior del motor en este turno lo diga
+            // (`EscriturasDelTurno`). Un `aplicado: false` —«ya estaba marcado»— no escribió nada.
+            if (!$resultado->esError() && ($resultado->datos['aplicado'] ?? true) !== false) {
+                $mensaje = $resultado->datos['mensaje'] ?? null;
+                $this->escrituras->anotar(\is_string($mensaje) && trim($mensaje) !== '' ? trim($mensaje) : $skill->nombre());
+            }
+
+            return $resultado;
         }
 
         $habiaPrevia = $item->isHit();

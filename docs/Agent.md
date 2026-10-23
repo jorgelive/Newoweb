@@ -841,9 +841,14 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
 - **El botón 🔄 junto al desplegable** (`POST /agent/motores/comprobar`) hace lo mismo que el cron
   —`SondeoDeMotores::sondear()`, compartido— para no esperar media hora tras recargar: reactiva los
   que responden y el equipo recibe el mismo «vuelve a responder». Una generación mínima por motor.
-- ⚠️ `AiConversationProcessor::conSuplente()` repite el turno **entero**. Un 402 llega en la primera
-  llamada, así que no ha corrido ninguna skill; si llegara a mitad de turno, una de escritura podría
-  correr dos veces.
+- 🔒 `AiConversationProcessor::conSuplente()` repite el turno **entero**, salvo que en él ya se haya
+  **aplicado** algo (23/10/2026). Un reintento no puede escribir solo —la guarda gasta la huella al
+  aplicar—, pero le volvía a pedir el «sí» al operador sin decirle que ya estaba hecho, y un segundo
+  «sí» lo duplicaba. Ahora `GuardiaDeSkills` apunta cada escritura aplicada en `EscriturasDelTurno`
+  y, si el turno falla después de una, no se repite: sale `EscrituraAntesDelFallo` con lo que quedó
+  hecho («✅ Ya quedó hecho: … No lo vuelvas a pedir»). Por WhatsApp va **en lugar del acuse**; en el
+  panel, como error con `hubo_escritura`, que refresca la pantalla y **no devuelve la pregunta al
+  campo** (`AsistenteBar.vue`). Pasa sólo si los créditos se agotan entre dos llamadas del mismo turno.
 
 ### 📮 Qué manda cada motor cuando falla, y quién decide si es definitivo (23/10/2026)
 

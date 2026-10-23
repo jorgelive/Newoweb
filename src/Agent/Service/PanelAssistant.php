@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Access\EscriturasDelTurno;
+use App\Agent\Access\EscrituraAntesDelFallo;
 use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\AgentEngineInterface;
@@ -42,6 +44,7 @@ final readonly class PanelAssistant
         private SkillRegistry $skills,
         private MotoresFueraDeServicio $fuera,
         private SelectorDePotencia $potencias,
+        private EscriturasDelTurno $escrituras,
     ) {}
 
     public function estaDisponible(): bool
@@ -94,14 +97,27 @@ final readonly class PanelAssistant
 
         $modelo = $this->motores->validarModelo($motor, $modelo);
 
+        $escriturasAntes = $this->escrituras->cuantas();
+
         try {
             $respuesta = $this->conversar($motor, $actor, $pregunta, $historial, $modelo);
         } catch (Throwable $e) {
+            $definitivo = FalloDelMotor::en($e)?->esDefinitivo() === true;
+
             // Créditos o clave: queda deshabilitado en el desplegable hasta que alguien lo compruebe
             // (el botón) o lo vea responder el sondeo. Ver `MotoresFueraDeServicio`.
-            if (FalloDelMotor::en($e)?->esDefinitivo() === true) {
+            if ($definitivo) {
                 $this->fuera->sacar($motor->nombre(), $e->getMessage());
+            }
 
+            // 🔒 Falló DESPUÉS de escribir: el operador tiene que saber qué quedó hecho, o lo volverá a
+            // pedir y se duplicará. Antes veía «no se pudo consultar». Ver `EscriturasDelTurno`.
+            $aplicadas = $this->escrituras->desde($escriturasAntes);
+            if ($aplicadas !== []) {
+                throw new EscrituraAntesDelFallo($aplicadas, $definitivo ? new MotorFueraDeServicioException($motor->etiqueta(), $e) : $e);
+            }
+
+            if ($definitivo) {
                 throw new MotorFueraDeServicioException($motor->etiqueta(), $e);
             }
 

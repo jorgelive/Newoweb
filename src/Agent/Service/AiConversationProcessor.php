@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Access\EscriturasDelTurno;
+use App\Agent\Access\EscrituraAntesDelFallo;
 use App\Agent\Conversation\FalloDelMotor;
 use Symfony\Component\Clock\Clock;
 use App\Agent\Access\AsuntosDelHiloParaElAgente;
@@ -157,6 +159,7 @@ final readonly class AiConversationProcessor
         private MotoresFueraDeServicio $fueraDeServicio,
         private EnlacesDeConversacion $enlaces,
         private AsuntosDelHiloParaElAgente $asuntosDelHilo,
+        private EscriturasDelTurno $escrituras,
         private bool $habilitado,
     ) {}
 
@@ -216,8 +219,12 @@ final readonly class AiConversationProcessor
             // serviría el paso siguiente.
             $this->escalera->limpiar();
 
-            // Una vez, no una por mensaje: ver `yaSeAcusoRecibo()`.
-            if (!$this->yaSeAcusoRecibo($conversacion)) {
+            // Si el turno ALCANZÓ a escribir, al operador se le dice qué quedó hecho —siempre, no una
+            // vez—, en lugar del acuse: es lo que le evita pedirlo otra vez. Ver `EscriturasDelTurno`.
+            if ($e instanceof EscrituraAntesDelFallo) {
+                $this->encolarRespuesta($conversacion, $message, $e->getMessage());
+            } elseif (!$this->yaSeAcusoRecibo($conversacion)) {
+                // Una vez, no una por mensaje: ver `yaSeAcusoRecibo()`.
                 $this->encolarRespuesta($conversacion, $message, $this->acuseDeRecibo($conversacion));
             }
 
@@ -225,7 +232,8 @@ final readonly class AiConversationProcessor
             // motor estuvo 31 horas sin responder —«credits are depleted»— sin que nadie se
             // enterara: 57 fallos en el log y huéspedes recibiendo la misma frase hecha, incluso
             // al dar las gracias. Degradar bien no puede significar caerse en silencio.
-            $this->vigilante->motorCaido($e->getMessage());
+            // El del proveedor, no el texto para el operador de `EscrituraAntesDelFallo`.
+            $this->vigilante->motorCaido(($e instanceof EscrituraAntesDelFallo ? $e->getPrevious() ?? $e : $e)->getMessage());
 
             return 'error_ia';
         }
@@ -1679,16 +1687,30 @@ final readonly class AiConversationProcessor
      */
     private function conSuplente(MotorElegido $elegido, \Closure $pedir): ConversationResponse
     {
+        $escriturasAntes = $this->escrituras->cuantas();
+
         try {
             return $pedir($elegido);
         } catch (Throwable $e) {
             $nombre = $elegido->motor->nombre();
+            $definitivo = FalloDelMotor::en($e)?->esDefinitivo() === true;
 
-            if (FalloDelMotor::en($e)?->esDefinitivo() !== true) {
+            if ($definitivo) {
+                $this->fueraDeServicio->sacar($nombre, $e->getMessage());
+            }
+
+            // 🔒 Si ya se APLICÓ algo en este turno, no se repite: el suplente le volvería a pedir el
+            // «sí» al operador sin decirle que ya estaba hecho, y un segundo «sí» lo duplicaría. Se
+            // le dice qué se aplicó (`process()` lo manda en lugar del acuse). Ver `EscriturasDelTurno`.
+            $aplicadas = $this->escrituras->desde($escriturasAntes);
+            if ($aplicadas !== []) {
+                throw new EscrituraAntesDelFallo($aplicadas, $e);
+            }
+
+            if (!$definitivo) {
                 throw $e;
             }
 
-            $this->fueraDeServicio->sacar($nombre, $e->getMessage());
             $suplente = $this->potencias->elegir($elegido->potencia);
 
             if ($suplente === null || $suplente->motor->nombre() === $nombre) {

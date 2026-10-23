@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Agent\Access;
 
 use App\Agent\Access\ActorInterface;
+use App\Agent\Access\EscrituraAntesDelFallo;
+use App\Agent\Access\EscriturasDelTurno;
 use App\Agent\Access\GuardiaDeSkills;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Access\PrevisualizacionesDelTurno;
@@ -31,13 +33,15 @@ final class ConfirmacionAtadaTest extends TestCase
 {
     private GuardiaDeSkills $guardia;
     private PrevisualizacionesDelTurno $turno;
+    private EscriturasDelTurno $escriturasDelTurno;
     /** @var object{escrituras: list<array<string, mixed>>} */
     private object $registro;
 
     protected function setUp(): void
     {
         $this->turno = new PrevisualizacionesDelTurno();
-        $this->guardia = new GuardiaDeSkills(new ArrayAdapter(), $this->turno);
+        $this->escriturasDelTurno = new EscriturasDelTurno();
+        $this->guardia = new GuardiaDeSkills(new ArrayAdapter(), $this->turno, $this->escriturasDelTurno);
         $this->registro = new class { /** @var list<array<string, mixed>> */ public array $escrituras = []; };
     }
 
@@ -49,6 +53,26 @@ final class ConfirmacionAtadaTest extends TestCase
 
         self::assertSame(true, $r->datos['aplicado']);
         self::assertCount(1, $this->registro->escrituras);
+    }
+
+    /**
+     * Lo aplicado queda apuntado, para que un fallo posterior del motor en el mismo turno diga qué
+     * quedó hecho en vez de dejar que se pida otra vez (23/10/2026). Lo previsualizado, no.
+     */
+    #[Test]
+    public function lo_aplicado_queda_apuntado_y_lo_previsualizado_no(): void
+    {
+        $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-11.40', 'confirmado' => false]);
+        self::assertSame(0, $this->escriturasDelTurno->cuantas());
+
+        $antes = $this->escriturasDelTurno->cuantas();
+        $this->llamar(['casita' => 'Casita 4', 'ajuste' => '-11.40', 'confirmado' => true]);
+
+        self::assertSame(['ajustar_falsa'], $this->escriturasDelTurno->desde($antes));
+
+        $aviso = new EscrituraAntesDelFallo($this->escriturasDelTurno->desde($antes), new \RuntimeException('Google AI 402'));
+        self::assertStringContainsString('Ya quedó hecho: ajustar_falsa', $aviso->getMessage());
+        self::assertStringContainsString('No lo vuelvas a pedir', $aviso->getMessage());
     }
 
     /** «Casita 3» y «3» son la misma casita: la previsualización es la misma, se aplica. */
