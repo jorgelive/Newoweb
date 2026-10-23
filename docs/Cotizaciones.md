@@ -6956,6 +6956,13 @@ Lo que hace la copia (`util/src/stores/cotizacion/clonarServicio.ts`, con tests)
 | Subgrupos | se conservan en el mismo expediente; **en otro se vacían** | cuelgan del expediente: fuera serían reservas ajenas |
 | Orden | el de un alta nueva en ese día (`lugarParaServicioNuevo()`, compartido con «Inyectar servicio») | cae donde está el botón |
 
+⚠️ **Los días vacíos ya aparecen** (`conDiasVacios()` en `itinerarioDinamico`): la lista iba del
+primer día al último saltándose los que no tenían servicios, y en esos no había dónde pegar ni
+dónde «Inyectar servicio en este día». Ahora sale cada día del viaje, con sus dos botones y sin el
+de «Ordenar». Con un tope de 90 días: una fecha mal escrita —un año de más— llenaría la lista de
+cientos de días vacíos justo cuando hay que encontrar el error; pasado el tope se enseñan sólo los
+días con servicios.
+
 ⚠️ **Copia el servicio como está en pantalla**, con lo no guardado. Y el portapapeles **se queda**
 tras pegar: pegar el mismo traslado en tres días es el caso normal.
 

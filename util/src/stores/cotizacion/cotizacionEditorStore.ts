@@ -2255,6 +2255,28 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return [...mapa.values()].sort((a, b) => a.label.localeCompare(b.label, 'es', { numeric: true }));
     });
 
+    /**
+     * Los días del viaje SIN huecos: del primero al último, aunque alguno no tenga servicios
+     * (Jorge, 23/10/2026). Un día vacío no aparecía, y entonces no había dónde pulsar «Inyectar
+     * servicio en este día» ni «Pegar aquí»: había que crearlo al final y cambiarle la fecha.
+     *
+     * ⚠️ **Con tope.** Un servicio con una fecha mal escrita —un año de más— convertiría el hueco
+     * en cientos de días vacíos y la lista sería inservible justo cuando hay que encontrar el
+     * error. Pasado el tope se enseñan sólo los días con servicios, como antes.
+     */
+    const MAX_DIAS_DE_VIAJE = 90;
+    const conDiasVacios = (fechas: string[]): string[] => {
+        if (fechas.length < 2) return fechas;
+
+        const desde = parseNaiveAsUTC(fechas[0]);
+        const hasta = parseNaiveAsUTC(fechas[fechas.length - 1]);
+        const dias = Math.round((hasta - desde) / 86_400_000);
+
+        if (Number.isNaN(dias) || dias > MAX_DIAS_DE_VIAJE) return fechas;
+
+        return Array.from({ length: dias + 1 }, (_, i) => formatNaiveFromUTC(desde + i * 86_400_000).slice(0, 10));
+    };
+
     const itinerarioDinamico = computed(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return [];
 
@@ -2355,14 +2377,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         });
 
-        const fechasOrdenadas = Object.keys(grupos).sort();
+        const fechasConServicios = Object.keys(grupos).sort();
+        const fechasOrdenadas = conDiasVacios(fechasConServicios);
         const fechaBase = fechasOrdenadas.length > 0 ? new Date(fechasOrdenadas[0] + 'T12:00:00Z') : new Date();
 
         return fechasOrdenadas.map((fecha) => {
             const fechaActual = new Date(fecha + 'T12:00:00Z');
             const diffTime = fechaActual.getTime() - fechaBase.getTime();
             const diaNumero = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            return { fechaAbsoluta: fecha, diaNumero, cotservicios: grupos[fecha] };
+            return { fechaAbsoluta: fecha, diaNumero, cotservicios: grupos[fecha] ?? [] };
         });
     });
 

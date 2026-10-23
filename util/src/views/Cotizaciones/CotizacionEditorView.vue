@@ -2399,7 +2399,7 @@ store.$onAction(({ name, args }) => {
                    un `ref(false)` global con un comentario que decía «por día» — pulsarlo
                    colapsaba TODOS los días a la vez. El comentario describía la intención y el
                    código hacía otra cosa. -->
-              <button @click.stop="diaEnReorden = diaEnReorden === dia.fechaAbsoluta ? null : dia.fechaAbsoluta"
+              <button v-if="dia.cotservicios.length" @click.stop="diaEnReorden = diaEnReorden === dia.fechaAbsoluta ? null : dia.fechaAbsoluta"
                       :title="diaEnReorden === dia.fechaAbsoluta ? 'Volver a editar' : 'Reordenar los servicios de este día'"
                       class="shrink-0 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors"
                       :class="diaEnReorden === dia.fechaAbsoluta
