@@ -3782,8 +3782,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
     /**
      * Mete el servicio copiado en `fecha` (o, sin fecha, el día siguiente al último del viaje),
-     * con el mismo orden que un alta nueva. El portapapeles se queda: pegar el mismo traslado en
-     * tres días es el caso normal.
+     * con el mismo orden que un alta nueva, **y vacía el portapapeles** (Jorge, 23/10/2026): con
+     * él lleno, cada día de cada propuesta seguía enseñando su botón de pegar. Pegar el mismo
+     * servicio otra vez es volver a copiarlo.
      */
     const pegarServicio = (fecha?: string): void => {
         const copiado = servicioCopiado.value;
@@ -3800,6 +3801,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         if (!cotizacion.value.cotservicios) cotizacion.value.cotservicios = [];
         cotizacion.value.cotservicios.push(copia);
+        guardarPortapapeles(null);
     };
 
     const descartarServicioCopiado = (): void => guardarPortapapeles(null);

@@ -6928,8 +6928,8 @@ operación: la foto sale `v1 / historico / derivadaDe = la viva`, no pública; l
 
 Clonar la cotización entera ya existía (§6.j). Esto es clonar **un servicio**: el botón de copia de
 su tarjeta (junto a la papelera) lo guarda en un portapapeles, y desde entonces cada día de
-cualquier propuesta enseña «Pegar «nombre» aquí», más uno al final del viaje con la «x» que lo
-vacía. El botón de la tarjeta se queda en verde con un ✓ mientras ese servicio sea el copiado.
+cualquier propuesta enseña «Pegar «nombre» aquí», más uno al final del viaje; todos con su «x»
+para cancelar. El botón de la tarjeta se queda en verde con un ✓ mientras ese servicio sea el copiado.
 
 ```
 P1 · Alojamiento en Cusco  [⧉] → portapapeles (localStorage) → P2 · día 5  [Pegar aquí]
@@ -6957,8 +6957,10 @@ Lo que hace la copia (`util/src/stores/cotizacion/clonarServicio.ts`, con tests)
 | Subgrupos | se conservan en el mismo expediente; **en otro se vacían** | cuelgan del expediente: fuera serían reservas ajenas |
 | Orden | el de un alta nueva en ese día (`lugarParaServicioNuevo()`, compartido con «Inyectar servicio») | cae donde está el botón |
 
-⚠️ **Copia el servicio como está en pantalla**, con lo no guardado. Y el portapapeles **se queda**
-tras pegar: pegar el mismo traslado en tres días es el caso normal.
+⚠️ **Copia el servicio como está en pantalla**, con lo no guardado. Y **pegar vacía el
+portapapeles** (Jorge, 23/10/2026): con él lleno, cada día de cada propuesta seguía enseñando su
+botón de pegar. Pegar otra vez es volver a copiar. Cada botón de pegar lleva además su «x» para
+cancelar sin pegar.
 
 ⚠️ **Las cantidades de las tarifas NO se ajustan a los pax del destino.** Si la otra propuesta es
 para otro número de personas, se revisan a mano — el aviso «Faltan Pax» de la tarifa lo marca

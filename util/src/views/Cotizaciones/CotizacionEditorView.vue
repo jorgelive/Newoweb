@@ -2597,10 +2597,18 @@ store.$onAction(({ name, args }) => {
                     class="mt-3 w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[11px] uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all">
               <i class="fas fa-plus mr-1.5"></i> Inyectar servicio en este día
             </button>
-            <button v-if="store.servicioCopiado" @click="store.pegarServicio(dia.fechaAbsoluta)"
-                    class="mt-2 w-full py-3 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-600 font-black text-[11px] uppercase tracking-widest hover:border-emerald-400 hover:bg-white transition-all truncate px-3">
-              <i class="fas fa-paste mr-1.5"></i> Pegar «{{ store.servicioCopiado.nombre }}» aquí
-            </button>
+            <!-- Cada botón de pegar lleva su «x»: cancelar sin pegar vacía el portapapeles y quita
+                 los botones de todos los días, sin tener que bajar al final. -->
+            <div v-if="store.servicioCopiado" class="mt-2 flex items-stretch gap-2">
+              <button @click="store.pegarServicio(dia.fechaAbsoluta)"
+                      class="flex-1 min-w-0 py-3 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-600 font-black text-[11px] uppercase tracking-widest hover:border-emerald-400 hover:bg-white transition-all truncate px-3">
+                <i class="fas fa-paste mr-1.5"></i> Pegar «{{ store.servicioCopiado.nombre }}» aquí
+              </button>
+              <button @click="store.descartarServicioCopiado()" title="Cancelar: vaciar el portapapeles"
+                      class="shrink-0 w-12 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
           </div>
 
           <button @click="store.agregarServicio()" class="w-full py-6 border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 font-black text-xs uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all shadow-sm">
@@ -2608,13 +2616,13 @@ store.$onAction(({ name, args }) => {
           </button>
 
           <!-- Al final del viaje, y el único sitio para pegar en una propuesta todavía vacía. La «x»
-               vacía el portapapeles: si no, los botones de pegar siguen en todos los días. -->
+               cancela, como la de cada día. -->
           <div v-if="store.servicioCopiado" class="mt-3 flex items-stretch gap-2">
             <button @click="store.pegarServicio()"
                     class="flex-1 min-w-0 py-4 border-2 border-dashed border-emerald-300 rounded-3xl text-emerald-600 font-black text-xs uppercase tracking-widest hover:border-emerald-500 hover:bg-white transition-all truncate px-3">
               <i class="fas fa-paste mr-2"></i> Pegar «{{ store.servicioCopiado.nombre }}» al final
             </button>
-            <button @click="store.descartarServicioCopiado()" title="Vaciar el portapapeles"
+            <button @click="store.descartarServicioCopiado()" title="Cancelar: vaciar el portapapeles"
                     class="shrink-0 w-14 border-2 border-dashed border-slate-300 rounded-3xl text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors">
               <i class="fas fa-times"></i>
             </button>
