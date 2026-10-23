@@ -176,6 +176,15 @@ salir», le prometió «se la llevamos» cuando el personal ya no estaba en la z
 de Cusco en el huésped (`AiConversationProcessor::contexto()`, con una línea para que cuente con
 ella en lo que se hace en persona), en el panel (`PanelAssistant`) y en la voz (`VoiceAssistant`).
 
+**Ensayar a otra hora: `app:agent:replay … --ahora="2026-10-20 19:30"`** (hora de Cusco). Fija el
+reloj de Symfony (`Clock::set(MockClock)`), así que sólo mueve lo que lo consulta: la hora del
+contexto (`AiConversationProcessor::contexto()`), la fase de la estancia
+(`PmsInstruccionesDominio::faseDeLaEstancia()`) y si ya llegó (`AnotarPeticionSkill::cuandoSeAtiende()`).
+⚠️ Lo que sigue con `new DateTimeImmutable('now')` usa la hora de verdad: el primer ensayo «el 20/10»
+salió con «mañana es su último día» porque la fase de la estancia aún miraba el reloj real (era el
+22, víspera de la salida). Si un ensayo con `--ahora` dice algo raro de fechas, busca ahí. Código
+nuevo que dependa de la hora: `Clock::get()->now()`.
+
 La hora sola no basta: la ficha tiene que decir CUÁNDO se hace cada cosa. La de la plancha lo dice
 desde el mismo día (`docs/PmsGuiaHuesped.md`, «Plancha y secadora»).
 

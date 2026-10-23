@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
+use Throwable;
+use DateTimeZone;
+use DateTimeImmutable;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Clock\Clock;
 use App\Agent\Access\AgentActorFactory;
 use App\Service\Ensayo\ModoEnsayo;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -127,7 +132,24 @@ final class AgentReplayCommand extends Command
         ?string $salida = null,
         #[Option('Correr contra la base de PRODUCCIÓN. La transacción del ensayo bloquea las filas que toque hasta el final.')]
         bool $enProduccion = false,
+        #[Option('Hora de Cusco a la que ocurre la conversación («2026-10-20 19:30»). Fija el reloj de Symfony: lo que lo use —el contexto del agente, anotar_peticion— cree que es esa hora.')]
+        ?string $ahora = null,
     ): int {
+        // 🕕 Ensayar a OTRA hora (22/10/2026): «pide la plancha a las 19:30» o «el día antes de llegar»
+        // no se pueden probar con la hora real. Sólo mueve lo que pregunta al reloj de Symfony
+        // (`Clock::get()`); lo que hace `new DateTimeImmutable('now')` sigue en la hora de verdad.
+        if ($ahora !== null) {
+            try {
+                Clock::set(new MockClock(new DateTimeImmutable($ahora, new DateTimeZone('America/Lima'))));
+            } catch (Throwable $e) {
+                $io->error(sprintf('«%s» no es una fecha y hora: %s', $ahora, $e->getMessage()));
+
+                return Command::INVALID;
+            }
+
+            $io->note(sprintf('Reloj fijado a %s (Cusco).', $ahora));
+        }
+
         // El motor fijo se resuelve ANTES de nada: descubrir que no tiene clave a mitad de la
         // conversación es haber gastado el triaje de los turnos anteriores para nada.
         $fijo = null;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use Symfony\Component\Clock\Clock;
 use App\Agent\Access\AsuntosDelHiloParaElAgente;
 use App\Contract\MapaDeHitos;
 use App\Agent\Access\AgentActor;
@@ -1323,7 +1324,9 @@ final readonly class AiConversationProcessor
         // ⚠️ **Vive aquí y no en las reglas, aunque parezca parte de ellas.** Cambia cada día, así
         // que en el prefijo cacheado invalidaba los ~8 000 tokens que iban detrás. Sigue yendo en
         // la instrucción de sistema y delante de los mensajes: el modelo la ve igual de bien.
-        $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ_PERU));
+        // Por el reloj de Symfony, no `new DateTimeImmutable('now')`: así `app:agent:replay --ahora`
+        // puede ensayar una conversación a otra hora (22/10/2026).
+        $hoy = Clock::get()->now()->setTimezone(new DateTimeZone(self::TZ_PERU));
 
         // 🗂️ Varios asuntos en el hilo: cuáles, con su clave. Sin esto el agente sólo conocía la
         // reserva de por defecto, y de la otra o la negaba o se la inventaba. Las condiciones van

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Service\Agent;
 
+use Symfony\Component\Clock\Clock;
 use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Access\ActorInterface;
 use App\Contract\ConversationMilestoneInterface;
@@ -188,7 +189,11 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
             return '';
         }
 
-        $hoy = new DateTimeImmutable('today');
+        // Hoy en Cusco, que es en lo que se leen los hitos (`MomentoDeHito`), y por el reloj de
+        // Symfony para que `app:agent:replay --ahora` mueva también esto (22/10/2026). Con
+        // `new DateTimeImmutable('today')` salía la fecha del servidor, y un ensayo «el 20/10» le
+        // decía al huésped que al día siguiente se iba, porque de verdad era el 22.
+        $hoy = Clock::get()->now()->setTimezone(new \DateTimeZone('America/Lima'))->setTime(0, 0);
         $diasParaEntrar = (int) $hoy->diff($inicio->setTime(0, 0))->format('%r%a');
         $diasDesdeSalir = (int) $fin->setTime(0, 0)->diff($hoy)->format('%r%a');
 

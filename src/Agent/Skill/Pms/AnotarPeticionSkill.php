@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Skill\Pms;
 
+use Symfony\Component\Clock\Clock;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Access\NivelRiesgo;
 use App\Agent\Skill\SkillDefinition;
@@ -206,7 +207,8 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
         $zona = $evento->zonaHoraria();
         $inicio = $evento->getInicio();
         $yaLlego = $inicio === null
-            || new \DateTimeImmutable('now', $zona) >= new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
+            // Por el reloj de Symfony: `app:agent:replay --ahora` lo fija para ensayar a otra hora.
+            || Clock::get()->now()->setTimezone($zona) >= new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
 
         return $yaLlego
             ? 'Queda anotado en su estancia. Ya está alojado: las solicitudes se reciben de 9:00 a 21:00 y se '
