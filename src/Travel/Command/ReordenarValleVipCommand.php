@@ -79,7 +79,7 @@ final class ReordenarValleVipCommand extends Command
             'VIS-VALLE_SAGRADO-OLL',
             'VIS-VALLE_SAGRADO-PISAC-INCA',
             'VIS-VALLE_SAGRADO-PISAC-COLONIAL',
-            'RET_EXC-CENTRO-CUS',
+            'RET_EXC-CENTRO-CUZ',
         ],
     ];
 

@@ -79,7 +79,7 @@ final class CrearSeguroDeViajeCommand extends Command
     private const ORG_NOMBRE = 'Seguros La Positiva';
     private const SERVICIO_CODIGO = 'SEGURO';
     private const SERVICIO_NOMBRE = 'Seguro de Viaje';
-    private const SEGMENTO_SLUG = 'seguro-de-viaje';
+    private const SEGMENTO_SLUG = 'SEGURO_VIAJE';
     private const SEGMENTO_NOMBRE = 'Seguro de viaje';
     private const COMPONENTE_NOMBRE = 'Seguro de viaje';
     private const TARIFA_NOMBRE = 'Seguros La Positiva';

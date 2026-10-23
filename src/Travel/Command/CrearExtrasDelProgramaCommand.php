@@ -45,7 +45,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * - **`TravelSegmento ↔ TravelServicio` es ManyToMany.** El contenedor no es una cárcel: un
  *   segmento puede estar en varios servicios a la vez.
  *
- * ⚠️ **Los slugs van SIN el código del contenedor** (`kit-de-viaje`, no `KIT-EXTRAS`). El doc tiene
+ * ⚠️ **Los slugs van SIN el código del contenedor** (`KIT_VIAJE`, no `KIT-EXTRAS`). El doc tiene
  * la cicatriz: el desayuno del aeropuerto se llamaba `DES-WALK_MIR-AEROPUERTO` y al mudarlo hubo
  * que renombrarlo porque **el slug afirmaba una pertenencia que dejó de ser cierta**. Con slugs
  * neutros, partir «Extras» el día que crezca es añadir filas en el pool del servicio nuevo y nada
@@ -161,7 +161,7 @@ final class CrearExtrasDelProgramaCommand extends Command
      */
     private const EXTRAS = [
         'kit' => [
-            'slug' => 'kit-de-viaje',
+            'slug' => 'KIT_VIAJE',
             'nombre' => 'Kit de viaje',
             'contenido' => '<p>Cada pasajero recibe su kit de viaje personalizado con su nombre: '
                 . 'cubre maletas, gorra del viaje de promoción y tomatodo.</p>',
@@ -169,7 +169,7 @@ final class CrearExtrasDelProgramaCommand extends Command
             'calculo' => TarifaCalculoEnum::INDIVIDUAL,
         ],
         'album' => [
-            'slug' => 'album-fotografico',
+            'slug' => 'ALBUM_FOTOS',
             'nombre' => 'Álbum fotográfico',
             'contenido' => '<p>Un fotógrafo acompaña al grupo durante el programa: la llegada, las '
                 . 'excursiones y las actividades. Al terminar el viaje el grupo recibe el video y '

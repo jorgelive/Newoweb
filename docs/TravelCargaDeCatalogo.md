@@ -348,6 +348,17 @@ prefijo, como ya hacían `TRANS_DIRECT_…`, `TRANS_BIM_…` y `TRANS_BYCAR_…`
 las 22:00— y la recepción `RECEP_TRANS-TERM_PUN-HTL_PUN`. Las ciudades, en tres letras (`PUN`, no
 `PUNO`), como `CUZ`, `LIM` o `PUJ`.
 
+**Revisión de los 249 códigos (23/10/2026, `Version20261023210000`).** Se corrigieron los errores
+—`SAL_EXC-VALLE_SAGADO-POOL`, `RET_EXC-CENTRO-CUS`, tres extras en minúsculas que pasan a
+`ALBUM_FOTOS`, `KIT_VIAJE`, `SEGURO_VIAJE` (sin prefijo de contenedor, como pide `docs/Travel.md`)—,
+el retorno de la Ruta Amazónica, que no estaba en ningún servicio y no se podía elegir, y los
+**nombres internos repetidos**: dos segmentos con el mismo nombre no se distinguen en el buscador
+(Ollantaytambo directa / con espera, las tres salidas y llegadas de Vertical Sky, los dos Huacachina,
+y los recojos grupal y privado, que ahora empiezan por su excursión). **Al crear un segmento, su
+nombre interno tiene que distinguirlo de sus hermanos sin mirar el código.** Quedan pendientes de
+decidir: unificar prefijos (`TREN_RTN`/`RET`, `CENA_`/`CEN-`, `HOTEL`/`HTL`, `AEROPUERTO`/`APT`, los
+alojamientos con nombre en vez de código) y los nombres internos de marketing de los city tours.
+
 ### «Por cuenta del cliente»: el componente que sólo pone hora (23/10/2026)
 
 Un segmento sin componente no tiene hora —vive en el pivote— y el itinerario lo coloca con la hora

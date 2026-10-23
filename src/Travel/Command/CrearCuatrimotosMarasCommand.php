@@ -183,7 +183,7 @@ final class CrearCuatrimotosMarasCommand extends Command
     private const REUTILIZADOS = [
         'moray' => 'VIS-VALLE_VIP/MARAS_MORAY-MORAY',
         'salineras' => 'VIS-VALLE_VIP/MARAS_MORAY-MARAS',
-        'retorno_centro' => 'RET_EXC-CENTRO-CUS',
+        'retorno_centro' => 'RET_EXC-CENTRO-CUZ',
     ];
 
     /**

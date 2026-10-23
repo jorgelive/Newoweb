@@ -2635,7 +2635,7 @@ Lo que lo permite, verificado antes de decidirlo:
 
 ### 🔑 Slugs SIN el código del contenedor
 
-`kit-de-viaje`, no `KIT-EXTRAS`. El doc de carga tiene la cicatriz: el desayuno del aeropuerto se
+`KIT_VIAJE`, no `KIT-EXTRAS` (nació `kit-de-viaje`; en mayúsculas desde el 23/10/2026, sin prefijo). El doc de carga tiene la cicatriz: el desayuno del aeropuerto se
 llamaba `DES-WALK_MIR-AEROPUERTO` y al mudarlo hubo que renombrarlo, porque **el slug afirmaba una
 pertenencia que dejó de ser cierta**.
 
