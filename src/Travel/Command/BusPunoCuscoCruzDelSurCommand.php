@@ -51,8 +51,8 @@ final class BusPunoCuscoCruzDelSurCommand extends Command
 
     /** Nombre actual → [nombre nuevo, servicio que se le pide al proveedor, monto]. */
     private const array TARIFAS = [
-        'Bus estándar' => ['Bus Evolution Regular', 'Evolution Regular', '55.00'],
-        'Bus Superior' => ['Bus Evolution VIP', 'Evolution VIP', '75.00'],
+        'Bus estándar' => ['Bus Evolution Regular', 'Traslado Puno ↔ Cusco · Bus Evolution Regular', '55.00'],
+        'Bus Superior' => ['Bus Evolution VIP', 'Traslado Puno ↔ Cusco · Bus Evolution VIP', '75.00'],
     ];
 
     private const string POR_DEFECTO = 'Bus Evolution Regular';
