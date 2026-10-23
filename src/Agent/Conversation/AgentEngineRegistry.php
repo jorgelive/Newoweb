@@ -62,6 +62,26 @@ final readonly class AgentEngineRegistry
     }
 
     /**
+     * Todos los motores con credenciales en este entorno, estén o no en algún tramo. Es lo que
+     * sondea `app:agent:vigilar-motor`: un motor con clave puede acabar contestando —por el
+     * desplegable del panel o como suplente de otro— y unos créditos agotados no avisan solos.
+     *
+     * @return list<AgentEngineInterface>
+     */
+    public function disponibles(): array
+    {
+        $disponibles = [];
+
+        foreach ($this->motores as $motor) {
+            if ($motor->estaDisponible()) {
+                $disponibles[] = $motor;
+            }
+        }
+
+        return $disponibles;
+    }
+
+    /**
      * Resuelve el motor de una petición.
      *
      * @throws InvalidArgumentException Si se pide un proveedor que no existe o no está

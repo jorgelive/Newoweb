@@ -5765,7 +5765,8 @@ llamar a la misma skill deja el turno girando y quemando dinero hasta el timeout
 
 > 🩺 **Desde el 17/10/2026 el motor se vigila también sin huésped** (`app:agent:vigilar-motor`): un
 > aviso por caída, otro al recuperarse, y `motorCaido()` calla si la caída ya está avisada. Desde el
-> 22/10/2026 sondea cada motor de los tres tramos, no sólo el por defecto. Ver
+> 22/10/2026 sondea todos los motores con clave, y si uno se queda sin créditos contesta otro hasta
+> que vuelva (suplencia). Ver
 > `docs/Agent.md` §5.5.
 
 ### 🔁 Un tropiezo de Google no es una caída: un reintento (13/10/2026)

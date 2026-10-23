@@ -21,6 +21,9 @@ use App\Agent\Conversation\PerfilConversacion;
 use App\Agent\Conversation\PotenciaRequerida;
 use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Conversation\SelectorDePotencia;
+use App\Agent\Conversation\MotorElegido;
+use App\Agent\Conversation\MotoresFueraDeServicio;
+use App\Agent\Conversation\ConversationResponse;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillRegistry;
 use App\Agent\Triage\DecisionDeTriaje;
@@ -150,6 +153,7 @@ final readonly class AiConversationProcessor
         private EscaleraDeTemas $escalera,
         private ConocimientoGenerico $conocimiento,
         private VigilanteDelMotor $vigilante,
+        private MotoresFueraDeServicio $fueraDeServicio,
         private EnlacesDeConversacion $enlaces,
         private AsuntosDelHiloParaElAgente $asuntosDelHilo,
         private bool $habilitado,
@@ -793,7 +797,8 @@ final readonly class AiConversationProcessor
             return null;
         }
 
-        $respuesta = $elegido->motor->conversar(new ConversationRequest(
+        // El turno va en una función para poder repetirlo con el suplente: ver `conSuplente()`.
+        $pedir = fn (MotorElegido $e): ConversationResponse => $e->motor->conversar(new ConversationRequest(
             actor: $actor,
             systemPrompt: $this->reglas($actor),
             contexto: $this->contexto($conversacion, $actor, $decision),
@@ -830,8 +835,9 @@ final readonly class AiConversationProcessor
             // dos veces seguidas. Es un TECHO, no una reserva: subirlo no cuesta nada mientras el
             // turno no lo use, y una respuesta normal sigue rondando los 50–200 tokens.
             maxTokens: self::TOPE_DEL_TURNO,
-            modelo: $elegido->modelo,
+            modelo: $e->modelo,
         ));
+        $respuesta = $this->conSuplente($elegido, $pedir);
 
         // 🔥 `sin_skill` YA NO TIRA LA RESPUESTA. Durante un tiempo sí: se cambiaba por el acuse
         // de recibo, con el razonamiento de que sin skill el texto salía del modelo y no de los
@@ -1653,6 +1659,51 @@ final readonly class AiConversationProcessor
      * La metadata no la toca el traductor y no depende de la redacción.
      */
     private const string MARCA_ACUSE = 'acuse_de_recibo';
+
+    /**
+     * El turno con el motor del tramo y, si ése se ha quedado sin servicio, con un suplente
+     * (22/10/2026, Jorge: «que temporalmente responda el que está activo hasta que se pague»).
+     *
+     * Sólo ante un error DEFINITIVO —créditos, clave: `DecisionDelSondeo::esDefinitivo()`—, y vale
+     * también para el motor por defecto: lo cubre otro de los tramos (`SelectorDePotencia::suplenteDe()`).
+     * Sin nadie que lo cubra, el error sigue su camino de siempre: acuse y aviso. Un 503 suelto no saca a nadie de servicio: lo cubre el
+     * reintento del propio cliente, y si no, el acuse de siempre. El motor queda marcado en
+     * `MotoresFueraDeServicio` y los turnos siguientes ya van al suplente sin chocar.
+     *
+     * ⚠️ El reintento repite el turno ENTERO. Un 402 llega en la primera llamada —sin créditos no
+     * se empieza—, así que en la práctica no ha corrido ninguna skill; si algún día llegara a mitad
+     * de turno, una skill de escritura podría correr dos veces.
+     *
+     * @param \Closure(MotorElegido): ConversationResponse $pedir
+     */
+    private function conSuplente(MotorElegido $elegido, \Closure $pedir): ConversationResponse
+    {
+        try {
+            return $pedir($elegido);
+        } catch (Throwable $e) {
+            $nombre = $elegido->motor->nombre();
+
+            if (!DecisionDelSondeo::esDefinitivo($e->getMessage())) {
+                throw $e;
+            }
+
+            $this->fueraDeServicio->sacar($nombre, $e->getMessage());
+            $suplente = $this->potencias->elegir($elegido->potencia);
+
+            if ($suplente === null || $suplente->motor->nombre() === $nombre) {
+                throw $e;
+            }
+
+            $this->logger->error(sprintf(
+                '[Agente] «%s» sin servicio (%s): este turno y los siguientes los contesta «%s» hasta que vuelva.',
+                $nombre,
+                mb_strimwidth($e->getMessage(), 0, 160, '…'),
+                $suplente->motor->nombre()
+            ));
+
+            return $pedir($suplente);
+        }
+    }
 
     /**
      * Qué motivos de «sin texto» cuentan como motor caído.

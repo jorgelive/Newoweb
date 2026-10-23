@@ -771,8 +771,9 @@ salido a huéspedes reales.
 ya chocó** con el fallo. El 16–17/10/2026 se agotaron los créditos de Google y no lo supo nadie:
 no entró ningún mensaje en ese rato, y se descubrió por casualidad al probar en local.
 
-`app:agent:vigilar-motor` (cron, minutos 11 y 41) le pide a **cada motor de los tres tramos de
-potencia** (`SelectorDePotencia::motoresEnUso()`) una generación mínima
+`app:agent:vigilar-motor` (cron, minutos 11 y 41) le pide a **cada motor con credenciales**
+(`AgentEngineRegistry::disponibles()`: los de los tramos y los que no están en ninguno, como DeepSeek)
+una generación mínima
 —`MotorSondeableInterface::sondear()`; listar modelos no descubre unos créditos agotados— y
 `VigilanteDelMotor::resultadosDelSondeo()` decide con `DecisionDelSondeo::deLaRonda()`, motor por
 motor:
@@ -801,6 +802,34 @@ modelo por defecto de cada motor, no con el del tramo: lo que se vigila es la cu
   anunciaría la «recuperación» de la avería del otro.
 - La marca sin sufijo (`agente.motor.sondeo.avisado`) queda como «algún motor está avisado», que es
   lo que mira `motorCaido()` para no repetir el aviso por cada huésped.
+
+### 🔁 Suplencia: si un motor se queda sin créditos, contesta otro (22/10/2026)
+
+Jorge: «que temporalmente responda el que está activo hasta que se pague». Antes, un 402 en el tramo
+de Gemini dejaba al huésped con «un compañero te responderá en breve» aunque Anthropic estuviera
+perfecto.
+
+```
+turno ── motor del tramo ── 401/402/403 ──► MotoresFueraDeServicio::sacar()
+                                            └─► se repite el turno con el suplente
+siguientes turnos ── SelectorDePotencia::elegir() ── ¿fuera? ──► suplente directamente
+sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su tramo
+```
+
+- **Quién cubre** (`SelectorDePotencia::suplenteDe()`): el de por defecto; si el caído ES el de por
+  defecto, el de otro tramo; y en último lugar cualquier otro con clave (DeepSeek). Siempre con **su
+  modelo por defecto**, no el del tramo: el tramo bajo suele ser un modelo pequeño. Sin nadie sano,
+  sigue el caído y el turno acaba en el acuse, como antes.
+- **Sólo errores definitivos** (`DecisionDelSondeo::esDefinitivo()`): un 503 suelto no saca a nadie.
+- **Lo devuelve únicamente el sondeo**, porque es el único que le sigue preguntando al motor de verdad
+  (sondea sin suplencia). Recargar los créditos basta: como mucho media hora.
+- El aviso de caída dice quién cubre («Mientras tanto contesta «anthropic»»), porque eso decide si hay
+  que entrar a los chats ya.
+- La marca vive en la caché (7 días, por si el sondeo dejara de correr); un despliegue la borra y el
+  primer turno que vuelva a chocar la repone.
+- ⚠️ `AiConversationProcessor::conSuplente()` repite el turno **entero**. Un 402 llega en la primera
+  llamada, así que no ha corrido ninguna skill; si llegara a mitad de turno, una de escritura podría
+  correr dos veces.
 
 ### Las tres salvaguardas, y cuál hace qué
 
@@ -1129,6 +1158,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; para el chat, `low` + `1` (comparativa del 18/10/2026, tercera ronda) |
 | Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
 | Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
+| Quién contesta cuando un motor se queda sin créditos | `src/Agent/Conversation/SelectorDePotencia.php` | `suplenteDe()` (orden), `elegir()` (desvío); la marca, `MotoresFueraDeServicio`; el reintento en el turno, `AiConversationProcessor::conSuplente()` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
 | Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |
 | Qué horas de entrada/salida ve quien aún no reservó | `src/Agent/Skill/Pms/ConsultarGuiaSkill.php` | `horasEstandar()` — de `PmsEstablecimiento`; con reserva mandan las de la estancia |

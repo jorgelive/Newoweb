@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
+use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\MotorSondeableInterface;
-use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Service\DecisionDelSondeo;
 use App\Agent\Service\VigilanteDelMotor;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -20,9 +20,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * fallo (17/10/2026). Avisa al equipo UNA vez por caída y otra al recuperarse: ver
  * `DecisionDelSondeo` y `VigilanteDelMotor::resultadoDelSondeo()`.
  *
- * Sondea TODOS los motores de los tres tramos de potencia, cada uno con su estado y su aviso. Hasta
- * el 22/10/2026 sólo el motor por defecto: el tramo bajo iba a Gemini, se le agotaron los créditos y
- * el sondeo seguía diciendo «anthropic · responde». Una generación mínima por motor: del orden de
+ * Sondea TODOS los motores con credenciales —los de los tramos y los que no están en ninguno, como
+ * DeepSeek—, cada uno con su estado y su aviso. Hasta el 22/10/2026 sólo el motor por defecto: el
+ * tramo bajo iba a Gemini, se le agotaron los créditos y el sondeo seguía diciendo «anthropic ·
+ * responde». Un motor fuera de tramo también importa: es el último suplente
+ * (`SelectorDePotencia::suplenteDe()`) y el panel lo puede elegir en el desplegable. Una generación mínima por motor: del orden de
  * céntimos al mes. Cada motor se sondea con SU modelo por defecto, no con el del tramo: lo que se
  * busca es la cuenta (créditos, clave), que es la misma.
  *
@@ -36,7 +38,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class AgentVigilarMotorCommand extends Command
 {
     public function __construct(
-        private readonly SelectorDePotencia $potencias,
+        private readonly AgentEngineRegistry $motores,
         private readonly VigilanteDelMotor $vigilante,
     ) {
         parent::__construct();
@@ -50,7 +52,7 @@ final class AgentVigilarMotorCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $motores = $this->potencias->motoresEnUso();
+        $motores = $this->motores->disponibles();
 
         if ($motores === []) {
             // Sin ningún motor configurado no hay nada que sondear: es una decisión de configuración,

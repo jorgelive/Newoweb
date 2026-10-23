@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\SelectorDePotencia;
+use App\Agent\Conversation\MotoresFueraDeServicio;
 use App\Entity\User;
 use App\Message\Service\Aviso\AvisoAlEquipo;
 use App\Message\Service\Aviso\AvisoAlEquipoService;
@@ -82,6 +84,8 @@ final readonly class VigilanteDelMotor
         private UserRepository $usuarios,
         private RoleHierarchyInterface $jerarquia,
         private LoggerInterface $logger,
+        private MotoresFueraDeServicio $fuera,
+        private SelectorDePotencia $potencias,
     ) {}
 
     /**
@@ -213,6 +217,12 @@ final readonly class VigilanteDelMotor
 
                 $fallo = $fallos[$motor] ?? null;
 
+                // Responde: vuelve a atender su tramo, se hubiera avisado o no de su caída (un turno
+                // pudo sacarlo de servicio sin que el sondeo llegara a verlo caído).
+                if ($fallo === null && $this->fuera->devolver($motor)) {
+                    $this->logger->info(sprintf('[Agente] «%s» vuelve a atender su tramo de potencia.', $motor));
+                }
+
                 if ($decision['accion'] === DecisionDelSondeo::AVISAR_CAIDA && $fallo !== null) {
                     foreach ([self::CLAVE_SONDEO_AVISADO . '.' . $motor, self::CLAVE_SONDEO_AVISADO] as $clave) {
                         $this->cache->save($this->cache->getItem($clave)->set(true)->expiresAfter(self::RECORDATORIO_SEGUNDOS));
@@ -221,16 +231,24 @@ final readonly class VigilanteDelMotor
                     $resumen = $this->recortar($fallo);
                     $pista = DecisionDelSondeo::pista($motor, $fallo);
 
+                    // Si hay otro motor que lo cubra, el huésped sigue recibiendo respuesta: el aviso
+                    // lo dice, porque es lo que decide si hay que entrar a los chats ya.
+                    $this->fuera->sacar($motor, $fallo);
+                    $suplente = $this->potencias->suplenteDe($motor)?->nombre();
+                    $cubierto = $suplente !== null;
+
                     $this->logger->error(sprintf('[Agente] La comprobación periódica da el motor «%s» por CAÍDO: %s', $motor, $resumen));
 
                     $this->avisar(
                         texto: sprintf(
-                            "🤖 El motor de IA «%s» NO responde (comprobación automática).\n\n%s%s\n\nMientras siga "
-                            . "así, a los huéspedes cuyo mensaje le toque a ese motor les saldrá «un compañero "
-                            . "te responderá en breve». Te aviso otra vez cuando vuelva.",
+                            "🤖 El motor de IA «%s» NO responde (comprobación automática).\n\n%s%s\n\n%s "
+                            . "Te aviso otra vez cuando vuelva.",
                             $motor,
                             $resumen,
                             $pista !== '' ? "\n\n👉 " . $pista : '',
+                            $cubierto
+                                ? sprintf('Mientras tanto contesta «%s»: los huéspedes siguen recibiendo respuesta.', $suplente)
+                                : 'Mientras siga así, a los huéspedes les saldrá «un compañero te responderá en breve».',
                         ),
                         conPlantilla: true,
                         motivoPlantilla: $pista !== '' ? $this->recortar($pista) : sprintf('%s: %s', $motor, $resumen),

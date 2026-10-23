@@ -52,6 +52,7 @@ final readonly class SelectorDePotencia
     public function __construct(
         private AgentEngineRegistry $registro,
         private LoggerInterface $logger,
+        private MotoresFueraDeServicio $fuera,
         private string $alta,
         private string $media,
         private string $baja,
@@ -62,6 +63,53 @@ final readonly class SelectorDePotencia
      *         el entorno; es decir, cuando la IA está apagada de hecho.
      */
     public function elegir(PotenciaRequerida $potencia): ?MotorElegido
+    {
+        $elegido = $this->resolver($potencia);
+
+        // 🔁 SUPLENCIA: el motor del tramo está sin servicio (créditos, clave) y contesta otro hasta
+        // que el sondeo lo vea responder. Ver `MotoresFueraDeServicio` y `suplenteDe()`.
+        if ($elegido === null || !$this->fuera->estaFuera($elegido->motor->nombre())) {
+            return $elegido;
+        }
+
+        $suplente = $this->suplenteDe($elegido->motor->nombre());
+
+        if ($suplente === null) {
+            return $elegido;
+        }
+
+        $this->logger->warning(sprintf(
+            'Agent: «%s» está fuera de servicio; el tramo %s lo atiende «%s» hasta que vuelva.',
+            $elegido->motor->nombre(),
+            $potencia->value,
+            $suplente->nombre()
+        ));
+
+        return new MotorElegido($suplente, null, $potencia);
+    }
+
+    /**
+     * Quién cubre a un motor sin servicio (22/10/2026), por este orden: el de por defecto; si el caído
+     * ES el de por defecto, el de otro tramo, que ya contesta en producción; y en último lugar
+     * cualquier otro con credenciales (DeepSeek), que el sondeo también vigila, así que si está aquí
+     * es que responde. Siempre con SU modelo por defecto, no el del tramo que cubre: el tramo bajo
+     * suele ser un modelo pequeño.
+     *
+     * `null` = no hay quien lo cubra; el turno sigue con el caído y acaba en el acuse de recibo.
+     */
+    public function suplenteDe(string $caido): ?AgentEngineInterface
+    {
+        foreach ([$this->registro->porDefecto(), ...$this->motoresEnUso(), ...$this->registro->disponibles()] as $candidato) {
+            if ($candidato !== null && $candidato->nombre() !== $caido && !$this->fuera->estaFuera($candidato->nombre())) {
+                return $candidato;
+            }
+        }
+
+        return null;
+    }
+
+    /** El tramo tal como está configurado, sin suplencia. */
+    private function resolver(PotenciaRequerida $potencia): ?MotorElegido
     {
         $spec = trim(match ($potencia) {
             PotenciaRequerida::Alta => $this->alta,
@@ -112,9 +160,9 @@ final readonly class SelectorDePotencia
     }
 
     /**
-     * Los motores que de verdad atienden algún tramo, sin repetir: lo que tiene que sondear
-     * `app:agent:vigilar-motor` (22/10/2026). Resuelve como {@see elegir()}, así que un tramo mal
-     * configurado cuenta con el motor al que cae, que es el que contestaría.
+     * Los motores que de verdad atienden algún tramo, sin repetir y **sin suplencia**: los segundos
+     * candidatos de `suplenteDe()`, detrás del de por defecto. Un tramo mal configurado cuenta con
+     * el motor al que cae, que es el que contestaría.
      *
      * @return list<AgentEngineInterface>
      */
@@ -123,7 +171,7 @@ final readonly class SelectorDePotencia
         $motores = [];
 
         foreach (PotenciaRequerida::cases() as $potencia) {
-            $elegido = $this->elegir($potencia);
+            $elegido = $this->resolver($potencia);
 
             if ($elegido !== null) {
                 $motores[$elegido->motor->nombre()] = $elegido->motor;
