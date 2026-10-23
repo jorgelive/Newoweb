@@ -476,6 +476,36 @@ const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
     esCabeceraDeServicio(b) && !b.contenedorGenerico && serviciosConInclusiones.value.has(b.servicio.id);
 
 /**
+ * Cuántos «Incluye» se ven antes de «Ver N más». La excursión a Paracas llevaba doce en verde
+ * encima de su relato; con cuatro se lee de un vistazo y el resto está a un toque.
+ */
+const LIMITE_INCLUYE = 4;
+
+const tieneChips = (e: { incluidos: string[]; excepciones: ExcepcionDeActividad[] } | undefined): boolean =>
+    !!e && (e.incluidos.length > 0 || e.excepciones.length > 0);
+
+/** ¿La cabecera del marco enseña los «Incluye» del programa? (mismo `v-if` que en la plantilla) */
+const cabeceraConChips = (grupo: GrupoDeServicio, item: BloqueVista): boolean =>
+    !!grupo.ancla && item.esPrimeroDelServicioEnElDia && tieneChips(estadoPorActividad.value.get(grupo.ancla));
+
+/**
+ * ¿La lista de ESTA tarjeta es la puerta al detalle?
+ *
+ * - **La del segmento de un contenedor genérico** —el traslado del aeropuerto dentro de
+ *   «Transporte en Lima»—: el cliente compró ese segmento, y su detalle es sólo el suyo.
+ * - **La de un servicio de una sola tarjeta**: no hay cabecera de marco que la lleve.
+ */
+const etapaLlevaDetalle = (grupo: GrupoDeServicio, item: BloqueVista): boolean =>
+    (item.contenedorGenerico && serviciosConInclusiones.value.has(item.servicio.id))
+    || (mostrarAccionInclusiones(item) && !grupo.enMarco);
+
+/** Un servicio con detalle que ninguna lista abre: la pastilla sale sola donde iba el botón. */
+const detalleSinLista = (grupo: GrupoDeServicio, item: BloqueVista): boolean =>
+    mostrarAccionInclusiones(item)
+    && !cabeceraConChips(grupo, item)
+    && !(etapaLlevaDetalle(grupo, item) && tieneChips(estadoDeEtapa(grupo, item)));
+
+/**
  * Servicios que se venden enteros como opcionales (todas sus tarifas son alternativas).
  *
  * Sale de las INCLUSIONES y no de `opcionesUpgrade` a propósito: las inclusiones llevan los ids del
@@ -1301,6 +1331,35 @@ const abrirInclusiones = (servicioId: string, nombre: I18n) => {
   const srv = inclusionPorServicio.value.get(servicioId);
   if (!srv) return;
   modalInclusiones.value = { servicioId, nombre, secciones: seccionesInclusion(srv) };
+};
+
+/**
+ * El detalle desde la lista de una tarjeta. En un contenedor genérico, **sólo lo de ese segmento**:
+ * con el del servicio, el traslado del aeropuerto enseñaba todos los transportes del viaje. El
+ * puente es `componenteId`, el mismo que usa `chipsDeLinea`.
+ */
+const abrirDetalleDeEtapa = (item: BloqueVista) => {
+  if (!item.contenedorGenerico) {
+    abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot);
+    return;
+  }
+
+  const srv = inclusionPorServicio.value.get(item.servicio.id);
+  if (!srv) return;
+
+  const suyos = new Set(item.componentes.map((c) => c.id));
+  const delSegmento = (lineas: PaxInclusionItem[]) => lineas.filter((l) => !!l.componenteId && suyos.has(l.componenteId));
+
+  modalInclusiones.value = {
+    servicioId: item.servicio.id,
+    nombre: item.segmento.tituloSnapshot,
+    secciones: seccionesInclusion({
+      incluidos: delSegmento(srv.incluidos),
+      noIncluidos: delSegmento(srv.noIncluidos),
+      cortesias: delSegmento(srv.cortesias),
+      opcionales: delSegmento(srv.opcionales),
+    }),
+  };
 };
 
 /**
@@ -2894,29 +2953,18 @@ const rotuloProcedencia = computed(() => {
               </span>
             </div>
 
-            <!-- Fila de acción: botón que abre el modal con las inclusiones del servicio completo.
-                 Va entre el <h3> (multi-segmento) y la card, o encima de la card (single) → simetría. -->
-            <div
-                v-if="mostrarAccionInclusiones(item)"
-                class="flex justify-end mb-3 no-imprimir"
-            >
-              <button
-                  @click="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
-                  class="inline-flex items-center gap-2 text-[11px] font-black tracking-wide text-[#376875] bg-white border border-[#376875]/20 hover:border-[#376875]/50 hover:bg-[#376875]/5 rounded-xl px-3.5 py-2 shadow-sm transition-colors"
-              >
-                <i class="fas fa-list-check text-[#E07845]"></i>
-                {{ item.totalSegmentosServicio > 1
-                  ? (maestroStore.t('cot_inclusiones_tour') || '¿Qué incluye el tour?')
-                  : (maestroStore.t('cot_inclusiones_servicio') || '¿Qué incluye este servicio?') }}
-                <!-- Un pulso detrás de la flecha: el detalle de lo incluido vive SÓLO aquí desde que
-                     el panel del día se quitó de la pantalla, y un botón que nadie pulsa lo esconde.
-                     `motion-safe`: quien pidió menos movimiento al sistema no lo recibe. -->
-                <span class="relative inline-flex">
-                  <span class="motion-safe:animate-ping absolute inset-0 rounded-full bg-[#E07845]/50"></span>
-                  <i class="relative fas fa-circle-arrow-right text-[10px] text-[#E07845]"></i>
-                </span>
-              </button>
-            </div>
+            <!-- La puerta al detalle de lo incluido es la pastilla al final de los «Incluye»
+                 (`EstadoDeActividad`), y ya no un botón aparte (Jorge, 23/10/2026). Sólo cuando
+                 ninguna lista de este servicio la lleva —sin «Incluye» en la cabecera ni en su
+                 tarjeta—, la pastilla sale sola aquí para que el detalle no se quede sin puerta. -->
+            <EstadoDeActividad
+                v-if="detalleSinLista(grupo, item)"
+                :incluidos="[]"
+                :excepciones="[]"
+                con-detalle
+                class="mb-3"
+                @detalle="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
+            />
 
             <!-- Lo del PROGRAMA entero, en la cabecera del marco: lo que cuelga del segmento del ancla.
                  Su etapa ya no lo repite (`estadoDeEtapa`). -->
@@ -2925,7 +2973,10 @@ const rotuloProcedencia = computed(() => {
                   && (estadoPorActividad.get(grupo.ancla)?.incluidos.length || estadoPorActividad.get(grupo.ancla)?.excepciones.length)"
                 :incluidos="estadoPorActividad.get(grupo.ancla)!.incluidos"
                 :excepciones="estadoPorActividad.get(grupo.ancla)!.excepciones"
+                :limite="LIMITE_INCLUYE"
+                :con-detalle="serviciosConInclusiones.has(item.servicio.id)"
                 class="mb-4"
+                @detalle="abrirInclusiones(item.servicio.id, item.servicio.tituloSnapshot)"
             />
 
             <!-- Dentro de un marco, cada etapa cuelga de una línea: se lee como parte de un todo. -->
@@ -3036,7 +3087,10 @@ const rotuloProcedencia = computed(() => {
                     v-if="!item.esRepeticion && (estadoDeEtapa(grupo, item)?.incluidos.length || estadoDeEtapa(grupo, item)?.excepciones.length)"
                     :incluidos="estadoDeEtapa(grupo, item)!.incluidos"
                     :excepciones="estadoDeEtapa(grupo, item)!.excepciones"
+                    :limite="LIMITE_INCLUYE"
+                    :con-detalle="etapaLlevaDetalle(grupo, item)"
                     :class="modoResumen ? 'mt-2' : 'mb-4'"
+                    @detalle="abrirDetalleDeEtapa(item)"
                 />
 
                 <!-- Contenido narrativo (truncable) — oculto en modo Resumen -->

@@ -8531,6 +8531,34 @@ los bloques de un servicio en el día y, si son **más de uno**, los pinta en UN
 - La marca de la actividad es el componente `EstadoDeActividad.vue`: se pinta en la cabecera y en
   cada etapa, y escrita dos veces acabaría diciendo cosas distintas.
 
+### La lista de «Incluye» ES la puerta al detalle (23/10/2026)
+
+El detalle de lo incluido —con fechas y «Compartido»— sólo se abría con el botón «¿Qué incluye el
+tour?», al que hubo que ponerle un pulso porque nadie lo pulsaba. Y la lista de verdes de encima
+podía ser enorme: la excursión a Paracas llevaba doce antes de su relato. Ahora (Jorge):
+
+```
+✓ Guía  ✓ Transporte Lima–Paracas  ✓ Ingreso Ballestas  ✓ Tour Ballestas
+ⓘ No incluye: Desayuno  ⓘ No incluye: Almuerzo  [Ver 8 más →]      ← recortada
+✓ Traslado aeropuerto → hotel  [Ver detalle →]                     ← cabe entera
+```
+
+- `EstadoDeActividad` enseña los 4 primeros «Incluye» (`LIMITE_INCLUYE`) y termina en una
+  pastilla naranja que abre el modal: **«Ver N más»** si se recortó, **«Ver detalle»** si no.
+  El botón aparte desapareció.
+- ⚠️ **Sólo se recortan los «Incluye»; las excepciones se ven siempre.** El «No incluye» está para
+  que el cliente no se entere en la puerta, y recortarlo lo escondería justo en las excursiones
+  largas.
+- ⚠️ **En papel se imprime la lista entera** (`.solo-papel`): no hay «Ver más» que pulsar, y el
+  recorte pasaría a ser «no existe». La misma regla que las descripciones.
+- **Quién lleva la pastilla:** la cabecera del marco si tiene verdes; si no, la tarjeta de un
+  servicio de una sola etapa; y el **segmento de un contenedor genérico** —el traslado del
+  aeropuerto dentro de «Transporte en Lima», que antes no tenía detalle—, que abre **sólo lo suyo**
+  (`abrirDetalleDeEtapa()` filtra por `componenteId`): con el del servicio enseñaría todos los
+  transportes del viaje. Si ninguna lista la lleva, sale sola donde iba el botón
+  (`detalleSinLista()`), para que el detalle no se quede sin puerta.
+- Los textos son `cot_inc_ver_mas` y `cot_inc_ver_detalle` (`pax:textos:itinerario`).
+
 ### La entrada es un contrato ESTRECHO, no la serialización de nadie
 
 `componerItinerario()` declara **los doce campos que lee** (`ServicioMinimo`, `SegmentoMinimo`,

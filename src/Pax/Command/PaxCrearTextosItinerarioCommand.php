@@ -98,6 +98,10 @@ final class PaxCrearTextosItinerarioCommand extends Command
             . 'Sólo los ve el equipo que arma tu viaje, y se borran un mes después de tu regreso.',
         // La línea del panel encogido: lo ÚNICO que ve quien ya entregó los tres.
         'cot_mis_documentos_completos' => 'Recibidos. No tienes que hacer nada más.',
+        // 23/10/2026: la pastilla al final de los «Incluye» abre el detalle y sustituye al botón
+        // «¿Qué incluye el tour?». Con la lista recortada dice cuántas faltan.
+        'cot_inc_ver_mas' => 'Ver {{ n }} más',
+        'cot_inc_ver_detalle' => 'Ver detalle',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)
