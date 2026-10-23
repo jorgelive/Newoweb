@@ -316,7 +316,12 @@ comprador Cruz del Sur, y lo que se le pide al proveedor en `nombreParaPrestador
 servicio, Bus Inka Suite, a S/50** (`app:travel:bus-puno-cusco-transzela`); el Regular de Cruz del
 Sur sigue por defecto. ⚠️ **Cruz del Sur no sale del Terminal Terrestre**: en Cusco usa Av. Industrial 121
 (Bancopata) y en Puno Jr. 1 de Mayo 703, así que los traslados al terminal no sirven igual para
-las dos empresas — pendiente.
+las dos empresas. **Segmento aparte, mismo componente** (`app:travel:terminales-cruz-del-sur`): el
+destino vive en el `finPunto` del segmento —uno solo por segmento, y corregirlo a mano en cada
+cotización es el olvido que deja al pasajero en otro terminal—, pero el precio es el mismo, así que
+`TRANS-HTL_CUZ-TERM_CDS_CUZ`, `TRANS-TERM_CDS_CUZ-HTL_CUZ` y `REC-TITICACA-TERM_CDS_PUN` cuelgan de
+los componentes que ya cobraban esos traslados. Con Cruz del Sur se eligen ésos; con Transzela, los
+del Terminal Terrestre.
 
 ### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
 
