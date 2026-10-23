@@ -971,6 +971,13 @@ final class CorreccionesDeTraduccion
 
     /** @var array<string, array<string, string>> español entero → [idioma → traducción] */
     private const array FIJAS = [
+        // La pastilla de la guía que abre lo que falta de la lista de «Incluye» (23/10/2026). Google
+        // la sacaba literal —«Vedi {{ n }} altro», «Siehe {{ n }} mehr», «Voir {{ n }} plus»—. El
+        // marcador viaja tal cual: lo rellena `maestroStore.t()`.
+        'Ver {{ n }} más' => [
+            'en' => 'See {{ n }} more', 'pt' => 'Ver mais {{ n }}', 'fr' => 'Voir {{ n }} de plus',
+            'it' => 'Vedi altri {{ n }}', 'de' => '{{ n }} weitere anzeigen', 'nl' => 'Nog {{ n }} bekijken',
+        ],
         'Caja fuerte' => [
             'en' => 'Safe', 'pt' => 'Cofre', 'fr' => 'Coffre-fort', 'it' => 'Cassaforte', 'de' => 'Safe', 'nl' => 'Kluis',
         ],
