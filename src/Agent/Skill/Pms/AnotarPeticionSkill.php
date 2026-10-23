@@ -72,7 +72,7 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     {
         return new SkillDefinition(
             descripcion: 'Anota algo que el huésped pide para su estancia —ANTES de llegar o '
-                . 'YA ALOJADO—: que le dejen una plancha, un secador, una estufa, frazadas, '
+                . 'YA ALOJADO—: que le dejen una plancha, una estufa, frazadas, '
                 . 'almohadas; un cambio de toallas, una limpieza. La petición queda pegada a su '
                 . 'estancia y la ve el equipo en la ficha de la reserva. '
                 . '⚠️ ÚSALA SIEMPRE QUE DIGAS QUE SE TOMA NOTA: si no la llamas, no hay nota en '
@@ -84,7 +84,11 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
                 . 'y no le añadas datos de OTRO asunto (la hora de un incidente no es parte del pedido '
                 . 'de toallas). '
                 . 'Tampoco sustituye a responderle: mira primero en su guía si eso existe, '
-                . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía.',
+                . 'cuéntaselo, y ADEMÁS anótalo. SI PREGUNTA CUÁNTO CUESTA, dale el precio de su guía. '
+                // 22/10/2026: con «un secador» como ejemplo, «¿y la secadora?» tras pedir la plancha
+                // acababa anotada como pedido, y la secadora ya se deja siempre en la casita.
+                . 'Lo que su guía dice que YA ESTÁ en la casita (la secadora de cabello, por ejemplo) no '
+                . 'se anota: díselo y dile dónde preguntar si no lo encuentra.',
             parametros: [
                 ReservaDeLaConsulta::parametro(),
                 SkillParameter::texto('peticion', 'Qué pide, en una línea y con sus palabras: '
@@ -194,7 +198,16 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     }
 
     /**
-     * Qué se le puede decir de CUÁNDO, según si ya está alojado.
+     * El horario en que el equipo RECIBE solicitudes; se preparan para el día siguiente. Lo mismo
+     * dice la ficha «Solicitudes y requerimientos» (`app:pms:guia:horario-solicitudes`): si cambia,
+     * cambian las dos.
+     */
+    private const int RECEPCION_DESDE = 9;
+
+    private const int RECEPCION_HASTA = 21;
+
+    /**
+     * Qué se le puede decir de CUÁNDO, según si ya está alojado y si lo pide dentro del horario.
      *
      * 🔥 Decía siempre «queda apuntado para su llegada… lo verá quien prepare la casita el día de su
      * llegada». Para quien escribe antes de llegar es verdad; para quien ya está dentro es falso. José
@@ -206,15 +219,27 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
     {
         $zona = $evento->zonaHoraria();
         $inicio = $evento->getInicio();
+        // Por el reloj de Symfony: `app:agent:replay --ahora` lo fija para ensayar a otra hora.
+        $ahora = Clock::get()->now()->setTimezone($zona);
         $yaLlego = $inicio === null
-            // Por el reloj de Symfony: `app:agent:replay --ahora` lo fija para ensayar a otra hora.
-            || Clock::get()->now()->setTimezone($zona) >= new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
+            || $ahora >= new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
 
-        return $yaLlego
-            ? 'Queda anotado en su estancia. Ya está alojado: las solicitudes se reciben de 9:00 a 21:00 y se '
-                . 'preparan para el DÍA SIGUIENTE. Díselo así: que queda anotado y se lo llevan mañana. Si lo '
-                . 'necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.'
-            : 'Queda anotado en su estancia y lo verá quien prepare la casita para su llegada. Díselo así: que '
+        if (!$yaLlego) {
+            return 'Queda anotado en su estancia y lo verá quien prepare la casita para su llegada. Díselo así: que '
                 . 'queda apuntado para su llegada. NO le prometas una hora ni que se lo suben ahora mismo.';
+        }
+
+        // 🕘 Dentro del horario de recepción, mañana con convicción; fuera, se intenta, sin prometerlo
+        // (Jorge, 22/10/2026). Las dos ramas en positivo y con el hecho delante.
+        $hora = (int) $ahora->format('G');
+        $enHorario = $hora >= self::RECEPCION_DESDE && $hora < self::RECEPCION_HASTA;
+
+        return $enHorario
+            ? 'Queda anotado en su estancia. Ya está alojado y lo pide dentro del horario de solicitudes (9:00 a '
+                . '21:00): se prepara para el DÍA SIGUIENTE. Díselo así: que queda anotado y se lo llevan mañana. Si '
+                . 'lo necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.'
+            : 'Queda anotado en su estancia. Lo pide FUERA del horario de solicitudes (9:00 a 21:00): díselo con '
+                . 'amabilidad, y que igual lo dejas anotado y se intentará llevárselo mañana, sin asegurárselo. Si lo '
+                . 'necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.';
     }
 }

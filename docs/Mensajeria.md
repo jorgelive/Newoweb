@@ -6795,7 +6795,11 @@ también a quien ya estaba dentro. Ahora tiene dos ramas (`AnotarPeticionSkill::
 antes de la entrada, para su llegada; ya alojado, **para el día siguiente** —las solicitudes se
 reciben de 9:00 a 21:00 y se programan para el día siguiente (Jorge; ficha «Solicitudes y
 requerimientos», `app:pms:guia:horario-solicitudes`)—, y si lo necesita hoy se escala diciendo para
-cuándo. El caso: José Paredes (AG2CZY), alojado, pidió la plancha a las 17:54 para salir esa noche
+cuándo. Y **fuera del horario de recepción** (de 21:00 a 9:00) la rama cambia: se le dice el
+horario con amabilidad, se anota igual y se intenta para el día siguiente **sin asegurarlo** —con
+menos convicción que lo recibido en horario (Jorge)—. Las horas viven en
+`AnotarPeticionSkill::RECEPCION_DESDE/HASTA` y en la ficha: si cambian, cambian las dos.
+El caso: José Paredes (AG2CZY), alojado, pidió la plancha a las 17:54 para salir esa noche
 y se le prometió. El dato va en la respuesta de la skill y no sólo en la guía porque el agente,
 ante «¿me traen papel?», anota sin consultar la guía: ensayado, sin esto nunca decía «mañana».
 
