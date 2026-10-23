@@ -312,8 +312,9 @@ Superior» S/80 de un tarifario desactualizado, sin prestador ni ninguna por def
 salida de las **22:00**, y Cruz del Sur vende en esa ruta sólo dos servicios: **Bus Evolution
 Regular** (S/55, por defecto) y **Bus Evolution VIP** (S/75), precios de su web. Prestador y
 comprador Cruz del Sur, y lo que se le pide al proveedor en `nombreParaPrestador`
-(`app:travel:bus-puno-cusco-cruz-del-sur`). Transzela, su otro proveedor, entra cuando haya
-precio. ⚠️ **Cruz del Sur no sale del Terminal Terrestre**: en Cusco usa Av. Industrial 121
+(`app:travel:bus-puno-cusco-cruz-del-sur`). Transzela, su otro proveedor, tiene **un solo
+servicio, Bus Inca Suite, a S/50** (`app:travel:bus-puno-cusco-transzela`); el Regular de Cruz del
+Sur sigue por defecto. ⚠️ **Cruz del Sur no sale del Terminal Terrestre**: en Cusco usa Av. Industrial 121
 (Bancopata) y en Puno Jr. 1 de Mayo 703, así que los traslados al terminal no sirven igual para
 las dos empresas — pendiente.
 
