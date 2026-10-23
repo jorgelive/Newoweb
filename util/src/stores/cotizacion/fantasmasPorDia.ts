@@ -13,9 +13,9 @@
  * `+1` del seguro, los párrafos con fecha propia— sería la segunda copia de una regla, y la
  * primera vez que cambiara una el editor y el cliente dirían días distintos.
  *
- * ⚠️ **La unidad de conteo llega resuelta del servidor** (`getUnidadDeConteo()`). Un componente
- * añadido en esta sesión no la trae hasta guardarse y cuenta en noches, que es el defecto de la
- * función: un seguro recién puesto se ve un día más corto hasta guardar.
+ * ⚠️ **La unidad de conteo se lee del snapshot y, si no, de la resuelta por el servidor**
+ * (`getUnidadDeConteo()`), igual que el resto del editor. Sólo un componente sin ninguna de las dos
+ * —uno escrito a mano— cuenta en noches, que es el defecto de la función.
  */
 import { componerItinerario, diffDays } from '@dominio/cotizacion/index.ts';
 import type { ServicioMinimo } from '@dominio/cotizacion/index.ts';
@@ -66,8 +66,11 @@ const aMinimo = (servicio: CotServicio): ServicioMinimo & { original: CotServici
             fechaHoraFin: comp.fechaHoraFin,
             sinHorario: comp.sinHorario,
             horaServicioCompleto: comp.horaServicioCompleto,
-            unidadDeConteo: comp.unidadDeConteo ?? null,
-            sustantivoUnidad: comp.sustantivoUnidad ?? null,
+            // El snapshot primero, como el resto del editor (`sustantivoDeComponente`): lo pone el
+            // store al añadir desde el catálogo, y el campo resuelto del servidor no llega hasta
+            // guardar. Sin esto, un boleto de 10 días recién añadido salía «noche 2 de 10» (Fable).
+            unidadDeConteo: comp.unidadDeConteoSnapshot ?? comp.unidadDeConteo ?? null,
+            sustantivoUnidad: comp.sustantivoUnidadSnapshot ?? comp.sustantivoUnidad ?? null,
         };
     }),
 });
@@ -77,10 +80,19 @@ export const fantasmasPorDia = (servicios: CotServicio[], opciones: OpcionesFant
     const minimos = servicios.map(aMinimo);
     const dias = componerItinerario({ cotservicios: minimos });
 
-    // Hasta qué día llega cada servicio, para decir «día 3 de 4».
+    // Desde y hasta qué día sale cada servicio, para decir «día 3 de 4».
+    //
+    // ⚠️ **Desde el PRIMER día en que sale, no desde el de su tarjeta.** No siempre coinciden: la
+    // fecha del servicio la ancla el componente original (`sincronizarFechaServicio`), y una copia
+    // para un subgrupo que sale la víspera pone un bloque ANTES. Medido desde la tarjeta, ese
+    // fantasma decía «día 0 de 2» (Fable).
+    const primerDia = new Map<string, string>();
     const ultimoDia = new Map<string, string>();
     for (const dia of dias) {
-        for (const b of dia.bloques) ultimoDia.set(b.servicio.id, dia.fecha);
+        for (const b of dia.bloques) {
+            if (!primerDia.has(b.servicio.id)) primerDia.set(b.servicio.id, dia.fecha);
+            ultimoDia.set(b.servicio.id, dia.fecha);
+        }
     }
 
     const resultado = new Map<string, Fantasma[]>();
@@ -99,7 +111,7 @@ export const fantasmasPorDia = (servicios: CotServicio[], opciones: OpcionesFant
             if (!fantasma) {
                 const etiqueta = bloque.esPeriodo && bloque.esRepeticion
                     ? `${bloque.sustantivoUnidad || (bloque.unidad === 'dias' ? 'día' : 'noche')} ${bloque.indiceUnidad} de ${bloque.totalUnidades}`
-                    : `día ${diffDays(inicio, dia.fecha) + 1} de ${diffDays(inicio, ultimoDia.get(id) ?? dia.fecha) + 1}`;
+                    : `día ${diffDays(primerDia.get(id) ?? dia.fecha, dia.fecha) + 1} de ${diffDays(primerDia.get(id) ?? dia.fecha, ultimoDia.get(id) ?? dia.fecha) + 1}`;
 
                 fantasma = {
                     servicioId: id,

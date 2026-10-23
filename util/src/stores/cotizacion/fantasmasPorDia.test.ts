@@ -67,6 +67,27 @@ describe('fantasmasPorDia', () => {
         expect(mapa.get('2027-01-04')?.[0]).toMatchObject({ etiqueta: 'día 3 de 3', titulos: ['Wiñay Wayna'] });
     });
 
+    it('un componente recién añadido cuenta con su snapshot, no en noches', () => {
+        const boleto = hotel();
+        const c = boleto.cotcomponentes![0] as unknown as Record<string, unknown>;
+        delete c.unidadDeConteo;
+        c.unidadDeConteoSnapshot = 'dias';
+        c.sustantivoUnidadSnapshot = 'día';
+
+        expect(fantasmasPorDia([boleto], opciones).get('2027-01-10')?.[0].etiqueta).toBe('día 4 de 4');
+    });
+
+    it('si una parte sale antes que su tarjeta, se cuenta desde ahí: nunca «día 0»', () => {
+        const vuelo = caminoInca();
+        vuelo.fechaInicioAbsoluta = '2027-01-03';
+
+        const mapa = fantasmasPorDia([vuelo], opciones);
+
+        expect(mapa.get('2027-01-02')?.[0].etiqueta).toBe('día 1 de 3');
+        expect(mapa.get('2027-01-04')?.[0].etiqueta).toBe('día 3 de 3');
+        expect(mapa.has('2027-01-03')).toBe(false);
+    });
+
     it('un servicio de un día no deja fantasmas', () => {
         const traslado = {
             ...caminoInca(),

@@ -6990,9 +6990,11 @@ a 4 de un Camino Inca o las noches de un hotel parecían vacíos aunque el clien
 la misma función que reparte los días en la guía del cliente y en PHP. El editor sólo pregunta qué
 bloque de cada día pertenece a un servicio que empezó en otro. Escribir aquí el reparto —noches vs
 días, el `+1` del seguro, los párrafos con fecha propia— sería una segunda copia, y la primera vez
-que cambiara una el editor y el cliente dirían días distintos. La unidad de conteo llega resuelta del
-servidor (`getUnidadDeConteo()`); un componente añadido en esta sesión no la trae hasta guardarse y
-cuenta en noches.
+que cambiara una el editor y el cliente dirían días distintos. La unidad de conteo se lee del snapshot
+y, si no, de la resuelta por el servidor —igual que el resto del editor—: leyendo sólo la del
+servidor, un boleto de 10 días recién añadido salía «noche 2 de 10» hasta guardar (segunda revisión
+de Fable). Y el «día N de M» se cuenta desde el **primer día en que sale** el servicio, no desde el
+de su tarjeta: una copia para un subgrupo que sale la víspera ponía un bloque antes, y decía «día 0».
 
 ## 6.k `Filedocumento` → `Filearchivo`: el nombre que hacía leerla al revés (23/08/2026)
 
