@@ -2071,9 +2071,19 @@ valora la disponibilidad y si cobra o no. Dos cosas lo contradecían:
   casita está libre, puede llegar desde esa hora». `PmsInstruccionesDominio::espacioAlrededor()`
   ahora sólo se lo da al EQUIPO. Al huésped le basta `confirmar_hora`, que fuera del horario no
   promete nada y avisa al equipo con la noche de al lado.
-- **El costo SÍ se dice** (Jorge, el mismo día): que adelantar o atrasar la hora tiene un costo
-  adicional y depende de la disponibilidad, y que se le pasa la solicitud al equipo. Lo que el agente
-  no hace es concederlo. `confirmar_hora` se lo dice así de entrada; la ficha ya lo decía.
+- **El costo SÍ se dice, siempre** (Jorge, el mismo día): que adelantar o atrasar la hora tiene un
+  costo adicional y depende de la disponibilidad, y que se le pasa la solicitud al equipo. Lo que el
+  agente no hace es concederlo.
+
+🔬 **Comparado con DeepSeek y Gemini** (`app:agent:replay --motor`): DeepSeek sólo lo decía si se
+lo preguntaban y escalaba la salida tardía sin `confirmar_hora`, así que la hora pedida no quedaba en
+la reserva. Las dos causas estaban escritas: «SI PREGUNTA SI TIENE COSTO: sí…» (en la descripción de
+`confirmar_hora` y en la ficha) y, en `escalar_al_equipo`, «salir más tarde, entrar antes…: eso
+SIEMPRE se escala», contra un `confirmar_hora` que decía «cuando él te lo dice». Ahora
+`confirmar_hora` cubre también cuando lo PIDE, el costo va sin condición, `escalar_al_equipo` manda
+el horario a `confirmar_hora`, y la ficha lo dice igual (`app:pms:guia:horario-flexible-costo`).
+DeepSeek 4 de 4 tras el cambio. Un modelo que lee al pie de la letra es el mejor detector de
+instrucciones que se contradicen.
 
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 

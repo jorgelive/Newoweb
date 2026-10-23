@@ -91,13 +91,14 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
     {
         return new SkillDefinition(
             descripcion: 'Apunta a qué hora LLEGA o a qué hora SE VA el huésped, cuando él te lo dice '
-                . '(«llegamos a las 16:00», «salimos a las 9», «sí, a las 10 nos vamos»). ÚSALA SIEMPRE '
+                . '(«llegamos a las 16:00», «salimos a las 9», «sí, a las 10 nos vamos») y TAMBIÉN cuando '
+                . 'lo pide («¿podemos salir a las 2?», «¿puedo entrar a las 11?»). ÚSALA SIEMPRE '
                 . 'que el huésped confirme o cambie su hora, también si coincide con la de siempre: '
                 . 'el equipo necesita saber que la confirmó. Si cabe en el horario la apunto y aviso '
                 . 'al equipo; si es antes del check-in o después del check-out, NO la apunto: dejo '
                 . 'la petición y aviso al equipo, que decide. En ese caso NO le prometas nada: dile '
-                . 'el horario y que lo consultas con el equipo. SI PREGUNTA SI TIENE COSTO: sí, '
-                . 'tiene un costo adicional y el equipo le confirma el detalle. '
+                . 'el horario, que adelantarlo o atrasarlo tiene un costo adicional y depende de la '
+                . 'disponibilidad, y que se lo pasas al equipo, que le confirma. '
                 . 'CÓMO LEER LA HORA: un número suelto es la hora de 24 h tal cual —«a las 6» son '
                 . 'las 06:00—; sólo es de la tarde si lo dice («6 de la tarde», «6 pm»). Ante la duda '
                 . 'NO adivines: pregúntale si es de la mañana o de la tarde. Si llega de madrugada '

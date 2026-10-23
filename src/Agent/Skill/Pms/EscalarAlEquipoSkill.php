@@ -172,7 +172,11 @@ final readonly class EscalarAlEquipoSkill implements SkillInterface, SkillDomini
                 . 'está escrito («¿a qué hora es el check out?», «¿cómo va la ducha?»): eso lo '
                 . 'respondes tú con su guía y NO me llamas. Pedir es querer que pase algo que '
                 . 'depende de nosotros —salir más tarde, entrar antes, cambiar fechas, un '
-                . 'servicio extra, una avería, un cobro que no cuadra—: eso SIEMPRE se escala, '
+                . 'servicio extra, una avería, un cobro que no cuadra—: eso SIEMPRE se escala '
+                // 22/10/2026: con «salir más tarde… SIEMPRE se escala» y nada más, DeepSeek escalaba
+                // la salida tardía sin `confirmar_hora` y la hora pedida no quedaba en la reserva.
+                . '(entrar antes o salir más tarde, con confirmar_hora, que deja la petición y ya '
+                . 'avisa al equipo), '
                 . 'AUNQUE SU GUÍA EXPLIQUE LAS CONDICIONES: que estén escritas no te autoriza a '
                 . 'concedérselo, nadie ha mirado si esa noche está libre. Al revés: '
                 . 'si su guía dice que hay que coordinarlo, es la prueba de que hace falta una '
