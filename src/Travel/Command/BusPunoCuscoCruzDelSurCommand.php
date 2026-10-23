@@ -56,7 +56,7 @@ final class BusPunoCuscoCruzDelSurCommand extends Command
     ];
 
     private const string POR_DEFECTO = 'Bus Evolution Regular';
-    private const array SEGMENTOS = ['TRANS-CUZ-PUNO', 'TRANS-PUNO-CUZ'];
+    private const array SEGMENTOS = ['TRANS_BUS-CUZ-PUN', 'TRANS_BUS-PUN-CUZ'];
     private const string HORA = '22:00';
 
     public function __construct(private readonly EntityManagerInterface $em)

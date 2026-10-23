@@ -302,8 +302,8 @@ otro.
 
 Los dos sentidos del bus Cusco ↔ Puno estaban en «Transporte en Puno», y al armar el día de la
 salida desde Cusco el operador lo buscaba —con razón— en «Transporte en Cusco» y no aparecía.
-**El segmento va en el servicio de la ciudad de donde sale**: `TRANS-CUZ-PUNO` en `TRF_CUZ`,
-`TRANS-PUNO-CUZ` en `TRF_PUN` (`Version20261023120000`). El componente es uno por ruta, no por
+**El segmento va en el servicio de la ciudad de donde sale**: `TRANS_BUS-CUZ-PUN` en `TRF_CUZ`,
+`TRANS_BUS-PUN-CUZ` en `TRF_PUN` (`Version20261023120000`). El componente es uno por ruta, no por
 sentido (§2), así que vive en los **dos** pools: sin él, el segmento de Cusco se arrastra sin nada
 que cobrar.
 
@@ -332,7 +332,7 @@ las dos ciudades (Jorge): el de Cusco se creó con `app:travel:traslados-termina
 Al llegar el bus los reciben en el terminal y los llevan a un hotel de Puno, y es ALLÍ —no en el
 terminal— donde usan los servicios higiénicos, dejan el equipaje en custodia y pueden desayunar con
 costo extra mientras esperan el recojo (Jorge). Los segmentos se llamaban `REC-TITICACA-…` y decían «les llevamos al
-punto de inicio de la excursión»; ahora es `REC-PUNO-TERM_PUN`, para las dos empresas, y el
+punto de inicio de la excursión»; ahora es `RECEP_TRANS-TERM_PUN-HTL_PUN`, para las dos empresas, y el
 componente es «Transporte Terminal Puno → Hotel de espera». El destino queda **sin definir**: el hotel
 de espera no es el alojamiento del pasajero, y marcarlo así envenenaría el punto de recojo de lo
 siguiente.
@@ -341,6 +341,12 @@ siguiente.
 excursión tienen la tarde libre en el centro y van al bus de las 22:00 solos: Uber o mototaxi,
 menos de 10 minutos y de S/10, o 20 a pie (Jorge). Segmento `TRANS-CENTRO_PUN-TERM_PUN`, a las
 **20:30** «para que no se les pase».
+
+**Los códigos se buscan, así que dicen qué es** (`Version20261023190000`, Jorge). El medio va en el
+prefijo, como ya hacían `TRANS_DIRECT_…`, `TRANS_BIM_…` y `TRANS_BYCAR_…`: los buses son
+`TRANS_BUS-CUZ-PUN` y `TRANS_BUS-PUN-CUZ` —«Bus nocturno Cusco → Puno» y «Puno → Cusco», los dos a
+las 22:00— y la recepción `RECEP_TRANS-TERM_PUN-HTL_PUN`. Las ciudades, en tres letras (`PUN`, no
+`PUNO`), como `CUZ`, `LIM` o `PUJ`.
 
 ### «Por cuenta del cliente»: el componente que sólo pone hora (23/10/2026)
 

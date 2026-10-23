@@ -140,7 +140,7 @@ final class CrearConexionPunoCommand extends Command
             'servicio' => self::SERVICIO_CUSCO,
         ],
         [
-            'slug' => 'TRANS-CUZ-PUNO',
+            'slug' => 'TRANS_BUS-CUZ-PUN',
             'nombre' => 'Bus nocturno Cusco – Puno',
             'titulo' => 'Bus nocturno a Puno',
             'contenido' => 'Salida de Cusco a las diez de la noche. El bus cruza el altiplano '
@@ -153,7 +153,7 @@ final class CrearConexionPunoCommand extends Command
             'servicio' => self::SERVICIO_PUNO['codigo'],
         ],
         [
-            'slug' => 'TRANS-PUNO-CUZ',
+            'slug' => 'TRANS_BUS-PUN-CUZ',
             'nombre' => 'Bus Puno – Cusco',
             'titulo' => 'Bus de regreso a Cusco',
             'contenido' => 'Regreso a Cusco por carretera, cruzando el altiplano de vuelta.',
@@ -165,7 +165,7 @@ final class CrearConexionPunoCommand extends Command
             'servicio' => self::SERVICIO_PUNO['codigo'],
         ],
         [
-            'slug' => 'REC-PUNO-TERM_PUN',
+            'slug' => 'RECEP_TRANS-TERM_PUN-HTL_PUN',
             'nombre' => 'Recepción en el Terminal Terrestre de Puno',
             'titulo' => 'Llegada a Puno y espera',
             'contenido' => 'Les esperamos a la llegada del bus. Mientras arranca el tour pueden '

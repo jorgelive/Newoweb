@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * reciben y los transportan a un hotel en Puno donde pueden desayunar y esperar el recojo».
  *
  * ```
- * REC-TITICACA-TERM_PUN      →  REC-PUNO-TERM_PUN       desde el Terminal Terrestre
+ * REC-TITICACA-TERM_PUN      →  REC-PUNO-TERM_PUN (hoy RECEP_TRANS-TERM_PUN-HTL_PUN)
  * REC-TITICACA-TERM_CDS_PUN  →  retirado: en Puno Cruz del Sur sale del Terminal Terrestre
  * ```
  *
@@ -54,7 +54,7 @@ final class RecepcionPunoHotelCommand extends Command
     private const array SEGMENTOS = [
         [
             'antes' => 'REC-TITICACA-TERM_PUN',
-            'slug' => 'REC-PUNO-TERM_PUN',
+            'slug' => 'RECEP_TRANS-TERM_PUN-HTL_PUN',
             'nombre' => 'Recepción en el Terminal Terrestre de Puno y traslado al hotel',
             'titulo' => 'Llegada a Puno',
             'contenido' => 'Les esperamos a la llegada del bus en el Terminal Terrestre y les llevamos a un '
