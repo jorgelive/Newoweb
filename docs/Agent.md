@@ -845,6 +845,48 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
   llamada, así que no ha corrido ninguna skill; si llegara a mitad de turno, una de escritura podría
   correr dos veces.
 
+### 📮 Qué manda cada motor cuando falla (23/10/2026)
+
+`DecisionDelSondeo::esDefinitivo()` decide sobre el **texto** de la excepción, así que hay que saber
+qué texto llega. Sale de la documentación de cada proveedor y de cómo arma el mensaje nuestro cliente.
+⚠️ **Ninguno se ha visto aún en producción**: el sondeo sólo ha registrado «responde», y los logs no
+guardan ningún 401/402/403 real. Cuando aparezca el primero, se pega aquí tal cual.
+
+**Cómo llega el mensaje a `esDefinitivo()`:**
+
+| Motor | Quién arma el mensaje | Forma | ¿Lleva el código HTTP? |
+|---|---|---|---|
+| Anthropic | el SDK (`Anthropic\Core\Exceptions\APIStatusException`) | JSON `{"status": 400, "body": {"type":"error","error":{"type":…,"message":…},"request_id":"req_…"}}`; la clase ya dice el código (`AuthenticationException` 401, `PermissionDeniedException` 403…) y `$e->type` el tipo | **sí** |
+| Google | `GoogleAIClient::generar()` | `Google AI <código>: <error.message>` | **sí** |
+| DeepSeek | `DeepSeekClient::completar()` | `DeepSeek: <error.message>` | ⚠️ **no**: se descarta |
+
+**Lo que dice cada proveedor que manda:**
+
+| Situación | Anthropic | Google (Gemini) | DeepSeek |
+|---|---|---|---|
+| Clave mala o caducada | 401 `authentication_error` | 401 `authentication` | 401 «Authentication Fails» |
+| Sin permiso | 403 `permission_error` | 403 `permission_denied` | — |
+| Pago / saldo | 402 `billing_error`; **sin crédito o tope de gasto propio: 400** `invalid_request_error` («Your credit balance is too low…») | 402 `payment_required` («Your Prepay credit balance is depleted»); facturación desactivada: 400 `failed_precondition` | 402 «Insufficient Balance» |
+| Límite de ritmo (pasajero) | 429 `rate_limit_error` con `retry-after` | 429 `rate_limit_exceeded` / `too_many_requests` | 429 «Rate Limit Reached» |
+| Tope que no se repone solo | 429 de tope de gasto del nivel, **sin** `retry-after` | 429 `quota_exceeded` (cuota diaria: se repone al día siguiente) | — |
+| Caída suya (pasajero) | 500 `api_error`, 529 `overloaded_error` | 503 `UNAVAILABLE`, 5xx | 500, 503 |
+
+Fuentes: [Claude API errors](https://platform.claude.com/docs/en/api/errors), [Gemini API errors](https://ai.google.dev/gemini-api/docs/api-errors), [DeepSeek error codes](https://api-docs.deepseek.com/quick_start/error_codes).
+
+⚠️ **Lo que el detector de hoy hace mal, por estas tablas** (pendiente de arreglar):
+
+- **DeepSeek sin saldo no se detecta.** Llega «DeepSeek: Insufficient Balance»: sin código y sin
+  «credit» ni «billing». El 401 sí, porque su mensaje dice «api key».
+- **Un límite de ritmo puede sacar un motor.** El detector busca «billing» en todo el texto, y los
+  429 de Gemini suelen remitir a «your plan and billing details»: un pico de tráfico lo dejaría fuera
+  de servicio hasta el siguiente sondeo.
+- **Anthropic sin crédito llega como 400**, no 402: lo salva la palabra «credit», no el código.
+
+El arreglo de raíz no es afinar la expresión regular: es que cada motor diga si su fallo es
+definitivo con lo que **sabe** —el código HTTP y el tipo (Anthropic lo da en la clase de la excepción
+y en `$e->type`; nuestros clientes de Google y DeepSeek tienen el código en la mano)—, en vez de que
+el núcleo adivine sobre un texto.
+
 ### Las tres salvaguardas, y cuál hace qué
 
 | Salvaguarda | Dónde | Qué evita |
