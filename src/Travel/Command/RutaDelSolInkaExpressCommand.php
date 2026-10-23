@@ -59,7 +59,7 @@ final class RutaDelSolInkaExpressCommand extends Command
     private const array ENTRADAS = [
         'Ingreso a Andahuaylillas' => 'Extranjero',
         'Ingreso a Raqchi' => 'General',
-        'Ingreso al Museo Lítico de Pukará' => 'Ingreso al Museo Lítico de Pukará · General',
+        'Ingreso a Museo Litico de Pucará' => 'General',
     ];
 
     public function __construct(private readonly EntityManagerInterface $em)

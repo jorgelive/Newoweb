@@ -190,14 +190,17 @@ final class CrearRutaDelSolCommand extends Command
     ];
 
     /**
-     * Entrada → segmento de la parada. La de Pukará se crea; las otras dos existían.
+     * Entrada → segmento de la parada. Las tres existían.
      *
      * @var array<string, string>
      */
     private const array ENTRADAS = [
         'Ingreso a Andahuaylillas' => 'VIS-RSOL-ANDAHUAYLILLAS',
         'Ingreso a Raqchi' => 'VIS-RSOL-RAQCHI',
-        'Ingreso al Museo Lítico de Pukará' => 'VIS-RSOL-PUKARA',
+        // ⚠️ Existía desde abril con este nombre, sin tilde y con c. La primera pasada lo buscó como
+        // «Ingreso al Museo Lítico de Pukará» y creó un duplicado; lo quitó
+        // `app:travel:ruta-del-sol-entradas-mer`.
+        'Ingreso a Museo Litico de Pucará' => 'VIS-RSOL-PUKARA',
     ];
 
     private const string PUKARA_MONTO = '15.00';
