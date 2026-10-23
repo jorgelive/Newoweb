@@ -407,7 +407,9 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
                 'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s y que lo '
                 . 'consultas con el equipo, que depende de la disponibilidad. Ofrécele mientras '
                 . 'guardar el equipaje (conocimiento «Guardar equipaje»). SI PREGUNTA SI TIENE COSTO: '
-                . 'sí, tiene un costo adicional y el equipo le confirma el detalle. La petición queda '
+                // 22/10/2026, Jorge: el equipo evalúa en cada caso si cobra o no. «Sí, tiene un
+                // costo» lo afirmaba —y el modelo lo soltaba sin que se lo preguntaran—.
+                . 'el equipo valora la disponibilidad y si tiene costo, y se lo confirma. La petición queda '
                 . 'pegada a su estancia y el equipo YA está avisado: no hace falta escalar_al_equipo.',
                 $esSalida ? 'check-out' : 'check-in',
                 $limite

@@ -2061,6 +2061,21 @@ preparan para el día siguiente (Jorge). La reescribe `app:pms:guia:horario-soli
 conservando lo del teléfono, y `anotar_peticion` lo dice en su respuesta (`docs/Mensajeria.md`,
 «Y CUÁNDO se atiende lo anotado»). Ensayado 3 de 3.
 
+## 7 octies. Entrada temprana y salida tardía: las decide el equipo, sin pistas de ocupación (22/10/2026)
+
+Decisión de Jorge: adelantar una entrada o estirar una salida se consulta SIEMPRE al equipo, que
+valora la disponibilidad y si cobra o no. Dos cosas lo contradecían:
+
+- **El contexto le daba al agente la ocupación** de la casita alrededor de la estancia («ANTES: la
+  casita está libre; nadie sale ese día») con la orden «dale la conclusión», y contestaba «como la
+  casita está libre, puede llegar desde esa hora». `PmsInstruccionesDominio::espacioAlrededor()`
+  ahora sólo se lo da al EQUIPO. Al huésped le basta `confirmar_hora`, que fuera del horario no
+  promete nada y avisa al equipo con la noche de al lado.
+- **«Tiene un costo adicional»** lo afirmaban `confirmar_hora` y la ficha «Equipaje y horarios
+  flexibles», y el agente lo decía sin que se lo preguntaran. Ahora: puede tenerlo, lo valora el
+  equipo, y sólo si pregunta (`app:pms:guia:horario-flexible-costo`, que cambia esas dos frases y
+  respeta el resto de la ficha, editada en el panel).
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de

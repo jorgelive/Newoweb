@@ -252,6 +252,16 @@ final readonly class PmsInstruccionesDominio implements InstruccionesDeDominioIn
             return '';
         }
 
+        // 🔒 Sólo al EQUIPO (22/10/2026, Jorge). Adelantar una entrada o estirar una salida lo
+        // decide una persona, que valora además si se cobra; al huésped el agente no le ofrece nada
+        // por su cuenta. Con la conclusión delante —«la casita está libre; nadie sale ese día»— y la
+        // orden «dale la conclusión», contestaba «como la casita está libre, puede llegar desde esa
+        // hora». Al huésped le basta `confirmar_hora`, que ante una hora fuera del horario no
+        // promete nada y avisa al equipo con la noche de al lado.
+        if (!$actor->esDelEquipo()) {
+            return '';
+        }
+
         $reserva = $this->em->getRepository(PmsReserva::class)->find($actor->contextoId());
 
         if ($reserva === null) {
