@@ -28,8 +28,9 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  * Crea además las cuatro habitaciones que ofrece —Individual, Matrimonial, Doble y Triple— como
  * servicios de la organización, con su foto, para elegirlas en el componente (Prestador → servicio).
  *
- * ⚠️ **Teléfono y correo NO se cargan aquí**: de la ficha salen las órdenes al proveedor, y poner el
- * correo de reservas podría mandarle órdenes que nadie decidió mandarle. Eso lo decide Jorge.
+ * Y el contacto de reservas, que tampoco tenía: el móvil —el formato de los demás, y el que sirve
+ * para WhatsApp— y el correo de reservas. ⚠️ De la ficha salen las órdenes al proveedor; se puso
+ * porque Jorge lo pidió expresamente. La centralita (+51 1 242 2222) queda anotada aquí.
  *
  * Por comando y no por migración: título y descripciones llevan `#[AutoTranslate]`.
  * Idempotente: sólo rellena lo vacío y no duplica habitaciones ni fotos.
@@ -38,7 +39,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 #[AsCommand(
     name: 'app:travel:completar-hotel-habitat',
-    description: 'Completa la ficha pública del Hotel Habitat: título, descripción, web, fotos y habitaciones.',
+    description: 'Completa la ficha del Hotel Habitat: título, descripción, web, contacto, fotos y habitaciones.',
     hidden: true,
 )]
 final class CompletarHotelHabitatCommand extends Command
@@ -46,6 +47,8 @@ final class CompletarHotelHabitatCommand extends Command
     private const string NOMBRE = 'Hotel Habitat';
     private const string TITULO = 'Habitat Hotel';
     private const string URL = 'https://habitathotelperu.com/es/';
+    private const string TELEFONO = '+51 997 392 963';
+    private const string EMAIL = 'reservas@habitathotelperu.com';
     private const string DESCRIPCION = 'Hotel moderno en el corazón de Miraflores, en la esquina de la calle Piura con la '
         . 'avenida Arequipa. Está a unos 600 metros del Parque Kennedy, a pasos del Mercado Indio y rodeado de '
         . 'restaurantes; Larcomar y el malecón quedan a unos 2 km. Wifi gratuito, recepción las 24 horas y '
@@ -113,6 +116,18 @@ final class CompletarHotelHabitatCommand extends Command
                     ->setDescripcion([['language' => 'es', 'content' => self::DESCRIPCION]])
                     ->setUrl(self::URL)
                     ->setVisibleParaCliente(true);
+            }
+        }
+
+        if (($hotel->getTelefono() ?? '') === '' || ($hotel->getEmail() ?? '') === '') {
+            $io->text(sprintf('· Contacto: %s · %s', self::TELEFONO, self::EMAIL));
+            if (!$seco) {
+                if (($hotel->getTelefono() ?? '') === '') {
+                    $hotel->setTelefono(self::TELEFONO);
+                }
+                if (($hotel->getEmail() ?? '') === '') {
+                    $hotel->setEmail(self::EMAIL);
+                }
             }
         }
 
