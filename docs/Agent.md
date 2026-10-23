@@ -771,9 +771,11 @@ salido a huéspedes reales.
 ya chocó** con el fallo. El 16–17/10/2026 se agotaron los créditos de Google y no lo supo nadie:
 no entró ningún mensaje en ese rato, y se descubrió por casualidad al probar en local.
 
-`app:agent:vigilar-motor` (cron, minutos 11 y 41) le pide al motor por defecto una generación
-mínima —`MotorSondeableInterface::sondear()`; listar modelos no descubre unos créditos agotados— y
-`VigilanteDelMotor::resultadoDelSondeo()` decide con `DecisionDelSondeo`:
+`app:agent:vigilar-motor` (cron, minutos 11 y 41) le pide a **cada motor de los tres tramos de
+potencia** (`SelectorDePotencia::motoresEnUso()`) una generación mínima
+—`MotorSondeableInterface::sondear()`; listar modelos no descubre unos créditos agotados— y
+`VigilanteDelMotor::resultadosDelSondeo()` decide con `DecisionDelSondeo::deLaRonda()`, motor por
+motor:
 
 | Situación | Aviso |
 |---|---|
@@ -786,6 +788,19 @@ mínima —`MotorSondeableInterface::sondear()`; listar modelos no descubre unos
 `motorCaido()` deja de avisar por cada huésped que escriba (queda en el log). La marca vive en la
 caché de la aplicación, así que un despliegue la borra: si el motor sigue caído tras desplegar,
 sale un aviso más. Coste del sondeo: del orden de céntimos al mes.
+
+⚠️ **Hasta el 22/10/2026 sólo se sondeaba el motor por defecto**, y el tramo bajo
+(`AGENT_IA_POTENCIA_BAJA=google:gemini-3.5-flash-lite`) iba a otro proveedor: con los créditos de
+Google agotados, el log seguía diciendo `anthropic · responde` y la única alarma posible era la del
+primer huésped cuyo «Listo, gracias» le tocara a Gemini. Ahora cada motor tiene su estado
+(`…sondeo.fallos.<motor>`, `…sondeo.avisado.<motor>`) y su aviso con su nombre. Se sondea con el
+modelo por defecto de cada motor, no con el del tramo: lo que se vigila es la cuenta.
+
+- **El aviso de un turno no sabe qué motor falló** (`motorCaido()` sólo recibe el mensaje), así que
+  no se atribuye a ninguno: se da por resuelto cuando responden **todos**. Si no, un motor sano
+  anunciaría la «recuperación» de la avería del otro.
+- La marca sin sufijo (`agente.motor.sondeo.avisado`) queda como «algún motor está avisado», que es
+  lo que mira `motorCaido()` para no repetir el aviso por cada huésped.
 
 ### Las tres salvaguardas, y cuál hace qué
 

@@ -176,72 +176,105 @@ final readonly class VigilanteDelMotor
     }
 
     /**
-     * El resultado de la comprobación periódica (`app:agent:vigilar-motor`): avisa al CAMBIAR de
-     * estado —caída, recuperación—, nunca en cada sondeo. La regla es `DecisionDelSondeo`; aquí
-     * sólo se guarda el estado entre sondeos y se avisa.
+     * Una ronda de la comprobación periódica (`app:agent:vigilar-motor`), con un resultado por
+     * motor: avisa al CAMBIAR de estado —caída, recuperación—, nunca en cada sondeo. La regla es
+     * `DecisionDelSondeo::deLaRonda()`; aquí sólo se guarda el estado entre rondas y se avisa.
      *
-     * @param string|null $fallo El motivo si el motor no respondió; `null` si respondió.
+     * El estado va POR MOTOR (`…sondeo.fallos.<motor>`). La marca sin sufijo
+     * (`CLAVE_SONDEO_AVISADO`) se queda como «algún motor está avisado», que es lo único que
+     * `motorCaido()` puede consultar: no sabe qué motor le falló al huésped.
+     *
+     * @param array<string, string|null> $fallos motor => motivo, o `null` si respondió.
+     *
+     * @return array<string, string> motor => acción tomada (`DecisionDelSondeo::*`).
      */
-    public function resultadoDelSondeo(string $motor, ?string $fallo): string
+    public function resultadosDelSondeo(array $fallos): array
     {
         try {
-            $cuenta = $this->cache->getItem(self::CLAVE_SONDEO_FALLOS);
-            $avisado = $this->cache->getItem(self::CLAVE_SONDEO_AVISADO);
-            $previos = $cuenta->isHit() && is_int($cuenta->get()) ? $cuenta->get() : 0;
+            $previos = [];
+            $avisados = [];
 
-            $decision = DecisionDelSondeo::tras(
-                $fallo,
-                $previos,
-                $avisado->isHit(),
-                $this->cache->getItem(self::CLAVE)->isHit(),
-            );
-
-            $cuenta->set($decision['fallos'])->expiresAfter(2 * self::RECORDATORIO_SEGUNDOS);
-            $this->cache->save($cuenta);
-
-            if ($decision['accion'] === DecisionDelSondeo::AVISAR_CAIDA && $fallo !== null) {
-                $avisado->set(true)->expiresAfter(self::RECORDATORIO_SEGUNDOS);
-                $this->cache->save($avisado);
-
-                $resumen = $this->recortar($fallo);
-                $pista = DecisionDelSondeo::pista($motor, $fallo);
-
-                $this->logger->error(sprintf('[Agente] La comprobación periódica da el motor «%s» por CAÍDO: %s', $motor, $resumen));
-
-                $this->avisar(
-                    texto: sprintf(
-                        "🤖 El agente de IA NO responde (comprobación automática).\n\n%s%s\n\nMientras siga "
-                        . "así, a los huéspedes que escriban les saldrá «un compañero te responderá en "
-                        . "breve». Te aviso otra vez cuando vuelva.",
-                        $resumen,
-                        $pista !== '' ? "\n\n👉 " . $pista : '',
-                    ),
-                    conPlantilla: true,
-                    motivoPlantilla: $pista !== '' ? $this->recortar($pista) : $resumen,
-                    titulo: '🤖 El agente de IA no responde',
-                    cuerpo: $pista !== '' ? $pista : $resumen,
-                );
+            foreach (array_keys($fallos) as $motor) {
+                $cuenta = $this->cache->getItem(self::CLAVE_SONDEO_FALLOS . '.' . $motor);
+                $previos[$motor] = $cuenta->isHit() && is_int($cuenta->get()) ? $cuenta->get() : 0;
+                $avisados[$motor] = $this->cache->getItem(self::CLAVE_SONDEO_AVISADO . '.' . $motor)->isHit();
             }
 
-            if ($decision['accion'] === DecisionDelSondeo::AVISAR_RECUPERACION) {
-                // Limpia también la marca del aviso de turno: una caída nueva tiene que avisar ya.
-                $this->cache->deleteItems([self::CLAVE_SONDEO_AVISADO, self::CLAVE, self::CLAVE_CUENTA]);
-                $this->logger->info(sprintf('[Agente] El motor «%s» vuelve a responder.', $motor));
+            $ronda = DecisionDelSondeo::deLaRonda($fallos, $previos, $avisados, $this->cache->getItem(self::CLAVE)->isHit());
+            $acciones = [];
+
+            foreach ($ronda['motores'] as $motor => $decision) {
+                $acciones[$motor] = $decision['accion'];
+                $motor = (string) $motor;
+
+                $cuenta = $this->cache->getItem(self::CLAVE_SONDEO_FALLOS . '.' . $motor);
+                $cuenta->set($decision['fallos'])->expiresAfter(2 * self::RECORDATORIO_SEGUNDOS);
+                $this->cache->save($cuenta);
+
+                $fallo = $fallos[$motor] ?? null;
+
+                if ($decision['accion'] === DecisionDelSondeo::AVISAR_CAIDA && $fallo !== null) {
+                    foreach ([self::CLAVE_SONDEO_AVISADO . '.' . $motor, self::CLAVE_SONDEO_AVISADO] as $clave) {
+                        $this->cache->save($this->cache->getItem($clave)->set(true)->expiresAfter(self::RECORDATORIO_SEGUNDOS));
+                    }
+
+                    $resumen = $this->recortar($fallo);
+                    $pista = DecisionDelSondeo::pista($motor, $fallo);
+
+                    $this->logger->error(sprintf('[Agente] La comprobación periódica da el motor «%s» por CAÍDO: %s', $motor, $resumen));
+
+                    $this->avisar(
+                        texto: sprintf(
+                            "🤖 El motor de IA «%s» NO responde (comprobación automática).\n\n%s%s\n\nMientras siga "
+                            . "así, a los huéspedes cuyo mensaje le toque a ese motor les saldrá «un compañero "
+                            . "te responderá en breve». Te aviso otra vez cuando vuelva.",
+                            $motor,
+                            $resumen,
+                            $pista !== '' ? "\n\n👉 " . $pista : '',
+                        ),
+                        conPlantilla: true,
+                        motivoPlantilla: $pista !== '' ? $this->recortar($pista) : sprintf('%s: %s', $motor, $resumen),
+                        titulo: sprintf('🤖 El motor «%s» no responde', $motor),
+                        cuerpo: $pista !== '' ? $pista : $resumen,
+                    );
+                }
+
+                if ($decision['accion'] === DecisionDelSondeo::AVISAR_RECUPERACION) {
+                    $this->cache->deleteItem(self::CLAVE_SONDEO_AVISADO . '.' . $motor);
+                    $this->logger->info(sprintf('[Agente] El motor «%s» vuelve a responder.', $motor));
+
+                    $this->avisar(
+                        texto: sprintf('✅ El motor de IA «%s» vuelve a responder (comprobación automática).', $motor),
+                        conPlantilla: false,
+                        motivoPlantilla: '',
+                        titulo: sprintf('✅ «%s» vuelve a responder', $motor),
+                        cuerpo: 'La comprobación automática vuelve a recibir respuesta del motor.',
+                    );
+                }
+            }
+
+            if ($ronda['recuperarTurno']) {
+                $this->logger->info('[Agente] Todos los motores vuelven a responder tras el aviso de un turno.');
 
                 $this->avisar(
-                    texto: '✅ El agente de IA vuelve a responder (comprobación automática).',
+                    texto: '✅ El agente de IA vuelve a responder: todos sus motores contestan (comprobación automática).',
                     conPlantilla: false,
                     motivoPlantilla: '',
                     titulo: '✅ El agente vuelve a responder',
-                    cuerpo: 'La comprobación automática vuelve a recibir respuesta del motor.',
+                    cuerpo: 'La comprobación automática vuelve a recibir respuesta de todos los motores.',
                 );
             }
 
-            return $decision['accion'];
+            // Con todos respondiendo no queda avería abierta: una caída nueva tiene que avisar ya.
+            if ($ronda['todosResponden']) {
+                $this->cache->deleteItems([self::CLAVE_SONDEO_AVISADO, self::CLAVE, self::CLAVE_CUENTA]);
+            }
+
+            return $acciones;
         } catch (Throwable $e) {
             $this->logger->error('[Agente] No se pudo procesar el sondeo del motor: ' . $e->getMessage());
 
-            return DecisionDelSondeo::NADA;
+            return [];
         }
     }
 

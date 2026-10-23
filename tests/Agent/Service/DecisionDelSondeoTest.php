@@ -54,4 +54,38 @@ final class DecisionDelSondeoTest extends TestCase
         self::assertStringContainsString('clave', D::pista('google', 'Google AI 403: PERMISSION_DENIED'));
         self::assertSame('', D::pista('google', 'timeout'));
     }
+
+    public function testEnUnaRondaCadaMotorVaPorSuCuenta(): void
+    {
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::CREDITOS], [], [], false);
+
+        self::assertSame(D::NADA, $ronda['motores']['anthropic']['accion']);
+        self::assertSame(D::AVISAR_CAIDA, $ronda['motores']['google']['accion']);
+        self::assertFalse($ronda['todosResponden']);
+    }
+
+    public function testUnMotorSanoNoAnunciaLaRecuperacionDelAvisoDeUnTurno(): void
+    {
+        // Un turno de huésped avisó (no se sabe de qué motor) y Gemini sigue caído: callar.
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::CREDITOS], [], ['google' => true], true);
+
+        self::assertSame(D::NADA, $ronda['motores']['anthropic']['accion']);
+        self::assertFalse($ronda['recuperarTurno']);
+    }
+
+    public function testElAvisoDeTurnoSeResuelveCuandoRespondenTodos(): void
+    {
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => null], [], [], true);
+
+        self::assertTrue($ronda['todosResponden']);
+        self::assertTrue($ronda['recuperarTurno']);
+    }
+
+    public function testSiYaSeAnuncioLaVueltaDeUnMotorNoSeRepiteLaDelTurno(): void
+    {
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => null], ['google' => 3], ['google' => true], true);
+
+        self::assertSame(D::AVISAR_RECUPERACION, $ronda['motores']['google']['accion']);
+        self::assertFalse($ronda['recuperarTurno']);
+    }
 }

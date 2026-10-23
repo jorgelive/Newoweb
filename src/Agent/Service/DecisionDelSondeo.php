@@ -66,6 +66,48 @@ final class DecisionDelSondeo
         ];
     }
 
+    /**
+     * Una ronda con VARIOS motores: los de los tres tramos de potencia (22/10/2026).
+     *
+     * Hasta entonces se sondeaba sólo el motor por defecto (Anthropic) y el tramo bajo iba a Gemini:
+     * sus créditos se agotaron y la única alarma posible era la del primer huésped que chocara.
+     * Cada motor lleva su propio estado —se cae y se recupera por su cuenta— con la tabla de
+     * {@see tras()}.
+     *
+     * ⚠️ **El aviso de un TURNO de huésped no dice qué motor falló** (`motorCaido()` sólo tiene el
+     * mensaje del proveedor). Por eso no se le pasa a ningún motor: con dos, uno sano anunciaría la
+     * «recuperación» de la avería del otro. Ese aviso se da por resuelto cuando responden TODOS, y
+     * sólo se dice si no lo dijo ya la recuperación de algún motor en esta misma ronda.
+     *
+     * @param array<string, string|null> $fallos   motor => motivo, o `null` si respondió.
+     * @param array<string, int>         $previos  motor => sondeos fallidos seguidos.
+     * @param array<string, bool>        $avisados motor => ¿se avisó ya de su caída?
+     *
+     * @return array{
+     *     motores: array<string, array{accion: self::NADA|self::AVISAR_CAIDA|self::AVISAR_RECUPERACION, fallos: int}>,
+     *     todosResponden: bool,
+     *     recuperarTurno: bool,
+     * }
+     */
+    public static function deLaRonda(array $fallos, array $previos, array $avisados, bool $avisoDeTurno): array
+    {
+        $motores = [];
+        $todos = true;
+        $algunaRecuperacion = false;
+
+        foreach ($fallos as $motor => $fallo) {
+            $motores[$motor] = self::tras($fallo, $previos[$motor] ?? 0, $avisados[$motor] ?? false, false);
+            $todos = $todos && $fallo === null;
+            $algunaRecuperacion = $algunaRecuperacion || $motores[$motor]['accion'] === self::AVISAR_RECUPERACION;
+        }
+
+        return [
+            'motores' => $motores,
+            'todosResponden' => $todos,
+            'recuperarTurno' => $todos && $avisoDeTurno && !$algunaRecuperacion,
+        ];
+    }
+
     /** Créditos agotados o clave rechazada: no se arregla sola, y esperar sólo retrasa el aviso. */
     public static function esDefinitivo(string $fallo): bool
     {

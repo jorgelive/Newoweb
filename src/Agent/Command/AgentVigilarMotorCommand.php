@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
-use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\MotorSondeableInterface;
+use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Service\DecisionDelSondeo;
 use App\Agent\Service\VigilanteDelMotor;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -20,8 +20,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * fallo (17/10/2026). Avisa al equipo UNA vez por caída y otra al recuperarse: ver
  * `DecisionDelSondeo` y `VigilanteDelMotor::resultadoDelSondeo()`.
  *
- * Sondea el motor POR DEFECTO, que es el que contesta a los huéspedes. Una generación mínima: del
- * orden de céntimos al mes.
+ * Sondea TODOS los motores de los tres tramos de potencia, cada uno con su estado y su aviso. Hasta
+ * el 22/10/2026 sólo el motor por defecto: el tramo bajo iba a Gemini, se le agotaron los créditos y
+ * el sondeo seguía diciendo «anthropic · responde». Una generación mínima por motor: del orden de
+ * céntimos al mes. Cada motor se sondea con SU modelo por defecto, no con el del tramo: lo que se
+ * busca es la cuenta (créditos, clave), que es la misma.
  *
  *   php bin/console app:agent:vigilar-motor               # el sondeo de la tarea programada
  *   php bin/console app:agent:vigilar-motor --sin-avisar  # sólo mirar, sin tocar el estado
@@ -33,7 +36,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class AgentVigilarMotorCommand extends Command
 {
     public function __construct(
-        private readonly AgentEngineRegistry $motores,
+        private readonly SelectorDePotencia $potencias,
         private readonly VigilanteDelMotor $vigilante,
     ) {
         parent::__construct();
@@ -47,9 +50,9 @@ final class AgentVigilarMotorCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $motor = $this->motores->porDefecto();
+        $motores = $this->potencias->motoresEnUso();
 
-        if ($motor === null) {
+        if ($motores === []) {
             // Sin ningún motor configurado no hay nada que sondear: es una decisión de configuración,
             // no una caída, y el agente ya lo dice en cada turno.
             $io->warning('No hay ningún motor de IA configurado.');
@@ -57,34 +60,42 @@ final class AgentVigilarMotorCommand extends Command
             return Command::SUCCESS;
         }
 
-        if (!$motor instanceof MotorSondeableInterface) {
-            $io->warning(sprintf('El motor «%s» no sabe sondearse.', $motor->nombre()));
+        $fallos = [];
 
-            return Command::SUCCESS;
+        foreach ($motores as $motor) {
+            if (!$motor instanceof MotorSondeableInterface) {
+                $io->warning(sprintf('El motor «%s» no sabe sondearse.', $motor->nombre()));
+
+                continue;
+            }
+
+            $fallos[$motor->nombre()] = $motor->sondear();
         }
-
-        $fallo = $motor->sondear();
 
         if ($input->getOption('sin-avisar') === true) {
-            $fallo === null
-                ? $io->success(sprintf('«%s» responde.', $motor->nombre()))
-                : $io->error(sprintf('«%s» NO responde: %s', $motor->nombre(), $fallo));
+            foreach ($fallos as $nombre => $fallo) {
+                $fallo === null
+                    ? $io->success(sprintf('«%s» responde.', $nombre))
+                    : $io->error(sprintf('«%s» NO responde: %s', $nombre, $fallo));
+            }
 
             return Command::SUCCESS;
         }
 
-        $accion = $this->vigilante->resultadoDelSondeo($motor->nombre(), $fallo);
+        $acciones = $this->vigilante->resultadosDelSondeo($fallos);
 
-        $io->writeln(sprintf(
-            '%s · %s · %s',
-            $motor->nombre(),
-            $fallo === null ? 'responde' : 'NO responde: ' . $fallo,
-            match ($accion) {
-                DecisionDelSondeo::AVISAR_CAIDA => 'avisado de la caída',
-                DecisionDelSondeo::AVISAR_RECUPERACION => 'avisado de la recuperación',
-                default => 'sin aviso',
-            },
-        ));
+        foreach ($fallos as $nombre => $fallo) {
+            $io->writeln(sprintf(
+                '%s · %s · %s',
+                $nombre,
+                $fallo === null ? 'responde' : 'NO responde: ' . $fallo,
+                match ($acciones[$nombre] ?? DecisionDelSondeo::NADA) {
+                    DecisionDelSondeo::AVISAR_CAIDA => 'avisado de la caída',
+                    DecisionDelSondeo::AVISAR_RECUPERACION => 'avisado de la recuperación',
+                    default => 'sin aviso',
+                },
+            ));
+        }
 
         return Command::SUCCESS;
     }

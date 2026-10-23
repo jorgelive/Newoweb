@@ -112,6 +112,28 @@ final readonly class SelectorDePotencia
     }
 
     /**
+     * Los motores que de verdad atienden algún tramo, sin repetir: lo que tiene que sondear
+     * `app:agent:vigilar-motor` (22/10/2026). Resuelve como {@see elegir()}, así que un tramo mal
+     * configurado cuenta con el motor al que cae, que es el que contestaría.
+     *
+     * @return list<AgentEngineInterface>
+     */
+    public function motoresEnUso(): array
+    {
+        $motores = [];
+
+        foreach (PotenciaRequerida::cases() as $potencia) {
+            $elegido = $this->elegir($potencia);
+
+            if ($elegido !== null) {
+                $motores[$elegido->motor->nombre()] = $elegido->motor;
+            }
+        }
+
+        return array_values($motores);
+    }
+
+    /**
      * El motor de siempre, con o sin queja.
      *
      * `$motivo` a `null` es el caso normal —tramo sin configurar—, y no se registra nada: no
