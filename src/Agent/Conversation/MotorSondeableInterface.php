@@ -13,6 +13,9 @@ namespace App\Agent\Conversation;
  */
 interface MotorSondeableInterface
 {
-    /** `null` si respondió; si no, el motivo tal cual lo da el proveedor (código HTTP incluido). */
-    public function sondear(): ?string;
+    /**
+     * `null` si respondió; si no, el fallo con su código HTTP y si es definitivo, que lo decide el
+     * cliente de cada proveedor y no quien lo lee (ver {@see FalloDelMotor}).
+     */
+    public function sondear(): ?FalloDelMotor;
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Conversation\MotoresFueraDeServicio;
 use App\Entity\User;
@@ -188,7 +189,7 @@ final readonly class VigilanteDelMotor
      * (`CLAVE_SONDEO_AVISADO`) se queda como «algún motor está avisado», que es lo único que
      * `motorCaido()` puede consultar: no sabe qué motor le falló al huésped.
      *
-     * @param array<string, string|null> $fallos motor => motivo, o `null` si respondió.
+     * @param array<string, FalloDelMotor|null> $fallos motor => fallo, o `null` si respondió.
      *
      * @return array<string, string> motor => acción tomada (`DecisionDelSondeo::*`).
      */
@@ -228,12 +229,12 @@ final readonly class VigilanteDelMotor
                         $this->cache->save($this->cache->getItem($clave)->set(true)->expiresAfter(self::RECORDATORIO_SEGUNDOS));
                     }
 
-                    $resumen = $this->recortar($fallo);
+                    $resumen = $this->recortar($fallo->getMessage());
                     $pista = DecisionDelSondeo::pista($motor, $fallo);
 
                     // Si hay otro motor que lo cubra, el huésped sigue recibiendo respuesta: el aviso
                     // lo dice, porque es lo que decide si hay que entrar a los chats ya.
-                    $this->fuera->sacar($motor, $fallo);
+                    $this->fuera->sacar($motor, $fallo->getMessage());
                     $suplente = $this->potencias->suplenteDe($motor)?->nombre();
                     $cubierto = $suplente !== null;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Conversation\AgentEngineRegistry;
 use App\Agent\Conversation\MotorSondeableInterface;
 
@@ -26,7 +27,7 @@ final readonly class SondeoDeMotores
     /**
      * Sólo pregunta: ni avisa ni toca el estado.
      *
-     * @return array<string, string|null> motor => motivo del fallo, o `null` si respondió.
+     * @return array<string, FalloDelMotor|null> motor => fallo, o `null` si respondió.
      */
     public function comprobar(): array
     {
@@ -53,7 +54,7 @@ final readonly class SondeoDeMotores
         $resultado = [];
 
         foreach ($fallos as $motor => $fallo) {
-            $resultado[$motor] = ['fallo' => $fallo, 'accion' => $acciones[$motor] ?? DecisionDelSondeo::NADA];
+            $resultado[$motor] = ['fallo' => $fallo?->getMessage(), 'accion' => $acciones[$motor] ?? DecisionDelSondeo::NADA];
         }
 
         return $resultado;

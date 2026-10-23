@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\FalloDelMotor;
 use Symfony\Component\Clock\Clock;
 use App\Agent\Access\AsuntosDelHiloParaElAgente;
 use App\Contract\MapaDeHitos;
@@ -1664,7 +1665,7 @@ final readonly class AiConversationProcessor
      * El turno con el motor del tramo y, si ése se ha quedado sin servicio, con un suplente
      * (22/10/2026, Jorge: «que temporalmente responda el que está activo hasta que se pague»).
      *
-     * Sólo ante un error DEFINITIVO —créditos, clave: `DecisionDelSondeo::esDefinitivo()`—, y vale
+     * Sólo ante un error DEFINITIVO —créditos, clave: `FalloDelMotor::esDefinitivo()`—, y vale
      * también para el motor por defecto: lo cubre otro de los tramos (`SelectorDePotencia::suplenteDe()`).
      * Sin nadie que lo cubra, el error sigue su camino de siempre: acuse y aviso. Un 503 suelto no saca a nadie de servicio: lo cubre el
      * reintento del propio cliente, y si no, el acuse de siempre. El motor queda marcado en
@@ -1683,7 +1684,7 @@ final readonly class AiConversationProcessor
         } catch (Throwable $e) {
             $nombre = $elegido->motor->nombre();
 
-            if (!DecisionDelSondeo::esDefinitivo($e->getMessage())) {
+            if (FalloDelMotor::en($e)?->esDefinitivo() !== true) {
                 throw $e;
             }
 

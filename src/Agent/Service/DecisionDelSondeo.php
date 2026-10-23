@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\MotivoDefinitivo;
+use App\Agent\Conversation\FalloDelMotor;
+
 /**
  * Qué hacer con el resultado de la comprobación periódica del motor de IA (17/10/2026).
  *
@@ -36,14 +39,14 @@ final class DecisionDelSondeo
     public const int FALLOS_PARA_AVISAR = 2;
 
     /**
-     * @param string|null $fallo        El motivo si el sondeo falló; `null` si respondió.
+     * @param FalloDelMotor|null $fallo  El fallo si el sondeo falló; `null` si respondió.
      * @param int         $fallosPrevios Sondeos fallidos seguidos hasta ahora.
      * @param bool        $yaAvisado    ¿Se avisó ya de esta caída (y no ha caducado la marca)?
      * @param bool        $avisoDeTurno ¿Avisó un turno de huésped en la última hora?
      *
      * @return array{accion: self::NADA|self::AVISAR_CAIDA|self::AVISAR_RECUPERACION, fallos: int}
      */
-    public static function tras(?string $fallo, int $fallosPrevios, bool $yaAvisado, bool $avisoDeTurno): array
+    public static function tras(?FalloDelMotor $fallo, int $fallosPrevios, bool $yaAvisado, bool $avisoDeTurno): array
     {
         if ($fallo === null) {
             return [
@@ -59,7 +62,7 @@ final class DecisionDelSondeo
         }
 
         return [
-            'accion' => self::esDefinitivo($fallo) || $fallos >= self::FALLOS_PARA_AVISAR
+            'accion' => $fallo->esDefinitivo() || $fallos >= self::FALLOS_PARA_AVISAR
                 ? self::AVISAR_CAIDA
                 : self::NADA,
             'fallos' => $fallos,
@@ -79,7 +82,7 @@ final class DecisionDelSondeo
      * «recuperación» de la avería del otro. Ese aviso se da por resuelto cuando responden TODOS, y
      * sólo se dice si no lo dijo ya la recuperación de algún motor en esta misma ronda.
      *
-     * @param array<string, string|null> $fallos   motor => motivo, o `null` si respondió.
+     * @param array<string, FalloDelMotor|null> $fallos motor => fallo, o `null` si respondió.
      * @param array<string, int>         $previos  motor => sondeos fallidos seguidos.
      * @param array<string, bool>        $avisados motor => ¿se avisó ya de su caída?
      *
@@ -108,23 +111,17 @@ final class DecisionDelSondeo
         ];
     }
 
-    /** Créditos agotados o clave rechazada: no se arregla sola, y esperar sólo retrasa el aviso. */
-    public static function esDefinitivo(string $fallo): bool
-    {
-        return preg_match('/\b(401|402|403)\b|credit|billing|api.?key|permission_denied|unauthenticated/i', $fallo) === 1;
-    }
+    // ⚠️ Aquí vivía `esDefinitivo(string)`, una expresión regular sobre el TEXTO del error, y se
+    // borró el 23/10/2026: lo decide el cliente de cada proveedor, con el código HTTP
+    // (`FalloDelMotor::$definitivo`). Ver la cabecera de `FalloDelMotor`.
 
     /** Qué tiene que hacer quien lee el aviso, si se sabe. */
-    public static function pista(string $motor, string $fallo): string
+    public static function pista(string $motor, FalloDelMotor $fallo): string
     {
-        if (preg_match('/\b402\b|credit|billing/i', $fallo) === 1) {
-            return sprintf('Se han agotado los créditos de «%s»: hay que recargarlos (Google: AI Studio → Billing).', $motor);
-        }
-
-        if (preg_match('/\b(401|403)\b|api.?key|permission_denied|unauthenticated/i', $fallo) === 1) {
-            return sprintf('«%s» rechaza la clave: revisa la del servidor (.env.local).', $motor);
-        }
-
-        return '';
+        return match ($fallo->definitivo) {
+            MotivoDefinitivo::CREDITOS => sprintf('Se han agotado los créditos de «%s»: hay que recargarlos.', $motor),
+            MotivoDefinitivo::CLAVE => sprintf('«%s» rechaza la clave: revisa la del servidor (.env.local).', $motor),
+            null => '',
+        };
     }
 }

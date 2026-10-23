@@ -820,7 +820,7 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
   defecto, el de otro tramo; y en último lugar cualquier otro con clave (DeepSeek). Siempre con **su
   modelo por defecto**, no el del tramo: el tramo bajo suele ser un modelo pequeño. Sin nadie sano,
   sigue el caído y el turno acaba en el acuse, como antes.
-- **Sólo errores definitivos** (`DecisionDelSondeo::esDefinitivo()`): un 503 suelto no saca a nadie.
+- **Sólo errores definitivos** (`FalloDelMotor::esDefinitivo()`, ver «Qué manda cada motor» abajo): un 503 suelto no saca a nadie.
 - **Los tres motores PROPAGAN el fallo**, y la suplencia decide con la excepción. DeepSeek lo tragaba
   y devolvía `noDisponible()`, así que un 401/402 suyo nunca lo sacaba de servicio (revisión del
   23/10/2026). Al huésped no le llega: quien llama recoge la excepción y contesta el acuse.
@@ -845,47 +845,59 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
   llamada, así que no ha corrido ninguna skill; si llegara a mitad de turno, una de escritura podría
   correr dos veces.
 
-### 📮 Qué manda cada motor cuando falla (23/10/2026)
+### 📮 Qué manda cada motor cuando falla, y quién decide si es definitivo (23/10/2026)
 
-`DecisionDelSondeo::esDefinitivo()` decide sobre el **texto** de la excepción, así que hay que saber
-qué texto llega. Sale de la documentación de cada proveedor y de cómo arma el mensaje nuestro cliente.
-⚠️ **Ninguno se ha visto aún en producción**: el sondeo sólo ha registrado «responde», y los logs no
-guardan ningún 401/402/403 real. Cuando aparezca el primero, se pega aquí tal cual.
+**Lo decide el cliente de cada proveedor, con el código HTTP**: `FalloDelMotor` (excepción con
+`$estadoHttp` y `$definitivo`: `MotivoDefinitivo::CREDITOS` o `CLAVE`). El núcleo —la suplencia de
+`AiConversationProcessor::conSuplente()`, el panel, el sondeo y su aviso— pregunta
+`FalloDelMotor::en($e)?->esDefinitivo()` y no lee el texto. La regla común
+(`FalloDelMotor::porCodigoHttp()`): **402 → créditos; 401 y 403 → clave; lo demás no saca a nadie.**
 
-**Cómo llega el mensaje a `esDefinitivo()`:**
+Hasta ese día lo decidía `DecisionDelSondeo::esDefinitivo()`, una expresión regular sobre el mensaje
+(`401|402|403|credit|billing|api key`), y fallaba por los dos lados: DeepSeek sin saldo («Insufficient
+Balance», y nuestro cliente descartaba el código) no salía de servicio, y un 429 de ritmo de Gemini
+que remite a «your plan and billing details» habría sacado a Gemini hasta el siguiente sondeo.
 
-| Motor | Quién arma el mensaje | Forma | ¿Lleva el código HTTP? |
-|---|---|---|---|
-| Anthropic | el SDK (`Anthropic\Core\Exceptions\APIStatusException`) | JSON `{"status": 400, "body": {"type":"error","error":{"type":…,"message":…},"request_id":"req_…"}}`; la clase ya dice el código (`AuthenticationException` 401, `PermissionDeniedException` 403…) y `$e->type` el tipo | **sí** |
-| Google | `GoogleAIClient::generar()` | `Google AI <código>: <error.message>` | **sí** |
-| DeepSeek | `DeepSeekClient::completar()` | `DeepSeek: <error.message>` | ⚠️ **no**: se descarta |
+**Respuestas REALES** (las pegó Jorge el 23/10/2026; están en `FalloDelMotorTest`):
 
-**Lo que dice cada proveedor que manda:**
+```
+Gemini   HTTP 402  {"error":{"code":402,"message":"Your prepayment credits are depleted. Please go to
+                   AI Studio at https://ai.studio/projects to manage your project and billing. …",
+                   "status":"RESOURCE_EXHAUSTED"}}
+DeepSeek HTTP 402  {"error":{"message":"Insufficient Balance","type":"insufficient_balance_error",
+                   "param":null,"code":"insufficient_balance"}}
+```
+
+⚠️ **El `status` de Gemini no distingue nada**: `RESOURCE_EXHAUSTED` sale igual en el 402 de créditos
+que en el 429 de ritmo. Sólo vale el código. Y su cuerpo lleva `code` numérico más `status`, no el
+`code` en texto que describe su documentación.
+
+**Cómo llega el mensaje** (es lo que sale en el aviso al equipo y en el log):
+
+| Motor | Quién lo arma | Forma |
+|---|---|---|
+| Anthropic | el SDK (`APIStatusException`, que ya trae `status` y `type`); lo traduce `AnthropicEngine::falloDe()` | JSON `{"status": 400, "body": {"type":"error","error":{"type":…,"message":…},"request_id":"req_…"}}` |
+| Google | `GoogleAIClient::generarContenido()` | `Google AI 402: <error.message>` |
+| DeepSeek | `DeepSeekClient::completar()` | `DeepSeek 402: <error.message>` (con código desde el 23/10/2026) |
+
+**Lo que dice cada proveedor que manda** (documentación; los de saldo, además, vistos):
 
 | Situación | Anthropic | Google (Gemini) | DeepSeek |
 |---|---|---|---|
-| Clave mala o caducada | 401 `authentication_error` | 401 `authentication` | 401 «Authentication Fails» |
-| Sin permiso | 403 `permission_error` | 403 `permission_denied` | — |
-| Pago / saldo | 402 `billing_error`; **sin crédito o tope de gasto propio: 400** `invalid_request_error` («Your credit balance is too low…») | 402 `payment_required` («Your Prepay credit balance is depleted»); facturación desactivada: 400 `failed_precondition` | 402 «Insufficient Balance» |
-| Límite de ritmo (pasajero) | 429 `rate_limit_error` con `retry-after` | 429 `rate_limit_exceeded` / `too_many_requests` | 429 «Rate Limit Reached» |
-| Tope que no se repone solo | 429 de tope de gasto del nivel, **sin** `retry-after` | 429 `quota_exceeded` (cuota diaria: se repone al día siguiente) | — |
-| Caída suya (pasajero) | 500 `api_error`, 529 `overloaded_error` | 503 `UNAVAILABLE`, 5xx | 500, 503 |
+| Clave mala o caducada | 401 `authentication_error` | 401 | 401 «Authentication Fails» |
+| Sin permiso | 403 `permission_error` | 403 | — |
+| Pago / saldo | 402 `billing_error`; **sin crédito: 400** `invalid_request_error` («Your credit balance is too low…») | **402** (visto) | **402** «Insufficient Balance» (visto) |
+| Límite de ritmo | 429 `rate_limit_error` | 429 `RESOURCE_EXHAUSTED` | 429 |
+| Caída suya | 500, 529 `overloaded_error` | 503, 5xx (los reintenta el cliente una vez) | 500, 503 |
 
-Fuentes: [Claude API errors](https://platform.claude.com/docs/en/api/errors), [Gemini API errors](https://ai.google.dev/gemini-api/docs/api-errors), [DeepSeek error codes](https://api-docs.deepseek.com/quick_start/error_codes).
+El 400 de Anthropic sin crédito es el único caso que necesita el texto, y vive en
+`AnthropicEngine::falloDe()`, junto al proveedor que lo manda. Fuentes:
+[Claude API errors](https://platform.claude.com/docs/en/api/errors),
+[Gemini API errors](https://ai.google.dev/gemini-api/docs/api-errors),
+[DeepSeek error codes](https://api-docs.deepseek.com/quick_start/error_codes).
 
-⚠️ **Lo que el detector de hoy hace mal, por estas tablas** (pendiente de arreglar):
-
-- **DeepSeek sin saldo no se detecta.** Llega «DeepSeek: Insufficient Balance»: sin código y sin
-  «credit» ni «billing». El 401 sí, porque su mensaje dice «api key».
-- **Un límite de ritmo puede sacar un motor.** El detector busca «billing» en todo el texto, y los
-  429 de Gemini suelen remitir a «your plan and billing details»: un pico de tráfico lo dejaría fuera
-  de servicio hasta el siguiente sondeo.
-- **Anthropic sin crédito llega como 400**, no 402: lo salva la palabra «credit», no el código.
-
-El arreglo de raíz no es afinar la expresión regular: es que cada motor diga si su fallo es
-definitivo con lo que **sabe** —el código HTTP y el tipo (Anthropic lo da en la clase de la excepción
-y en `$e->type`; nuestros clientes de Google y DeepSeek tienen el código en la mano)—, en vez de que
-el núcleo adivine sobre un texto.
+**Al ver un caso nuevo** (otro código, otro proveedor), se pega aquí tal cual y se añade a
+`FalloDelMotorTest`.
 
 ### Las tres salvaguardas, y cuál hace qué
 
@@ -1213,7 +1225,8 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Cambiar CÓMO se pide la respuesta sin herramientas en cada API | `GoogleAIEngine` / `DeepSeekEngine::cerrarSinHerramientas()` / `AnthropicEngine::forzarCierre()` | el formato es de cada motor; la decisión de cerrar, de `ControlDeVueltas` |
 | Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; para el chat, `low` + `1` (comparativa del 18/10/2026, tercera ronda) |
 | Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
-| Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
+| Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
+| Qué fallo de un proveedor es definitivo (créditos, clave) | `src/Agent/Conversation/FalloDelMotor.php` y el cliente de cada motor | `porCodigoHttp()`; Anthropic en `AnthropicEngine::falloDe()`. Un caso nuevo, a `FalloDelMotorTest` |
 | Reactivar a mano un motor tras recargar (botón del panel) | `PanelAssistantController::comprobarMotores()` → `SondeoDeMotores::sondear()` | el mismo camino que el cron; el botón, en `util/src/components/common/AsistenteBar.vue` (`comprobarMotores()`) |
 | Quién contesta cuando un motor se queda sin créditos | `src/Agent/Conversation/SelectorDePotencia.php` | `suplenteDe()` (orden), `elegir()` (desvío); la marca, `MotoresFueraDeServicio`; el reintento en el turno, `AiConversationProcessor::conSuplente()` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |

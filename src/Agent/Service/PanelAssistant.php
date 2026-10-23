@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Service;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Access\ActorInterface;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
@@ -98,7 +99,7 @@ final readonly class PanelAssistant
         } catch (Throwable $e) {
             // Créditos o clave: queda deshabilitado en el desplegable hasta que alguien lo compruebe
             // (el botón) o lo vea responder el sondeo. Ver `MotoresFueraDeServicio`.
-            if (DecisionDelSondeo::esDefinitivo($e->getMessage())) {
+            if (FalloDelMotor::en($e)?->esDefinitivo() === true) {
                 $this->fuera->sacar($motor->nombre(), $e->getMessage());
 
                 throw new MotorFueraDeServicioException($motor->etiqueta(), $e);

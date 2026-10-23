@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\DeepSeek;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Dto\Lee;
 use App\Agent\Provider\CatalogoModelos;
 use RuntimeException;
@@ -187,7 +188,9 @@ final class DeepSeekClient
         if ($estado !== 200) {
             $motivo = Lee::en($datos, 'error', 'message') ?? 'respuesta '.$estado;
 
-            throw new RuntimeException('DeepSeek: '.(is_string($motivo) ? $motivo : 'error '.$estado));
+            // Con el CÓDIGO, que se descartaba: DeepSeek sin saldo dice «Insufficient Balance», sin
+            // ninguna palabra que delatara el 402, y nunca salía de servicio. Ver `FalloDelMotor`.
+            throw FalloDelMotor::porCodigoHttp(sprintf('DeepSeek %d: %s', $estado, is_string($motivo) ? $motivo : 'error'), $estado);
         }
 
         return Lee::objeto($datos);

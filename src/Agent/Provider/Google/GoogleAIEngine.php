@@ -8,6 +8,7 @@ use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\RastroDeSkill;
 use App\Agent\Skill\SkillRegistry;
@@ -368,10 +369,10 @@ final readonly class GoogleAIEngine implements AgentEngineInterface, MotorSondea
     /**
      * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
      */
-    public function sondear(): ?string
+    public function sondear(): ?FalloDelMotor
     {
         if (!$this->google->estaConfigurado()) {
-            return 'Google AI no tiene clave configurada.';
+            return new FalloDelMotor('Google AI no tiene clave configurada.');
         }
 
         // Con el razonamiento del cliente: sin `thinkingConfig`, Gemini 3.x razona por defecto y
@@ -389,7 +390,7 @@ final readonly class GoogleAIEngine implements AgentEngineInterface, MotorSondea
 
             return null;
         } catch (Throwable $e) {
-            return $e->getMessage();
+            return FalloDelMotor::de($e);
         }
     }
 

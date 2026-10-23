@@ -59,7 +59,7 @@ final class AgentVigilarMotorCommand extends Command
             foreach ($fallos as $nombre => $fallo) {
                 $fallo === null
                     ? $io->success(sprintf('«%s» responde.', $nombre))
-                    : $io->error(sprintf('«%s» NO responde: %s', $nombre, $fallo));
+                    : $io->error(sprintf('«%s» NO responde: %s', $nombre, $fallo->getMessage()));
             }
 
             return Command::SUCCESS;

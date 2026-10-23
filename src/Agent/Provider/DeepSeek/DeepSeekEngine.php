@@ -8,6 +8,7 @@ use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Skill\ControlDeVueltas;
 use App\Agent\Skill\SkillRegistry;
 use Psr\Log\LoggerInterface;
@@ -69,10 +70,10 @@ final readonly class DeepSeekEngine implements AgentEngineInterface, MotorSondea
     /**
      * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
      */
-    public function sondear(): ?string
+    public function sondear(): ?FalloDelMotor
     {
         if (!$this->deepseek->estaConfigurado()) {
-            return 'DeepSeek no tiene clave configurada.';
+            return new FalloDelMotor('DeepSeek no tiene clave configurada.');
         }
 
         try {
@@ -84,7 +85,7 @@ final readonly class DeepSeekEngine implements AgentEngineInterface, MotorSondea
 
             return null;
         } catch (Throwable $e) {
-            return $e->getMessage();
+            return FalloDelMotor::de($e);
         }
     }
 

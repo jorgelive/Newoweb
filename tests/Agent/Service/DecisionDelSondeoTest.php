@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Agent\Service;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Agent\Service\DecisionDelSondeo as D;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -14,24 +15,32 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(D::class)]
 final class DecisionDelSondeoTest extends TestCase
 {
-    private const string CREDITOS = 'Google AI 402: Your prepayment credits are depleted.';
+    private static function creditos(): FalloDelMotor
+    {
+        return FalloDelMotor::porCodigoHttp('Google AI 402: Your prepayment credits are depleted.', 402);
+    }
+
+    private static function caidaPasajera(): FalloDelMotor
+    {
+        return FalloDelMotor::porCodigoHttp('Google AI 503: overloaded', 503);
+    }
 
     public function testSinCreditosSeAvisaALaPrimera(): void
     {
-        self::assertSame(D::AVISAR_CAIDA, D::tras(self::CREDITOS, 0, false, false)['accion']);
+        self::assertSame(D::AVISAR_CAIDA, D::tras(self::creditos(), 0, false, false)['accion']);
     }
 
     public function testUnCorteSueltoNoAvisaYElSegundoSi(): void
     {
-        $primero = D::tras('Google AI 503: overloaded', 0, false, false);
+        $primero = D::tras(self::caidaPasajera(), 0, false, false);
         self::assertSame(D::NADA, $primero['accion']);
 
-        self::assertSame(D::AVISAR_CAIDA, D::tras('Google AI 503: overloaded', $primero['fallos'], false, false)['accion']);
+        self::assertSame(D::AVISAR_CAIDA, D::tras(self::caidaPasajera(), $primero['fallos'], false, false)['accion']);
     }
 
     public function testYaAvisadoNoSeRepite(): void
     {
-        self::assertSame(D::NADA, D::tras(self::CREDITOS, 5, true, false)['accion']);
+        self::assertSame(D::NADA, D::tras(self::creditos(), 5, true, false)['accion']);
     }
 
     public function testAlRecuperarseSeAvisaUnaVezYSeReiniciaLaCuenta(): void
@@ -50,14 +59,14 @@ final class DecisionDelSondeoTest extends TestCase
 
     public function testLaPistaDiceQueHacer(): void
     {
-        self::assertStringContainsString('recargar', D::pista('google', self::CREDITOS));
-        self::assertStringContainsString('clave', D::pista('google', 'Google AI 403: PERMISSION_DENIED'));
-        self::assertSame('', D::pista('google', 'timeout'));
+        self::assertStringContainsString('recargar', D::pista('google', self::creditos()));
+        self::assertStringContainsString('clave', D::pista('google', FalloDelMotor::porCodigoHttp('Google AI 403: PERMISSION_DENIED', 403)));
+        self::assertSame('', D::pista('google', new FalloDelMotor('timeout')));
     }
 
     public function testEnUnaRondaCadaMotorVaPorSuCuenta(): void
     {
-        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::CREDITOS], [], [], false);
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::creditos()], [], [], false);
 
         self::assertSame(D::NADA, $ronda['motores']['anthropic']['accion']);
         self::assertSame(D::AVISAR_CAIDA, $ronda['motores']['google']['accion']);
@@ -67,7 +76,7 @@ final class DecisionDelSondeoTest extends TestCase
     public function testUnMotorSanoNoAnunciaLaRecuperacionDelAvisoDeUnTurno(): void
     {
         // Un turno de huésped avisó (no se sabe de qué motor) y Gemini sigue caído: callar.
-        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::CREDITOS], [], ['google' => true], true);
+        $ronda = D::deLaRonda(['anthropic' => null, 'google' => self::creditos()], [], ['google' => true], true);
 
         self::assertSame(D::NADA, $ronda['motores']['anthropic']['accion']);
         self::assertFalse($ronda['recuperarTurno']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agent\Provider\Google;
 
+use App\Agent\Conversation\FalloDelMotor;
 use App\Dto\Lee;
 use App\Agent\Provider\CatalogoModelos;
 use Psr\Log\LoggerInterface;
@@ -186,7 +187,11 @@ final class GoogleAIClient
 
             // Un 5xx es Google teniendo un mal momento; un 4xx —clave, créditos, modelo, cuota— no
             // se arregla pidiéndolo otra vez, y el aviso tiene que salir al primero.
-            throw $estado >= 500 ? new FalloPasajeroDeGoogle($mensaje) : new RuntimeException($mensaje);
+            //
+            // Si es DEFINITIVO lo dice el código y no el `status`: Gemini manda `RESOURCE_EXHAUSTED`
+            // tanto en el 402 de créditos («Your prepayment credits are depleted…», visto el
+            // 23/10/2026) como en el 429 de ritmo. Ver `FalloDelMotor`.
+            throw $estado >= 500 ? new FalloPasajeroDeGoogle($mensaje) : FalloDelMotor::porCodigoHttp($mensaje, $estado);
         }
 
         return Lee::objeto($datos);

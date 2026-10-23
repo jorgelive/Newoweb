@@ -7,9 +7,12 @@ namespace App\Agent\Provider\Anthropic;
 use Anthropic\Beta\Messages\BetaMessage;
 use Anthropic\Beta\Messages\BetaTextBlock;
 use Anthropic\Beta\Messages\BetaToolUseBlock;
+use Anthropic\Core\Exceptions\APIStatusException;
 use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
+use App\Agent\Conversation\FalloDelMotor;
+use App\Agent\Conversation\MotivoDefinitivo;
 use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Skill\SkillRegistry;
 use Anthropic\Lib\Tools\BetaToolRunner;
@@ -117,7 +120,7 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
 
         $cerrando = false;
 
-        foreach ($runner as $mensaje) {
+        foreach (self::vueltas($runner) as $mensaje) {
             $vueltas++;
             $uso = $mensaje->usage ?? null;
             if ($uso !== null) {
@@ -253,12 +256,12 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
     /**
      * Una generación mínima, para la comprobación periódica: ver {@see MotorSondeableInterface}.
      */
-    public function sondear(): ?string
+    public function sondear(): ?FalloDelMotor
     {
         $cliente = $this->anthropic->crear();
 
         if ($cliente === null) {
-            return 'Anthropic no tiene clave configurada.';
+            return new FalloDelMotor('Anthropic no tiene clave configurada.');
         }
 
         try {
@@ -270,8 +273,47 @@ final readonly class AnthropicEngine implements AgentEngineInterface, MotorSonde
 
             return null;
         } catch (Throwable $e) {
-            return $e->getMessage();
+            return $e instanceof APIStatusException ? self::falloDe($e) : FalloDelMotor::de($e);
         }
+    }
+
+    /**
+     * Las vueltas del `toolRunner`, con el error del SDK traducido a {@see FalloDelMotor}.
+     *
+     * El fallo sale AL ITERAR (cada vuelta es una llamada), así que es aquí donde se traduce, y no en
+     * el bucle de `conversar()`, que no tiene por qué saber de excepciones del SDK.
+     *
+     * @param iterable<mixed, BetaMessage> $runner
+     *
+     * @return \Generator<int, BetaMessage>
+     */
+    private static function vueltas(iterable $runner): \Generator
+    {
+        try {
+            foreach ($runner as $mensaje) {
+                yield $mensaje;
+            }
+        } catch (APIStatusException $e) {
+            throw self::falloDe($e);
+        }
+    }
+
+    /**
+     * Qué dice un error de Anthropic, con su código. Ver docs/Agent.md («Qué manda cada motor»).
+     *
+     * ⚠️ **Sin crédito responde 400, no 402** (`invalid_request_error`, «Your credit balance is too
+     * low…»), como cuando se alcanza un tope de gasto propio. Es el único caso que necesita el texto,
+     * y vive aquí, junto al proveedor que lo manda.
+     */
+    public static function falloDe(APIStatusException $e): FalloDelMotor
+    {
+        $fallo = FalloDelMotor::porCodigoHttp($e->getMessage(), (int) $e->status, $e);
+
+        if ($fallo->definitivo === null && $e->status === 400 && str_contains(mb_strtolower($e->getMessage()), 'credit balance')) {
+            return new FalloDelMotor($e->getMessage(), 400, MotivoDefinitivo::CREDITOS, $e);
+        }
+
+        return $fallo;
     }
 
     /**
