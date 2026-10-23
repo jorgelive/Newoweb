@@ -58,6 +58,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * - El almuerzo buffet va DENTRO del precio del bus, como un ítem, igual que el del Titicaca.
  * - Los terminales de Turismo Mer —en San Sebastián (Cusco) y en la avenida Costanera (Puno), no
  *   el Terminal Terrestre— y los cuatro traslados hotel ↔ terminal, que ninguna empresa incluye.
+ *   ⚠️ **La dirección va en el PUNTO, no en el texto** (Jorge): es para el trasladista, que la lee
+ *   en el origen y destino del segmento. El texto del cliente dice «el terminal de la empresa».
  *
  * Idempotente: servicio por código, plantillas y segmentos por slug, puntos por nombre, entradas por
  * nombre interno, ítems por (componente, término). Cada cosa en su pasada (§4 quater del doc).
@@ -92,8 +94,8 @@ final class CrearRutaDelSolCommand extends Command
         'TRANS_BUS-RSOL-CUZ_PUN' => [
             'nombre' => 'Ruta del Sol: salida en bus turístico de Cusco a Puno',
             'titulo' => 'En bus turístico de Cusco a Puno',
-            'contenido' => 'Salimos temprano desde el terminal de la empresa, en San Sebastián, en un bus turístico '
-                . 'con guía bilingüe, para recorrer de día el altiplano entre Cusco y Puno con paradas en los '
+            'contenido' => 'Salimos temprano desde el terminal de la empresa en un bus turístico con guía bilingüe, '
+                . 'para recorrer de día el altiplano entre Cusco y Puno con paradas en los '
                 . 'sitios más importantes del camino. A bordo hay bebidas calientes, wifi satelital y oxígeno. '
                 . 'Conviene estar en el terminal unos 20 minutos antes para embarcar el equipaje.',
             'inicio' => PuntoModoEnum::FIJO, 'fin' => PuntoModoEnum::SIN_DEFINIR,
@@ -102,8 +104,8 @@ final class CrearRutaDelSolCommand extends Command
         'TRANS_BUS-RSOL-PUN_CUZ' => [
             'nombre' => 'Ruta del Sol: salida en bus turístico de Puno a Cusco',
             'titulo' => 'En bus turístico de Puno a Cusco',
-            'contenido' => 'Salimos temprano desde el terminal de la empresa, en la avenida Costanera de Puno, en '
-                . 'un bus turístico con guía bilingüe, para recorrer de día el altiplano entre Puno y Cusco con '
+            'contenido' => 'Salimos temprano desde el terminal de la empresa en un bus turístico con guía bilingüe, '
+                . 'para recorrer de día el altiplano entre Puno y Cusco con '
                 . 'paradas en los sitios más importantes del camino. A bordo hay bebidas calientes, wifi '
                 . 'satelital y oxígeno. Conviene estar en el terminal unos 30 minutos antes para embarcar el '
                 . 'equipaje.',
@@ -151,15 +153,14 @@ final class CrearRutaDelSolCommand extends Command
         'TRANS_BUS-RSOL-LLEG_PUN' => [
             'nombre' => 'Ruta del Sol: llegada a Puno',
             'titulo' => 'Llegada a Puno',
-            'contenido' => 'Llegamos a Puno a media tarde, al terminal de la empresa en la avenida Costanera, '
-                . 'junto al lago Titicaca.',
+            'contenido' => 'Llegamos a Puno a media tarde, al terminal de la empresa.',
             'inicio' => PuntoModoEnum::SIN_DEFINIR, 'fin' => PuntoModoEnum::FIJO,
             'finPunto' => 'Terminal Turismo Mer Puno',
         ],
         'TRANS_BUS-RSOL-LLEG_CUZ' => [
             'nombre' => 'Ruta del Sol: llegada a Cusco',
             'titulo' => 'Llegada a Cusco',
-            'contenido' => 'Llegamos a Cusco a media tarde, al terminal de la empresa en San Sebastián.',
+            'contenido' => 'Llegamos a Cusco a media tarde, al terminal de la empresa.',
             'inicio' => PuntoModoEnum::SIN_DEFINIR, 'fin' => PuntoModoEnum::FIJO,
             'finPunto' => 'Terminal Turismo Mer Cusco',
         ],
@@ -216,8 +217,8 @@ final class CrearRutaDelSolCommand extends Command
             'slug' => 'TRANS-HTL_CUZ-TERM_MER_CUZ', 'servicio' => 'TRF_CUZ', 'hora' => '06:10',
             'nombre' => 'Traslado del hotel al terminal de la Ruta del Sol en Cusco',
             'titulo' => 'Al terminal de la Ruta del Sol',
-            'contenido' => 'Les recogemos en su hotel temprano y les dejamos en el terminal del bus turístico, en '
-                . 'San Sebastián, con tiempo para embarcar el equipaje.',
+            'contenido' => 'Les recogemos en su hotel temprano y les dejamos en el terminal del bus turístico, con '
+                . 'tiempo para embarcar el equipaje.',
             'componente' => 'Transporte Htl Cusco ↔ Paradero Cusco (ida o vuelta)',
             'inicio' => PuntoModoEnum::ALOJAMIENTO, 'fin' => PuntoModoEnum::FIJO, 'finPunto' => 'Terminal Turismo Mer Cusco',
         ],
@@ -225,8 +226,7 @@ final class CrearRutaDelSolCommand extends Command
             'slug' => 'TRANS-TERM_MER_CUZ-HTL_CUZ', 'servicio' => 'TRF_CUZ', 'hora' => '17:30',
             'nombre' => 'Traslado del terminal de la Ruta del Sol en Cusco al hotel',
             'titulo' => 'Llegada a Cusco y traslado al hotel',
-            'contenido' => 'A la llegada del bus turístico les esperamos en el terminal, en San Sebastián, y les '
-                . 'llevamos a su hotel.',
+            'contenido' => 'A la llegada del bus turístico les esperamos en el terminal y les llevamos a su hotel.',
             'componente' => 'Transporte Htl Cusco ↔ Paradero Cusco (ida o vuelta)',
             'inicio' => PuntoModoEnum::FIJO, 'fin' => PuntoModoEnum::ALOJAMIENTO, 'inicioPunto' => 'Terminal Turismo Mer Cusco',
         ],
@@ -234,8 +234,8 @@ final class CrearRutaDelSolCommand extends Command
             'slug' => 'TRANS-HTL_PUN-TERM_MER_PUN', 'servicio' => 'TRF_PUN', 'hora' => '06:10',
             'nombre' => 'Traslado del hotel al terminal de la Ruta del Sol en Puno',
             'titulo' => 'Al terminal de la Ruta del Sol',
-            'contenido' => 'Les recogemos en su hotel temprano y les dejamos en el terminal del bus turístico, en la '
-                . 'avenida Costanera, con tiempo para embarcar el equipaje.',
+            'contenido' => 'Les recogemos en su hotel temprano y les dejamos en el terminal del bus turístico, con '
+                . 'tiempo para embarcar el equipaje.',
             'componente' => 'Transporte urbano en Puno',
             'inicio' => PuntoModoEnum::ALOJAMIENTO, 'fin' => PuntoModoEnum::FIJO, 'finPunto' => 'Terminal Turismo Mer Puno',
         ],
@@ -243,8 +243,7 @@ final class CrearRutaDelSolCommand extends Command
             'slug' => 'TRANS-TERM_MER_PUN-HTL_PUN', 'servicio' => 'TRF_PUN', 'hora' => '17:30',
             'nombre' => 'Traslado del terminal de la Ruta del Sol en Puno al hotel',
             'titulo' => 'Llegada a Puno y traslado al hotel',
-            'contenido' => 'A la llegada del bus turístico les esperamos en el terminal, en la avenida Costanera, y '
-                . 'les llevamos a su hotel.',
+            'contenido' => 'A la llegada del bus turístico les esperamos en el terminal y les llevamos a su hotel.',
             'componente' => 'Transporte urbano en Puno',
             'inicio' => PuntoModoEnum::FIJO, 'fin' => PuntoModoEnum::ALOJAMIENTO, 'inicioPunto' => 'Terminal Turismo Mer Puno',
         ],
