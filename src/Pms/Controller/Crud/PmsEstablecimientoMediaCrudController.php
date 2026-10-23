@@ -82,8 +82,8 @@ class PmsEstablecimientoMediaCrudController extends BaseCrudController
             ->setRequired(true)
             ->setFormTypeOption('attr', ['required' => true])
             ->setSortable(true)
-            ->setHelp('En la guía se piden con <code>{{ video_caja_llaves }}</code> y '
-                . '<code>{{ foto_caja_llaves }}</code>. Los del dinero no tienen marcador de guía: '
+            ->setHelp('En la guía se piden con <code>{{ video_caja_llaves }}</code>, '
+                . '<code>{{ foto_caja_llaves }}</code> y <code>{{ mapa }}</code>. Los del dinero no tienen marcador de guía: '
                 . 'viajan por plantilla.');
 
         yield LiipImageField::new('imageUrl', 'Vista previa')

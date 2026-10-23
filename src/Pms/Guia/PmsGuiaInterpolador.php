@@ -224,7 +224,7 @@ final class PmsGuiaInterpolador
         string $idioma,
         bool $revelar,
     ): string {
-        foreach (self::MEDIOS_DE_LA_CASITA as $clave => $esVideo) {
+        foreach (self::MEDIOS_DE_LA_CASITA as $clave => $bloqueDelFront) {
             if (!str_contains($texto, $clave)) {
                 continue;
             }
@@ -239,11 +239,15 @@ final class PmsGuiaInterpolador
                 // quita el marcador. El hueco se ve donde se arregla, en la pantalla de medios.
                 $bloque = '';
             } elseif ($acceso->permite($medio['nivel'])) {
-                $bloque = sprintf('{{ %s: %s }}', $esVideo ? 'video' : 'img', $medio['valor']);
+                $bloque = sprintf('{{ %s: %s }}', $bloqueDelFront, $medio['valor']);
+            } elseif ($bloqueDelFront === 'map') {
+                // El front no tiene un mapa «bloqueado» que pintar. Hoy no pasa —el mapa es
+                // público—, pero si un día dejara de serlo se quita, como un medio que falta.
+                $bloque = '';
             } else {
                 $bloque = sprintf(
-                    '{{ %s: %s }}',
-                    $esVideo ? 'videobloqueado' : 'imgbloqueado',
+                    '{{ %sbloqueado: %s }}',
+                    $bloqueDelFront,
                     trim(PmsGuiaMensajes::bloqueo($acceso, $idioma), '[]')
                 );
             }
@@ -308,26 +312,29 @@ final class PmsGuiaInterpolador
     private const CLAVES_SENSIBLES = ['door_code', 'numero', 'codigo_caja_casita', 'codigo_caja_llaves', 'codigo_caja_dinero'];
 
     /**
-     * Los medios de la casita y si cada uno es vídeo. Salen de `PmsUnidadMedia` y del
-     * establecimiento, no del texto — ver `resolverMediaDeLaCasita()`.
+     * Los medios de la casita y el bloque del front en que se convierten (`img`, `video`, `map`).
+     * Salen de `PmsUnidadMedia` y del establecimiento, no del texto — ver `resolverMediaDeLaCasita()`.
      *
      * ⚠️ Aquí **no** se dice cuál exige ventana: eso lo decide `PmsUnidadMediaTipo::esSensible()` y
      * se nota en si la clave llegó en `valores` o en `sensibles`. Repetirlo aquí sería tener la
      * misma regla en dos sitios, y el día que un tipo cambie de lado sólo cambiaría uno.
      */
     private const MEDIOS_DE_LA_CASITA = [
-        'croquis'           => false,
-        'foto_puerta'       => false,
-        'video_ingreso'     => true,
+        'croquis'           => 'img',
+        'foto_puerta'       => 'img',
+        'video_ingreso'     => 'video',
         // Del EDIFICIO, no de la casita, pero se sirven igual.
-        'video_caja_llaves' => true,
-        'foto_caja_llaves'  => false,
+        'video_caja_llaves' => 'video',
+        'foto_caja_llaves'  => 'img',
+        // El punto del mapa de la puerta (23/10/2026). Era `{{ map: … }}` escrito en la ficha, en
+        // ocho copias; ahora vive en el establecimiento (`PmsEstablecimientoMediaTipo::MAPA`).
+        'mapa'              => 'map',
         // Las de la caja del DINERO sólo entran en el contexto de un enlace del equipo
         // (`PmsGuiaContexto::construir(…, conMediosDelEquipo: true)`). En la guía normal no hay
         // valor que resolver y el marcador se QUITA —antes de estar en esta lista se quedaba
         // crudo, `{{ foto_caja_dinero }}`, a la vista del huésped—.
-        'video_caja_dinero' => true,
-        'foto_caja_dinero'  => false,
+        'video_caja_dinero' => 'video',
+        'foto_caja_dinero'  => 'img',
     ];
 
     /**

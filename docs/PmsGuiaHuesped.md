@@ -2105,6 +2105,7 @@ las fija tras el primer `flush` conservando el `origenHash`.
 
 | Necesito… | Archivo | Símbolo |
 |---|---|---|
+| Cambiar el punto del mapa de la guía | panel → Establecimiento → Medios → «Mapa» | La ficha dice `{{ mapa }}`; lo resuelve `PmsGuiaInterpolador::MEDIOS_DE_LA_CASITA` |
 | Cambiar las instrucciones de la llave de emergencia o del pago en efectivo | panel → Guía → Ítems: fichas `llave-emergencia` y `pago-efectivo` | La plantilla sólo lleva el enlace (§7 sexies). La etiqueta «emergencia» va en `<span translate="no">` |
 | Añadir otra ficha que sólo abra el equipo | panel: ficha con «Sólo con enlace del equipo» y un código | En la plantilla, `{{ acceso_<código con _> }}`. Nada de código: `PmsGuiaEnlaceDelEquipo::items()` la encuentra sola |
 | Cuánto dura un enlace del equipo | `PmsGuiaEnlaceDelEquipo` | `HORAS_MINIMAS` y `caducidad()` |
@@ -2710,6 +2711,21 @@ Lo hizo `app:pms:guia:direccion-a-y-b` (archivado), que toca sólo el español y
 sólo se ve en el panel pero no puede contradecir a la guía.
 
 ⚠️ **La dirección que ven en Booking y Airbnb vive en Beds24**, no aquí: eso se cambia allí a mano.
+
+📍 **El punto del mapa vive en el ESTABLECIMIENTO desde el 23/10/2026**, no en la ficha. Estaba
+escrito `{{ map: https://www.google.com/maps/place/-13.511305,-71.984414 }}` ocho veces —los siete
+idiomas de «Ubicación (general)» y su texto del agente—, así que moverlo eran ocho ediciones (y la
+del agente no la rehacía el traductor). Ahora es un medio del establecimiento,
+`PmsEstablecimientoMediaTipo::MAPA` (público, una URL), y la ficha dice **`{{ mapa }}`**, como los
+croquis y los vídeos: `PmsGuiaInterpolador` lo convierte en `{{ map: … }}`, que pinta `MapBlock` y que
+el agente recibe como enlace. Sin mapa cargado, el marcador se quita.
+
+Lo movió `app:pms:guia:mapa-al-establecimiento` (archivado): sustituye en los siete idiomas y los
+**sella** (`soloSellar`) en vez de retraducirlos, porque cambiar un marcador no es cambiar el texto.
+Se cambia en el panel: Establecimiento → Medios → «Mapa».
+
+El rótulo de la tarjeta («Ver ubicación») sale de `gui_ver_ubicacion` (`pax:textos:guia`): estaba
+fijo en español en `MapBlock` y salía así en una guía en inglés.
 
 ⚠️ Lo que NO se tocó es lo que de verdad la orientó —«la primera puerta verde del pasaje, a pocos
 metros de la caja fuerte»—. El número sitúa la manzana; la puerta la encuentra esa frase.

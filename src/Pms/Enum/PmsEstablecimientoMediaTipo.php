@@ -38,6 +38,16 @@ enum PmsEstablecimientoMediaTipo: string
     /** Dónde está la caja del dinero. **No sale en la guía.** */
     case FOTO_CAJA_DINERO = 'foto_caja_dinero';
 
+    /**
+     * El punto del mapa de la PUERTA, como enlace de Google Maps por coordenadas (23/10/2026).
+     *
+     * Estaba escrito dentro de la ficha «Ubicación (general)» —`{{ map: … }}`— ocho veces: los
+     * siete idiomas y el texto del agente. Es del edificio, como las cajas, y aquí vive una vez; la
+     * ficha dice `{{ mapa }}`. Por coordenadas y no por búsqueda: ver docs/PmsGuiaHuesped.md («La
+     * dirección dice "877-A y B"»).
+     */
+    case MAPA = 'mapa';
+
     /** Lo que el editor escribe para pedirlo: `{{ video_caja_llaves }}`. */
     public function clave(): string
     {
@@ -69,6 +79,8 @@ enum PmsEstablecimientoMediaTipo: string
             // Abren la puerta: mismo nivel que el resto de lo que abre puertas.
             self::VIDEO_CAJA_LLAVES, self::FOTO_CAJA_LLAVES => PmsGuiaVisibilidad::SoloVentana,
             self::VIDEO_CAJA_DINERO, self::FOTO_CAJA_DINERO => null,
+            // Dónde está el alojamiento no es secreto: lo dicen Booking y Airbnb.
+            self::MAPA => PmsGuiaVisibilidad::Publico,
         };
     }
 
@@ -77,7 +89,7 @@ enum PmsEstablecimientoMediaTipo: string
     {
         return match ($this) {
             self::FOTO_CAJA_LLAVES, self::FOTO_CAJA_DINERO => true,
-            self::VIDEO_CAJA_LLAVES, self::VIDEO_CAJA_DINERO => false,
+            self::VIDEO_CAJA_LLAVES, self::VIDEO_CAJA_DINERO, self::MAPA => false,
         };
     }
 
@@ -88,6 +100,7 @@ enum PmsEstablecimientoMediaTipo: string
             self::FOTO_CAJA_LLAVES => 'Foto: dónde está la caja de las LLAVES',
             self::VIDEO_CAJA_DINERO => 'Vídeo: cómo abrir la caja del DINERO (YouTube) — no sale en la guía',
             self::FOTO_CAJA_DINERO => 'Foto: dónde está la caja del DINERO — no sale en la guía',
+            self::MAPA => 'Mapa: enlace de Google Maps a la puerta (por coordenadas)',
         };
     }
 

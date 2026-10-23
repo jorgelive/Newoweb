@@ -227,6 +227,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
         'foto_caja_dinero',
         'video_caja_llaves',
         'video_caja_dinero',
+        // El mapa de la puerta (23/10/2026) no abre nada —es público, y está en la guía—, pero sale
+        // del mismo bucle de medios del edificio y la regla es una: todo lo de ese bucle se declara.
+        // El huésped lo tiene en su guía; aquí sólo deja de ir en el volcado de consultar_mi_reserva.
+        'mapa',
         // Los alias de abajo abren lo mismo que su original.
         'combinacion_caja_superior',
         'foto_caja_superior',

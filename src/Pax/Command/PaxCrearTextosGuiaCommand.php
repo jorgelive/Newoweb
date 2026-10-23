@@ -19,7 +19,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Idempotente.
  *
  * `gui_siguiente` (14/10/2026): el pie de cada ítem lleva al siguiente de su sección —ubicación,
- * llaves, puerta…— sin volver a la lista.
+ * llaves, puerta…— sin volver a la lista. `gui_ver_ubicacion` (23/10/2026): el rótulo del mapa.
  *
  *   php bin/console pax:textos:guia --dry-run
  *   php bin/console pax:textos:guia
@@ -37,6 +37,9 @@ final class PaxCrearTextosGuiaCommand extends Command
         // El hueco de `MediosPagoWidget` cuando no hay medio que ofrecer. Nunca se había creado:
         // salía siempre el respaldo en español, también en una ficha en inglés (16/10/2026).
         'gui_pago_consultanos' => 'Consúltanos los medios de pago por el chat',
+        // El rótulo de la tarjeta del mapa (`MapBlock`). Estaba fijo en español en el componente y
+        // salía «Ver Ubicación» en una guía en inglés (23/10/2026).
+        'gui_ver_ubicacion' => 'Ver ubicación',
     ];
 
     /**
@@ -50,6 +53,9 @@ final class PaxCrearTextosGuiaCommand extends Command
     private const array A_MANO = [
         'gui_siguiente' => [
             'en' => 'Next', 'pt' => 'Próximo', 'fr' => 'Suivant', 'it' => 'Avanti', 'de' => 'Weiter', 'nl' => 'Volgende',
+        ],
+        'gui_ver_ubicacion' => [
+            'en' => 'View location', 'pt' => 'Ver localização', 'fr' => 'Voir l’emplacement', 'it' => 'Vedi posizione', 'de' => 'Standort ansehen', 'nl' => 'Locatie bekijken',
         ],
     ];
 
