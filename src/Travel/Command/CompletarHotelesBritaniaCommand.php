@@ -162,12 +162,10 @@ final class CompletarHotelesBritaniaCommand extends Command
                 $hotel ??= $repo->findOneBy(['nombreComercial' => $nombre]);
             }
 
+            $nuevo = !$hotel instanceof TravelOrganizacion;
             if (!$hotel instanceof TravelOrganizacion) {
                 $io->text(sprintf('  %s', $seco ? 'se crearía' : 'creado'));
                 $hotel = (new TravelOrganizacion())->setNombreComercial($def['nombre'])->setRazonSocial('Hotel Britania');
-                if (!$seco) {
-                    $this->em->persist($hotel);
-                }
             } elseif ($hotel->getNombreComercial() !== $def['nombre']) {
                 $io->text(sprintf('  «%s» → «%s»', $hotel->getNombreComercial(), $def['nombre']));
                 if (!$seco) {
@@ -184,6 +182,13 @@ final class CompletarHotelesBritaniaCommand extends Command
                         ->setDireccion($def['direccion'])
                         ->setVisibleParaCliente(true);
                 }
+            }
+
+            // ⚠️ El `persist()` va DESPUÉS de rellenar título y descripción: la traducción corre en
+            // `prePersist`, que salta en el `persist()` y no en el `flush()`. La primera versión lo
+            // hacía al crear, con la ficha vacía, y el Crystal quedó sólo en español.
+            if ($nuevo && !$seco) {
+                $this->em->persist($hotel);
             }
 
             if (($hotel->getTelefono() ?? '') === '' || ($hotel->getEmail() ?? '') === '') {
