@@ -1,6 +1,7 @@
 import { extractIdStr } from '@/utils/recurso';
 import { avisoIgvDeHotel, peruanosQueViajan } from './igvHoteleria';
 import { clonarServicio, type ServicioCopiado } from './clonarServicio';
+import { fantasmasPorDia } from './fantasmasPorDia';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
 import { comoCalculo, multiplicaPorCantidad, seProrratea, visibleParaCliente } from '@dominio/cotizacion/index.ts';
@@ -2256,26 +2257,48 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     });
 
     /**
-     * Los días del viaje SIN huecos: del primero al último, aunque alguno no tenga servicios
-     * (Jorge, 23/10/2026). Un día vacío no aparecía, y entonces no había dónde pulsar «Inyectar
-     * servicio en este día» ni «Pegar aquí»: había que crearlo al final y cambiarle la fecha.
+     * Los días del viaje SIN huecos: los días vacíos entre dos con algo también salen (Jorge,
+     * 23/10/2026). Un día vacío no aparecía, y entonces no había dónde pulsar «Inyectar servicio
+     * en este día» ni «Pegar aquí»: había que crearlo al final y cambiarle la fecha.
      *
-     * ⚠️ **Con tope.** Un servicio con una fecha mal escrita —un año de más— convertiría el hueco
-     * en cientos de días vacíos y la lista sería inservible justo cuando hay que encontrar el
-     * error. Pasado el tope se enseñan sólo los días con servicios, como antes.
+     * ⚠️ **Hueco a hueco, con tope por hueco** —no por el viaje entero—. Lo revisó Fable: con un
+     * tope sobre el rango total, un solo servicio lejano (el vuelo de vuelta tres meses después, o
+     * un año mal tecleado, que es justo el caso del tope) apagaba los vacíos de TODO el viaje sin
+     * decir por qué. Así sólo se queda sin rellenar ese hueco, y la lista no se llena de cientos de
+     * días vacíos justo cuando hay que encontrar la fecha mala.
      */
-    const MAX_DIAS_DE_VIAJE = 90;
+    const MAX_HUECO_EN_DIAS = 14;
     const conDiasVacios = (fechas: string[]): string[] => {
-        if (fechas.length < 2) return fechas;
+        const resultado: string[] = [];
 
-        const desde = parseNaiveAsUTC(fechas[0]);
-        const hasta = parseNaiveAsUTC(fechas[fechas.length - 1]);
-        const dias = Math.round((hasta - desde) / 86_400_000);
+        fechas.forEach((fecha, i) => {
+            if (i > 0) {
+                const desde = parseNaiveAsUTC(fechas[i - 1]);
+                const hueco = Math.round((parseNaiveAsUTC(fecha) - desde) / 86_400_000) - 1;
 
-        if (Number.isNaN(dias) || dias > MAX_DIAS_DE_VIAJE) return fechas;
+                if (hueco > 0 && hueco <= MAX_HUECO_EN_DIAS) {
+                    for (let d = 1; d <= hueco; d++) {
+                        resultado.push(formatNaiveFromUTC(desde + d * 86_400_000).slice(0, 10));
+                    }
+                }
+            }
+            resultado.push(fecha);
+        });
 
-        return Array.from({ length: dias + 1 }, (_, i) => formatNaiveFromUTC(desde + i * 86_400_000).slice(0, 10));
+        return resultado;
     };
+
+    /**
+     * Los servicios de varios días vistos en sus días siguientes. La regla es la de la guía del
+     * cliente, no una copia: ver `fantasmasPorDia.ts`. Sin fecha no se reparten: no hay de dónde.
+     */
+    const fantasmas = computed(() => fantasmasPorDia(
+        (cotizacion.value?.cotservicios ?? []).filter((s: CotServicio) => !!s.fechaInicioAbsoluta),
+        {
+            diaDelServicio: (srv) => getFechaLimpia(srv.fechaInicioAbsoluta).slice(0, 10),
+            texto: (i18n) => getI18nText(i18n, 'es'),
+        },
+    ));
 
     const itinerarioDinamico = computed(() => {
         if (!cotizacion.value || !cotizacion.value.cotservicios) return [];
@@ -2290,7 +2313,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         const grupos: Record<string, CotServicio[]> = {};
         todosLosServicios.forEach((srv: CotServicio) => {
-            const fecha = getFechaLimpia(srv.fechaInicioAbsoluta);
+            // `slice`: la clave tiene que ser AAAA-MM-DD exacto, igual que los días que genera el
+            // relleno. Si no, un servicio con otra forma de fecha caería en un día que no casa con
+            // ninguno y desaparecería de la lista (Fable).
+            const fecha = getFechaLimpia(srv.fechaInicioAbsoluta).slice(0, 10);
 
             if (srv.cotcomponentes && Array.isArray(srv.cotcomponentes)) {
                 ordenarComponentesCronologicamente(srv.cotcomponentes, srv);
@@ -2377,15 +2403,26 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             });
         });
 
-        const fechasConServicios = Object.keys(grupos).sort();
-        const fechasOrdenadas = conDiasVacios(fechasConServicios);
+        // ⚠️ **Un servicio SIN fecha no entra en el relleno.** `getFechaLimpia()` lo lleva a HOY,
+        // y con un viaje en noviembre eso pintaba semanas de días vacíos entre hoy y el viaje —
+        // distintos cada día que se abriera— (Fable). Sigue saliendo en su día, como antes; sólo
+        // no tira del rango.
+        const diaDe = (srv: CotServicio): string => getFechaLimpia(srv.fechaInicioAbsoluta).slice(0, 10);
+        const conFecha = [...new Set([
+            ...todosLosServicios.filter((srv: CotServicio) => !!srv.fechaInicioAbsoluta).map(diaDe),
+            // Los días que sólo ocupa un servicio de varios días también son días del viaje: las
+            // noches 2 y 3 del último hotel no salían, aunque el cliente las ve.
+            ...fantasmas.value.keys(),
+        ])].sort();
+        const sinFecha = todosLosServicios.filter((srv: CotServicio) => !srv.fechaInicioAbsoluta).map(diaDe);
+        const fechasOrdenadas = [...new Set([...conDiasVacios(conFecha), ...sinFecha])].sort();
         const fechaBase = fechasOrdenadas.length > 0 ? new Date(fechasOrdenadas[0] + 'T12:00:00Z') : new Date();
 
         return fechasOrdenadas.map((fecha) => {
             const fechaActual = new Date(fecha + 'T12:00:00Z');
             const diffTime = fechaActual.getTime() - fechaBase.getTime();
             const diaNumero = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            return { fechaAbsoluta: fecha, diaNumero, cotservicios: grupos[fecha] ?? [] };
+            return { fechaAbsoluta: fecha, diaNumero, cotservicios: grupos[fecha] ?? [], fantasmas: fantasmas.value.get(fecha) ?? [] };
         });
     });
 

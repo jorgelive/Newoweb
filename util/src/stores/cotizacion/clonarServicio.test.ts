@@ -72,6 +72,14 @@ describe('clonarServicio', () => {
         expect(c2.duplicadoDe).toBe(c1.id);
     });
 
+    it('anula un duplicadoDe cuyo original ya no está en el servicio', () => {
+        const original = servicio();
+        original.cotcomponentes = original.cotcomponentes!.slice(1);   // queda sólo la copia
+        const copia = clonarServicio(original, { fechaDestino: '2027-01-07', mismoExpediente: true, nuevoId: secuencia });
+
+        expect(copia.cotcomponentes![0].duplicadoDe).toBeNull();
+    });
+
     it('no toca lo que apunta fuera del árbol: el catálogo', () => {
         const copia = clonarServicio(servicio(), { fechaDestino: '2027-01-07', mismoExpediente: true, nuevoId: secuencia });
 

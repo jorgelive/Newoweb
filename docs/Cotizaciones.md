@@ -6953,15 +6953,9 @@ Lo que hace la copia (`util/src/stores/cotizacion/clonarServicio.ts`, con tests)
 |---|---|---|
 | Ids | nuevos para todo el árbol —servicio, segmentos, componentes, tarifas, ítems, detalles— **sustituyendo cada id viejo en el árbol entero** | así se reapuntan solas las referencias internas (`cotsegmento`, `duplicadoDe`, el componente inyectado de un ítem), y una que se añada mañana también. Lo que apunta fuera (catálogo, moneda) no está en el mapa |
 | Fechas | todas corridas los mismos días hasta el día elegido, como `Cotizacion::desplazarA()` | un traslado de 05:30 y su tren de 07:45 siguen separados igual |
+| `duplicadoDe` | si su original no está en el servicio, **`null`**, como `CotizacionCotservicio::duplicar()` | si no, viajaría apuntando a un componente de la propuesta de origen |
 | Subgrupos | se conservan en el mismo expediente; **en otro se vacían** | cuelgan del expediente: fuera serían reservas ajenas |
 | Orden | el de un alta nueva en ese día (`lugarParaServicioNuevo()`, compartido con «Inyectar servicio») | cae donde está el botón |
-
-⚠️ **Los días vacíos ya aparecen** (`conDiasVacios()` en `itinerarioDinamico`): la lista iba del
-primer día al último saltándose los que no tenían servicios, y en esos no había dónde pegar ni
-dónde «Inyectar servicio en este día». Ahora sale cada día del viaje, con sus dos botones y sin el
-de «Ordenar». Con un tope de 90 días: una fecha mal escrita —un año de más— llenaría la lista de
-cientos de días vacíos justo cuando hay que encontrar el error; pasado el tope se enseñan sólo los
-días con servicios.
 
 ⚠️ **Copia el servicio como está en pantalla**, con lo no guardado. Y el portapapeles **se queda**
 tras pegar: pegar el mismo traslado en tres días es el caso normal.
@@ -6970,6 +6964,35 @@ tras pegar: pegar el mismo traslado en tres días es el caso normal.
 para otro número de personas, se revisan a mano — el aviso «Faltan Pax» de la tarifa lo marca
 cuando no cubren a todos. Ajustarlas aquí sería escribir otra vez la regla de
 `Cotizacion::ajustarPax()`.
+
+### Los días del editor: vacíos y fantasmas (23/10/2026)
+
+La lista de días iba del primer día al último **saltándose los que no tenían un servicio que
+empezara ahí**. En esos no había dónde pegar ni dónde «Inyectar servicio en este día», y los días 2
+a 4 de un Camino Inca o las noches de un hotel parecían vacíos aunque el cliente los ve llenos.
+
+- **Días vacíos** (`conDiasVacios()` en `itinerarioDinamico`): se rellena **hueco a hueco**, cada
+  uno hasta 14 días. Fable revisó la primera versión, que topaba el viaje ENTERO en 90 días: un solo
+  servicio lejano —el vuelo de vuelta meses después, o un año mal tecleado— apagaba los vacíos de
+  todo el viaje sin decir por qué. Ahora sólo se queda sin rellenar ese hueco.
+- ⚠️ **Un servicio sin fecha no tira del rango.** `getFechaLimpia()` lo lleva a HOY, y con un viaje
+  en noviembre eso pintaba semanas de días vacíos —distintos cada día que se abriera—. Sigue
+  saliendo en «hoy», como antes; sólo no rellena hasta allí.
+- **La clave del día es `AAAA-MM-DD` exacto** (`.slice(0, 10)`), la misma forma que la de los días
+  generados: con otra forma, un servicio caería en un día que no casa con ninguno y desaparecería.
+- **Fantasmas** (`fantasmasPorDia.ts`): un servicio de varios días sale, en sus días siguientes,
+  como tarjeta punteada de sólo lectura —«↳ Alojamiento en Cusco · noche 2 de 3», «↳ Camino Inca ·
+  día 3 de 4 — Wiñay Wayna»—. Tocarla abre el servicio de verdad; no lleva papelera, ni clonar, ni
+  entra en «Ordenar», ni suma costo. Los días que sólo ocupa un fantasma (las últimas noches del
+  último hotel) también salen.
+
+🔥 **Los fantasmas NO tienen regla propia: salen de `componerItinerario()`** (`@dominio/cotizacion`),
+la misma función que reparte los días en la guía del cliente y en PHP. El editor sólo pregunta qué
+bloque de cada día pertenece a un servicio que empezó en otro. Escribir aquí el reparto —noches vs
+días, el `+1` del seguro, los párrafos con fecha propia— sería una segunda copia, y la primera vez
+que cambiara una el editor y el cliente dirían días distintos. La unidad de conteo llega resuelta del
+servidor (`getUnidadDeConteo()`); un componente añadido en esta sesión no la trae hasta guardarse y
+cuenta en noches.
 
 ## 6.k `Filedocumento` → `Filearchivo`: el nombre que hacía leerla al revés (23/08/2026)
 
@@ -9974,6 +9997,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
   segundos se guarda en `propuestaCopiada` como NÚMERO y no como booleano, porque la cabecera se
   repite por propuesta y un flag compartido ponía el visto en las tres.
 - **Que un dato más salga en la tarjeta del componente** → el bloque de pastillas junto a `prestadorNombreSnapshot` en `CotizacionEditorView.vue` (§6.d).
+- **En qué días sale el fantasma de un servicio de varios días** → `componerItinerario()` en `dominio/cotizacion/itinerarioVista.ts` (la regla, compartida con el cliente); `fantasmasPorDia.ts` sólo la consulta. **Cuánto hueco se rellena con días vacíos** → `MAX_HUECO_EN_DIAS` en el store (§6.j.8).
 - **Qué arregla la copia de un servicio al pegarla (ids, fechas, subgrupos)** → `clonarServicio()` en `util/src/stores/cotizacion/clonarServicio.ts`; el portapapeles, `copiarServicio`/`pegarServicio` en el store (§6.j.8).
 - **Cuándo se abren solos los nombres del servicio o del componente** → `faltaNombreServicio` / `faltaNombrePublico` en `CotizacionEditorView.vue`.
 - **Que el bloque «Catálogo Maestro» arranque cerrado** → `leerPreferencia()` en `CotizacionEditorView.vue`; hoy abre salvo que se haya cerrado antes (§6.d).

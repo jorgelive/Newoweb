@@ -101,7 +101,17 @@ export const clonarServicio = (original: CotServicio, opciones: OpcionesDeClonad
         seg.fechaAbsoluta = mover(seg.fechaAbsoluta, dias) ?? seg.fechaAbsoluta;
     }
 
+    // ⚠️ **Un `duplicadoDe` cuyo original ya no está en el servicio se anula**, igual que hace
+    // `CotizacionCotservicio::duplicar()` en PHP: no está en el mapa, así que viajaría intacto
+    // apuntando a un componente de la propuesta de ORIGEN —un vínculo que cruza propuestas y agrupa
+    // mal en silencio—. Mejor perder la traza (lo encontró Fable).
+    const idsDeLaCopia = new Set((copia.cotcomponentes ?? []).map((c) => c.id));
+
     for (const comp of copia.cotcomponentes ?? []) {
+        if (comp.duplicadoDe && !idsDeLaCopia.has(comp.duplicadoDe)) {
+            comp.duplicadoDe = null;
+        }
+
         comp.fechaHoraInicio = mover(comp.fechaHoraInicio, dias) ?? comp.fechaHoraInicio;
         comp.fechaHoraFin = mover(comp.fechaHoraFin, dias) ?? comp.fechaHoraFin;
 

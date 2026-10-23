@@ -289,3 +289,66 @@ describe('agregarServicio · nace al día siguiente', () => {
         expect(idsPorDia(store)).toEqual([['colocado1', 'colocado2', nuevo?.id]]);
     });
 });
+
+/**
+ * Los días que se enseñan: los vacíos entre dos con algo, y los que sólo ocupa un servicio de
+ * varios días. Lo revisó Fable y salieron tres formas de romperlo, que son estos casos.
+ */
+describe('itinerarioDinamico · qué días salen', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const fechas = (store: ReturnType<typeof montar>) => store.itinerarioDinamico.map((d) => d.fechaAbsoluta);
+
+    it('rellena un hueco corto, y el número de día sigue siendo de calendario', () => {
+        const store = montar([
+            servicio('a', '2030-01-01', 0, [{ hora: '2030-01-01T08:00:00' }]),
+            servicio('b', '2030-01-03', 0, [{ hora: '2030-01-03T08:00:00' }]),
+        ]);
+
+        expect(fechas(store)).toEqual(['2030-01-01', '2030-01-02', '2030-01-03']);
+        expect(store.itinerarioDinamico[1].cotservicios).toEqual([]);
+        expect(store.itinerarioDinamico.map((d) => d.diaNumero)).toEqual([1, 2, 3]);
+    });
+
+    it('un hueco enorme no se rellena, pero los demás sí', () => {
+        const store = montar([
+            servicio('a', '2030-01-01', 0, [{ hora: '2030-01-01T08:00:00' }]),
+            servicio('b', '2030-01-03', 0, [{ hora: '2030-01-03T08:00:00' }]),
+            servicio('lejos', '2031-01-03', 0, [{ hora: '2031-01-03T08:00:00' }]),
+        ]);
+
+        expect(fechas(store)).toEqual(['2030-01-01', '2030-01-02', '2030-01-03', '2031-01-03']);
+    });
+
+    it('un servicio sin fecha no estira el viaje hasta hoy', () => {
+        const store = montar([
+            servicio('a', '2030-01-01', 0, [{ hora: '2030-01-01T08:00:00' }]),
+            servicio('b', '2030-01-02', 0, [{ hora: '2030-01-02T08:00:00' }]),
+            servicio('sin', '', 0, []),
+        ]);
+
+        // Hoy sale (ahí estaba el servicio sin fecha también antes), pero sin días de relleno.
+        expect(fechas(store).filter((f) => f >= '2030-01-01')).toEqual(['2030-01-01', '2030-01-02']);
+        expect(fechas(store).length).toBe(3);
+    });
+
+    it('las noches de un hotel salen como días, con su fantasma', () => {
+        const store = montar([servicio('a', '2030-01-01', 0, [{ hora: '2030-01-01T08:00:00' }])]);
+        const hotel = {
+            id: 'hotel',
+            fechaInicioAbsoluta: '2030-01-01',
+            orden: 0,
+            nombreInternoSnapshot: [{ language: 'es', content: 'Hotel' }],
+            cotsegmentos: [{ id: 'sh', dia: 1, orden: 1, fechaAbsoluta: '2030-01-01T00:00:00' }],
+            cotcomponentes: [{
+                id: 'ch', cotsegmentoId: 'sh', sinHorario: true, unidadDeConteo: 'noches',
+                fechaHoraInicio: '2030-01-01T00:00:00', fechaHoraFin: '2030-01-04T00:00:00',
+            }],
+        };
+        (store.cotizacion as unknown as { cotservicios: unknown[] }).cotservicios.push(hotel);
+
+        expect(fechas(store)).toEqual(['2030-01-01', '2030-01-02', '2030-01-03']);
+        expect(store.itinerarioDinamico[2].fantasmas.map((f) => f.etiqueta)).toEqual(['noche 3 de 3']);
+        expect(store.itinerarioDinamico[0].fantasmas).toEqual([]);
+    });
+});

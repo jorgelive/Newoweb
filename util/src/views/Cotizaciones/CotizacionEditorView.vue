@@ -454,6 +454,12 @@ const etiquetaSubgrupo = (sg: SubgrupoOpcion): string =>
     .filter(Boolean)
     .join(' · ');
 
+/** El fantasma no es el servicio: abre el de verdad, que vive en su primer día. */
+const abrirServicioDeFantasma = (servicioId: string): void => {
+  const servicio = store.cotizacion?.cotservicios?.find(s => String(s.id) === servicioId);
+  if (servicio) store.abrirNivel('servicio', servicio);
+};
+
 const CLAVE_CATALOGO = 'cotizacion.editor.catalogoAbierto';
 const catalogoAbierto = ref(leerPreferencia());
 
@@ -2419,6 +2425,30 @@ store.$onAction(({ name, args }) => {
             </div>
 
             <div class="space-y-4">
+              <!-- ── FANTASMAS: un servicio de varios días, en sus días siguientes ───────
+                   El hotel del 7 al 10 en sus noches 8 y 9, el Camino Inca en sus días 2 a 4: los
+                   mismos días en que los ve el cliente, porque salen de la misma función
+                   (`fantasmasPorDia.ts`). Sólo lectura: tocarlo abre el servicio de verdad, que
+                   vive en su primer día. Ni papelera, ni clonar, ni entra en «Ordenar». Van arriba
+                   porque son lo que YA estaba en curso cuando empieza el día. -->
+              <template v-if="diaEnReorden !== dia.fechaAbsoluta">
+                <button v-for="fantasma in dia.fantasmas" :key="`fantasma-${fantasma.servicioId}`" type="button"
+                        @click="abrirServicioDeFantasma(fantasma.servicioId)"
+                        title="Sigue de un día anterior: tócalo para abrir el servicio"
+                        class="w-full text-left bg-slate-50/70 border-2 border-dashed border-slate-200 rounded-2xl px-4 py-3 hover:border-[#376875]/40 transition-colors">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <i class="fas fa-arrow-turn-down rotate-[-90deg] text-[10px] text-slate-300 shrink-0"></i>
+                    <span class="text-sm font-black text-slate-400 truncate">{{ fantasma.nombre }}</span>
+                    <span class="ml-auto shrink-0 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      {{ fantasma.etiqueta }}
+                    </span>
+                  </div>
+                  <p v-if="fantasma.titulos.length" class="mt-1 ml-5 text-[11px] font-bold text-slate-400 leading-snug">
+                    {{ fantasma.titulos.join(' · ') }}
+                  </p>
+                </button>
+              </template>
+
               <!-- ── MODO REORDENAR ─────────────────────────────────────────────
                    La ficha se reduce a su título y un asa. Es HTML5 drag-and-drop y no el
                    long-press de los segmentos porque aquí no compite con el clic: en este modo la
