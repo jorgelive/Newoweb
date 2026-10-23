@@ -389,6 +389,16 @@ final readonly class ConsultarGuiaSkill implements SkillInterface, SkillDominioI
             'huesped' => $reserva->getNombreApellido(),
             'hora_check_in' => $contexto->valores['hora_checkin'] ?? null,
             'hora_check_out' => $contexto->valores['hora_checkout'] ?? null,
+            // Lo que el huésped confirmó, aparte del horario: «el check-in es desde las 14:00, y usted
+            // nos dijo que llega a las 20:00» (22/10/2026).
+            // Como frase y no como hora suelta: con el dato a secas, el modelo daba el horario y se
+            // olvidaba de la hora que el huésped había dicho (1 de cada 2 en el ensayo).
+            'llegada_que_confirmo' => isset($contexto->valores['hora_llegada'])
+                ? sprintf('Nos dijo que llega a las %s. Díselo junto al horario: «la entrada es desde las %s; tenemos anotado que llega a las %s».', $contexto->valores['hora_llegada'], $contexto->valores['hora_checkin'] ?? '—', $contexto->valores['hora_llegada'])
+                : null,
+            'salida_que_confirmo' => isset($contexto->valores['hora_salida'])
+                ? sprintf('Nos dijo que sale a las %s (la salida es hasta las %s).', $contexto->valores['hora_salida'], $contexto->valores['hora_checkout'] ?? '—')
+                : null,
         ], static fn ($v) => $v !== null && $v !== '');
 
         return $this->responder(

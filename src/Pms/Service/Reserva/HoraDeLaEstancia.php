@@ -33,10 +33,51 @@ final readonly class HoraDeLaEstancia
     /** El check-in o el check-out del alojamiento, `HH:MM`. */
     public function limite(PmsEventoCalendario $evento, bool $esSalida): string
     {
+        return self::delAlojamiento($evento, $esSalida);
+    }
+
+    /** Lo mismo que {@see self::limite()}, para quien no tiene el servicio (`PmsGuiaContexto` es estático). */
+    public static function delAlojamiento(PmsEventoCalendario $evento, bool $esSalida): string
+    {
         $est = $evento->getPmsUnidad()?->getEstablecimiento();
         $hora = $esSalida ? $est?->getHoraCheckOut() : $est?->getHoraCheckIn();
 
         return $hora?->format('H:i') ?? ($esSalida ? self::CHECK_OUT_POR_DEFECTO : self::CHECK_IN_POR_DEFECTO);
+    }
+
+    /**
+     * Desde cuándo PUEDE entrar (o hasta cuándo puede quedarse): el horario del alojamiento, salvo
+     * que la estancia lo amplíe —una entrada temprana o una salida tardía pactadas—.
+     *
+     * 🔥 **No es la hora de la estancia a secas** (22/10/2026). `inicio`/`fin` guardan también la hora
+     * que el huésped CONFIRMA (`registrar()`): Humberto Pereda dijo que llegaba a las 20:00, y desde ese
+     * momento la guía, las plantillas y el agente le decían «entrada desde las 20:00». Una llegada
+     * tarde no cambia desde cuándo puede entrar; una entrada temprana pactada, sí. Por eso la más
+     * temprana de las dos para la entrada, y la más tardía para la salida. Lo que confirmó va aparte:
+     * {@see self::confirmada()}.
+     */
+    public static function permitida(PmsEventoCalendario $evento, bool $esSalida): string
+    {
+        $alojamiento = self::delAlojamiento($evento, $esSalida);
+        $momento = $esSalida ? $evento->getFin() : $evento->getInicio();
+
+        if ($momento === null) {
+            return $alojamiento;
+        }
+
+        $suya = $momento->format('H:i');
+
+        // Cadenas `HH:MM` de 24 h: ordenan igual que el reloj.
+        return $esSalida ? max($suya, $alojamiento) : min($suya, $alojamiento);
+    }
+
+    /** La hora que el huésped confirmó para llegar (o irse), o `null` si no confirmó ninguna. */
+    public static function confirmada(PmsEventoCalendario $evento, bool $esSalida): ?string
+    {
+        $confirmada = $esSalida ? $evento->isSalidaConfirmada() : $evento->isLlegadaConfirmada();
+        $momento = $esSalida ? $evento->getFin() : $evento->getInicio();
+
+        return $confirmada && $momento !== null ? $momento->format('H:i') : null;
     }
 
     /**

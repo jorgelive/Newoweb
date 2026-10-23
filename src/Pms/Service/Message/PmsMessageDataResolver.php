@@ -363,20 +363,41 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
      */
     private function horaDeLaReserva(PmsReserva $reserva, bool $salida): string
     {
-        $momentos = [];
+        $extremo = $this->estanciaDelExtremo($reserva, $salida);
 
-        foreach ($reserva->getEventosActivosGuia() as $evento) {
-            $momento = $salida ? $evento->getFin() : $evento->getInicio();
-            if ($momento !== null) {
-                $momentos[] = $momento->format('Y-m-d H:i');
-            }
-        }
-
-        if ($momentos === []) {
+        if ($extremo === null) {
             return $salida ? HoraDeLaEstancia::CHECK_OUT_POR_DEFECTO : HoraDeLaEstancia::CHECK_IN_POR_DEFECTO;
         }
 
-        return substr($salida ? max($momentos) : min($momentos), 11, 5);
+        // Desde cuándo puede entrar / hasta cuándo puede quedarse, no la hora que confirmó: con la
+        // hora de la estancia a secas, a quien avisó que llega a las 20:00 le decíamos «tu check-in es
+        // desde las 20:00» (Humberto Pereda, 22/10/2026). Ver `HoraDeLaEstancia::permitida()`.
+        return HoraDeLaEstancia::permitida($extremo, $salida);
+    }
+
+    /** La hora que el huésped confirmó para su llegada (o salida), `''` si no confirmó ninguna. */
+    private function horaConfirmada(PmsReserva $reserva, bool $salida): string
+    {
+        $extremo = $this->estanciaDelExtremo($reserva, $salida);
+
+        return $extremo !== null ? (HoraDeLaEstancia::confirmada($extremo, $salida) ?? '') : '';
+    }
+
+    /** La primera estancia (para la llegada) o la última (para la salida). */
+    private function estanciaDelExtremo(PmsReserva $reserva, bool $salida): ?PmsEventoCalendario
+    {
+        $elegida = null;
+
+        foreach ($reserva->getEventosActivosGuia() as $evento) {
+            $momento = $salida ? $evento->getFin() : $evento->getInicio();
+            $actual = $elegida !== null ? ($salida ? $elegida->getFin() : $elegida->getInicio()) : null;
+
+            if ($momento !== null && ($actual === null || ($salida ? $momento > $actual : $momento < $actual))) {
+                $elegida = $evento;
+            }
+        }
+
+        return $elegida;
     }
 
     private function getReserva(string $contextId): ?PmsReserva
@@ -513,6 +534,10 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             // ésa. Jorge, 02/10/2026: «la hora que figura allí debería ser la de la reserva».
             'checkin_time'          => $this->horaDeLaReserva($reserva, false),
             'checkout_time'         => $this->horaDeLaReserva($reserva, true),
+            // Lo que el huésped CONFIRMÓ, aparte de desde cuándo puede: «el check-in es desde las 14:00 y
+            // usted nos dijo que llega a las 20:00». Vacío si no confirmó.
+            'hora_llegada'          => $this->horaConfirmada($reserva, false),
+            'hora_salida'           => $this->horaConfirmada($reserva, true),
             'nights'                => $reserva->getNoches(),
             'pax_total'             => $reserva->getPaxTotal(),
             // 💱 IMPORTES AUTOCONTENIDOS, con su moneda dentro.
@@ -639,6 +664,8 @@ class PmsMessageDataResolver implements MessageDataResolverInterface
             'checkout_date'         => $checkout->format('d/m/Y'),
             'checkin_time'          => HoraDeLaEstancia::CHECK_IN_POR_DEFECTO,
             'checkout_time'         => HoraDeLaEstancia::CHECK_OUT_POR_DEFECTO,
+            'hora_llegada'          => '20:00',
+            'hora_salida'           => '09:00',
             'nights'                => 4,
             'pax_total'             => 2,
             'total_amount'          => '150.00',

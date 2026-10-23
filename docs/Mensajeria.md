@@ -9727,6 +9727,24 @@ coincide con el check-in / check-out». Dos variables nuevas en `PmsMessageDataR
 las estancias activas. Con varias casitas el mismo día cuenta la más temprana / la más tardía; sin
 estancias, la del alojamiento.
 
+🔥 **Pero «la de la reserva» no es la hora a la que el huésped dice que llega (22/10/2026).**
+`confirmar_hora` escribe la hora confirmada en el mismo `inicio`/`fin`, así que Humberto Pereda
+(2PFZNT), que avisó que llegaba a las 20:00, recibía «entrada desde las 20:00» de la guía, de las
+plantillas y del agente. Ahora son dos datos (`HoraDeLaEstancia::permitida()` y `::confirmada()`):
+
+| variable (plantilla) / clave (guía) | qué es |
+|---|---|
+| `checkin_time` / `hora_checkin` | desde cuándo PUEDE entrar: la del alojamiento, o la de una entrada temprana pactada (la más temprana de las dos) |
+| `checkout_time` / `hora_checkout` | hasta cuándo puede quedarse: la del alojamiento, o la de una salida tardía (la más tardía) |
+| `hora_llegada` / `hora_llegada` | la que el huésped CONFIRMÓ para llegar; vacía si no confirmó |
+| `hora_salida` / `hora_salida` | la que confirmó para irse |
+
+Lo que Jorge pedía el 02/10 —que una hora PACTADA se vea— sigue: la entrada temprana adelanta
+`checkin_time`; lo que ya no hace es una llegada tarde. `consultar_guia` le da al agente la hora
+confirmada como frase («nos dijo que llega a las 20:00: díselo junto al horario»): como dato suelto
+la omitía 1 de cada 2 veces. Ensayado 3 de 3: «el check-in es desde las 14:00 y tenemos anotado que
+llega a las 20:00».
+
 | dónde | qué | cuándo vale |
 |---|---|---|
 | Beds24 de `aviso_salida`; Beds24 y enlace de `guia_llegada` / `guia_llegada_booking`; `salida_confirmada` | la frase fija → `{{checkout_time}}` / `{{checkin_time}}` | ya: no pasan por Meta (`msg:plantillas:hora-de-la-reserva`) |

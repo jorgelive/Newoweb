@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Pms\Guia;
 
+use App\Pms\Service\Reserva\HoraDeLaEstancia;
 use App\Pms\Entity\PmsEstablecimiento;
 use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsUnidad;
@@ -80,7 +81,7 @@ final readonly class PmsGuiaContexto
      * qué no resuelve nadie), y sin esta lista las denunciaría como huérfanas. Vive aquí, junto a
      * quien las carga, para que una clave nueva de este tipo no exija acordarse de otro archivo.
      */
-    public const array SOLO_CON_ESTANCIA = ['momento_llave'];
+    public const array SOLO_CON_ESTANCIA = ['momento_llave', 'hora_llegada', 'hora_salida'];
 
     /** Hasta qué hora del día SIGUIENTE a la entrada se sigue «llegando» (decisión de Jorge). */
     public const string FIN_DE_LA_LLEGADA = '07:00';
@@ -157,8 +158,13 @@ final readonly class PmsGuiaContexto
             'guest_name'    => $reserva?->getNombreCliente(),
             'locator'       => $reserva?->getLocalizador(),
             // La HORA lo dice el nombre, porque al lado viven las fechas.
-            'hora_checkin'  => ($evento?->getInicio() ?? $establecimiento?->getHoraCheckIn())?->format('H:i'),
-            'hora_checkout' => ($evento?->getFin() ?? $establecimiento?->getHoraCheckOut())?->format('H:i'),
+            // Desde cuándo PUEDE entrar, no la hora a la que dijo que llega: ésa va en `hora_llegada`
+            // (`HoraDeLaEstancia::permitida()`; Humberto Pereda, 22/10/2026).
+            'hora_checkin'  => $evento !== null ? HoraDeLaEstancia::permitida($evento, false) : $establecimiento?->getHoraCheckIn()?->format('H:i'),
+            'hora_checkout' => $evento !== null ? HoraDeLaEstancia::permitida($evento, true) : $establecimiento?->getHoraCheckOut()?->format('H:i'),
+            // La que CONFIRMÓ el huésped, si confirmó alguna. Mismo nombre que en las plantillas.
+            'hora_llegada'  => $evento !== null ? HoraDeLaEstancia::confirmada($evento, false) : null,
+            'hora_salida'   => $evento !== null ? HoraDeLaEstancia::confirmada($evento, true) : null,
             'checkin_date'  => $evento?->getInicio()?->format('d/m/Y'),
             'checkout_date' => $evento?->getFin()?->format('d/m/Y'),
         ] + self::telefonos($establecimiento), static fn (?string $v): bool => null !== $v && '' !== $v);
