@@ -8557,7 +8557,9 @@ podía ser enorme: la excursión a Paracas llevaba doce antes de su relato. Ahor
   (`abrirDetalleDeEtapa()` filtra por `componenteId`): con el del servicio enseñaría todos los
   transportes del viaje. Si ninguna lista la lleva, sale sola donde iba el botón
   (`detalleSinLista()`), para que el detalle no se quede sin puerta.
-- Los textos son `cot_inc_ver_mas` y `cot_inc_ver_detalle` (`pax:textos:itinerario`).
+- Los textos son `cot_inc_ver_mas` y `cot_inc_ver_detalle` (`pax:textos:itinerario`). «Ver {{ n }} más»
+  tiene traducción **fija** (`CorreccionesDeTraduccion::FIJAS`): Google la sacaba literal —«Vedi {{ n }}
+  altro», «Siehe {{ n }} mehr»—.
 
 ### La entrada es un contrato ESTRECHO, no la serialización de nadie
 
