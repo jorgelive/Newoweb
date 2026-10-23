@@ -52,6 +52,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * - **Las paradas no llevan hora**: sólo Inka Express publica la de cada una, las empresas salen a
  *   06:10, 06:45 o 07:00 y van en caravana. Se colocan por el orden de la plantilla, y el horario
  *   que se promete es el de la excursión entera.
+ * - ⚠️ Las entradas pasaron después a «Incluye» (Jorge las da aunque los operadores no):
+ *   `app:travel:ruta-del-sol-inka-express`, que además añade Inka Express. Lo de abajo es cómo
+ *   entraron.
  * - **Las entradas NO están incluidas** en ninguna de las tres empresas: van como «No incluye»,
  *   atadas a cada plantilla y sin tarifa por defecto (depende de la procedencia). Se reutilizan las
  *   de Andahuaylillas y Raqchi, que existían huérfanas, y se crea la del Museo Lítico de Pukará.
