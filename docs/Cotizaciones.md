@@ -9200,6 +9200,31 @@ una segunda puerta al mismo campo — con dos versiones al final. La tarjeta lo 
 ⚠️ **La hora se queda FUERA de la tarjeta.** Es lo que se viene a hacer en esta pantalla y no es un
 identificador: meterla dentro la escondería medio tiempo detrás de un clic.
 
+### Y va PLEGADA dentro de la tarjeta del insumo (23/10/2026)
+
+Ocupaba lo alto del panel y, en un componente de catálogo, casi nunca se toca: los nombres los trae
+el maestro. Desde el 23/10/2026 vive al pie de la tarjeta del insumo (o de la de «A mano»), bajo un
+desplegable **Nombres**, plegado — y la hora sube a la vista. Dentro, la tarjeta es la misma, con
+su botón de voltear.
+
+⚠️ **No siempre plegada.** Se abre sola donde el nombre es trabajo por hacer:
+
+| Caso | Por qué abierta |
+|---|---|
+| Componente **a mano** | no hay maestro: el nombre se escribe ahí, y plegada nacería sin él |
+| **Falta el nombre público** y se publica (sin párrafo) | el asterisco estaría escondido |
+
+Abrir lo decide el código; **cerrar, sólo el operador** —un campo que se vacía mientras se escribe
+no pliega la tarjeta bajo el cursor—. Cambiar de componente vuelve a calcularlo, como vuelve la
+cara de delante.
+
+⚠️ **Lo que hace seguro plegarla es la etiqueta «Ajustado a mano».** Sale en la línea plegada cuando
+el nombre interno de este expediente no es el del catálogo: el que va a la orden y al proveedor.
+Plegar sin ese aviso escondería justo la excepción que importa. No se repiten los nombres en la
+línea plegada: la cabecera del inspector ya enseña el párrafo y el insumo.
+
+`nombresAbiertos`, `nombreAjustadoAMano` y `faltaNombrePublico` en `CotizacionEditorView.vue`.
+
 ### Sin párrafo manda el componente, sea del tipo que sea
 
 `mandaElSegmento()` dice quién manda **cuando existen los dos**; no promete que el segmento exista.

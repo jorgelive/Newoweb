@@ -1530,6 +1530,7 @@ const mostrandoComponente = computed(() => {
 // dejarla pegada haría que el siguiente se abriera por su cara secundaria sin motivo.
 watch(() => store.componenteActivo?.id, () => { traseraAbierta.value = false; });
 
+
 const componentesDeSegmento = (segmentoId: string): ComponenteCompleto[] =>
   (store.servicioActivo?.cotcomponentes ?? []).filter(
     (c: ComponenteCompleto) => store.idSegmentoDeComponente(c) === segmentoId
@@ -1583,6 +1584,51 @@ const isComponenteSoloItems = (componente: ComponenteCompleto) => {
 
   return sinNombre && (componente.snapshotItems?.length ?? 0) > 0;
 };
+
+/**
+ * La tarjeta de nombres va PLEGADA dentro de la del insumo (Jorge, 23/10/2026): ocupaba lo alto
+ * del panel y en un componente de catálogo casi nunca se toca — los nombres los trae el maestro.
+ *
+ * ⚠️ **Pero no siempre plegada.** Se abre sola donde el nombre es trabajo por hacer:
+ * - **A mano**: ahí no hay maestro, el nombre se escribe en ella. Plegada, el componente
+ *   nacería sin nombre.
+ * - **Falta el nombre público y se publica** (sin párrafo): el asterisco estaría escondido.
+ *
+ * Abrir lo decide el código; cerrar, sólo el operador. Así un campo que se vacía mientras se
+ * escribe no pliega la tarjeta bajo el cursor.
+ */
+const nombresAbiertos = ref(false);
+
+/**
+ * ¿El nombre interno de ESTE expediente ya no es el del catálogo?
+ *
+ * Es lo que hace seguro plegarlo: el nombre que va a la orden y al proveedor puede estar
+ * cambiado, y eso se tiene que ver sin abrir. Plegar sin este aviso escondería justo la excepción.
+ */
+const nombreAjustadoAMano = computed(() => {
+  const delCatalogo = nombreMaestroDelComponenteActivo.value;
+
+  return delCatalogo !== null && (store.componenteActivo?.nombreInternoSnapshot ?? '') !== delCatalogo;
+});
+
+const faltaNombrePublico = computed(() => {
+  const comp = store.componenteActivo;
+  if (!comp || !elComponenteSePublica.value || isComponenteSoloItems(comp)) return false;
+
+  return store.getI18nText(comp.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es').trim() === '';
+});
+
+watch(
+  () => [store.componenteActivo?.id, store.componenteActivo?.esManual, faltaNombrePublico.value] as const,
+  ([id, esManual, falta], antes) => {
+    if (id !== antes?.[0]) {
+      nombresAbiertos.value = Boolean(esManual) || falta;
+    } else if (esManual || falta) {
+      nombresAbiertos.value = true;
+    }
+  },
+  { immediate: true },
+);
 
 const extractIdStrView = (val: unknown): string => val ? String(val).split('/').pop() ?? '' : '';
 
@@ -3713,142 +3759,162 @@ store.$onAction(({ name, args }) => {
                   aparecer al filtrar por lugar.
                 </p>
               </div>
+
+              <!-- ── Los nombres, PLEGADOS dentro de la tarjeta del insumo ────────
+                   Ocupaban lo alto del panel y en un componente de catálogo casi nunca se tocan.
+                   Cuándo se abren solos, y por qué «ajustado a mano» es lo que hace seguro
+                   plegarlos, en `nombresAbiertos` y `nombreAjustadoAMano`. -->
+              <div class="mt-4 pt-3 border-t border-slate-100">
+                <button type="button" @click="nombresAbiertos = !nombresAbiertos"
+                        class="w-full flex items-center justify-between gap-2 py-1 text-left">
+                  <span class="text-[10px] font-black text-sky-600 uppercase tracking-widest">
+                    <i class="fas fa-chevron-right mr-1 transition-transform" :class="{ 'rotate-90': nombresAbiertos }"></i>
+                    Nombres
+                  </span>
+                  <span v-if="nombreAjustadoAMano"
+                        class="shrink-0 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[9px] font-black uppercase tracking-wider text-amber-700">
+                    Ajustado a mano
+                  </span>
+                </button>
+
+                <div v-if="nombresAbiertos" class="mt-3">
+                  <!-- ══ TARJETA DE IDENTIFICADORES, con dos caras ══════════════
+                       Delante lo que lee alguien de verdad; detrás lo secundario. Cuál es cuál lo
+                       decide el tipo, igual que en la orden (ver `mostrandoComponente`).
+
+                       ⚠️ **No es un flip 3D.** `transform: rotateY()` crea contexto de apilamiento y
+                       rompe el posicionamiento de lo que lleve dentro —aquí hay inputs y, dos bloques
+                       más abajo, un VueDatePicker teleportado—. Se intercambia el contenido con una
+                       transición: mismo gesto, sin ese riesgo. Misma familia de trampa que la «x» de
+                       `clearable`, ver docs/UI_Componentes_Compartidos.md §1.5. -->
+                  <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 border-b border-slate-200">
+                      <span class="text-[9px] font-black uppercase tracking-widest"
+                            :class="traseraAbierta ? 'text-slate-400' : 'text-sky-600'">
+                        <i class="fas" :class="traseraAbierta ? 'fa-rotate-left' : 'fa-eye'"></i>
+                        {{ traseraAbierta ? 'Lo secundario' : 'Lo que se lee: cliente y proveedor' }}
+                      </span>
+                      <!-- Sin párrafo no hay segunda cara: el botón desaparece en vez de llevar a
+                           una disculpa. Se dice por qué, para que no parezca que falta algo. -->
+                      <button v-if="tieneParrafo" type="button" @click="traseraAbierta = !traseraAbierta"
+                              class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shadow-sm">
+                        <i class="fas fa-repeat text-[9px]"></i>
+                        {{ traseraAbierta ? 'Volver' : 'Voltear' }}
+                      </button>
+                      <span v-else class="shrink-0 text-[9px] font-bold text-slate-400 normal-case">
+                        sin párrafo: lo nombra él mismo
+                      </span>
+                    </div>
+
+                    <!-- ── Cara del SEGMENTO: sólo lectura, porque el dato vive en el párrafo ──
+                         Editable aquí sería una segunda puerta al mismo campo, y la de verdad está
+                         en el segmento. -->
+                    <transition name="fade-cara" mode="out-in">
+                    <div v-if="!mostrandoComponente" key="seg" class="p-4 grid gap-3">
+                        <div>
+                          <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
+                            Título del párrafo <span class="text-slate-400 normal-case font-bold">— lo que ve el pasajero</span>
+                          </label>
+                          <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
+                            {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                          </p>
+                        </div>
+                        <div>
+                          <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
+                            Nombre interno del párrafo <span class="text-slate-400 normal-case font-bold">— encabeza la orden</span>
+                          </label>
+                          <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
+                            {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
+                          </p>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
+                          Se editan en el párrafo, no aquí: es el mismo dato y una segunda puerta acabaría
+                          con dos versiones. Voltea la tarjeta para el nombre del insumo.
+                        </p>
+                    </div>
+
+                    <div v-else key="comp" class="p-4 grid gap-3">
+                  <!-- ── El nombre INTERNO, en TODOS los componentes ─────────────
+                       Éste es el que mandan la orden y el cuadro de tráfico; el de abajo es lo único
+                       que ve el pasajero.
+
+                       ⚠️ Estuvo limitado a los manuales, con el argumento de que «los de catálogo ya
+                       tienen el del maestro». Es cierto y no basta: dejaba **sin forma de ajustar el
+                       nombre operativo en ESTE expediente**. La única salida era renombrar el maestro,
+                       que cambia el catálogo entero por un caso puntual — y encima ese cambio no llega
+                       solo a La Biblia: hay que aprobarlo por reconciliación.
+
+                       ⚠️ **Dejarlo en blanco lo DEVUELVE al del catálogo, no lo vacía.** Desde que
+                       la ruta del nombre es única, el resolutor no consulta el maestro: si esto queda
+                       vacío cae al título PÚBLICO —«Transporte» a secas— y la fila pierde su nombre
+                       operativo. Así que el vaciado se trata como «revertir»: al salir del campo se
+                       repone el del catálogo, y el snapshot nunca se queda sin valor.
+
+                       Es la única forma de que la promesa de abajo sea verdad. Estuvo tres horas
+                       siendo mentira —la pantalla decía «en blanco usa el del catálogo» mientras el
+                       resolutor devolvía el título público—, que es justo el fallo que esta tanda
+                       venía a matar: no falla, devuelve otra cosa plausible.
+
+                       Ver `BibliaSnapshotService::resolverNombreComponente()` y docs §2.b. -->
+                  <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                      Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
+                    </label>
+                    <input :value="store.componenteActivo.nombreInternoSnapshot ?? ''"
+                           @input="e => { if (store.componenteActivo) store.componenteActivo.nombreInternoSnapshot = (e.target as HTMLInputElement).value || null }"
+                           @blur="reponerNombreDelCatalogoSiQuedoVacio"
+                           type="text" maxlength="255"
+                           :placeholder="nombreMaestroDelComponenteActivo || 'Traslado a La Olla de Juanita (ida)'"
+                           class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500 placeholder:text-slate-300 placeholder:font-medium">
+                    <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] text-slate-400 font-bold mt-1 ml-1">
+                      Bórralo para volver al del catálogo: «{{ nombreMaestroDelComponenteActivo }}»
+                    </p>
+                  </div>
+
+                  <div>
+                    <!-- ⚠️ El asterisco cae en transporte, tren y vuelo: ahí este texto NO se publica.
+                         Las dos superficies del cliente —el itinerario y el «qué incluye»— toman el
+                         título del párrafo, así que marcarlo obligatorio pedía pulir algo que no se
+                         enseña. Sigue guardándose: es el último recurso de La Biblia si el nombre
+                         interno quedara vacío. -->
+                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
+                      Nombre Público <span v-if="elComponenteSePublica">*</span>
+                      <span v-else class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
+                    </label>
+
+                    <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
+                      <input :value="store.getI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
+                             @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
+                             type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
+
+                      <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
+                              :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
+                              class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción de este componente">
+                        <i class="fas fa-language"></i>
+                      </button>
+                    </div>
+
+                    <div v-else class="relative">
+                      <input value="Componente Contenedor (Solo ítems)"
+                             type="text" disabled
+                             class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none cursor-not-allowed">
+                    </div>
+                  </div>
+
+                      <!-- De qué insumo del catálogo cuelga la línea. Sólo lectura: elegirlo se hace
+                           arriba, y aquí sólo hace falta saber cuál es. -->
+                      <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
+                        <i class="fas fa-box-open mr-1"></i> Insumo: {{ nombreMaestroDelComponenteActivo }}
+                      </p>
+                    </div>
+                    </transition>
+                  </div>
+                  <!-- ══ fin de la tarjeta de identificadores ══ -->
+                </div>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-
-              <!-- ══ TARJETA DE IDENTIFICADORES, con dos caras ══════════════
-                   Delante lo que lee alguien de verdad; detrás lo secundario. Cuál es cuál lo
-                   decide el tipo, igual que en la orden (ver `mostrandoComponente`).
-
-                   ⚠️ **No es un flip 3D.** `transform: rotateY()` crea contexto de apilamiento y
-                   rompe el posicionamiento de lo que lleve dentro —aquí hay inputs y, dos bloques
-                   más abajo, un VueDatePicker teleportado—. Se intercambia el contenido con una
-                   transición: mismo gesto, sin ese riesgo. Misma familia de trampa que la «x» de
-                   `clearable`, ver docs/UI_Componentes_Compartidos.md §1.5. -->
-              <div class="col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 border-b border-slate-200">
-                  <span class="text-[9px] font-black uppercase tracking-widest"
-                        :class="traseraAbierta ? 'text-slate-400' : 'text-sky-600'">
-                    <i class="fas" :class="traseraAbierta ? 'fa-rotate-left' : 'fa-eye'"></i>
-                    {{ traseraAbierta ? 'Lo secundario' : 'Lo que se lee: cliente y proveedor' }}
-                  </span>
-                  <!-- Sin párrafo no hay segunda cara: el botón desaparece en vez de llevar a
-                       una disculpa. Se dice por qué, para que no parezca que falta algo. -->
-                  <button v-if="tieneParrafo" type="button" @click="traseraAbierta = !traseraAbierta"
-                          class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase tracking-wider text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors shadow-sm">
-                    <i class="fas fa-repeat text-[9px]"></i>
-                    {{ traseraAbierta ? 'Volver' : 'Voltear' }}
-                  </button>
-                  <span v-else class="shrink-0 text-[9px] font-bold text-slate-400 normal-case">
-                    sin párrafo: lo nombra él mismo
-                  </span>
-                </div>
-
-                <!-- ── Cara del SEGMENTO: sólo lectura, porque el dato vive en el párrafo ──
-                     Editable aquí sería una segunda puerta al mismo campo, y la de verdad está
-                     en el segmento. -->
-                <transition name="fade-cara" mode="out-in">
-                <div v-if="!mostrandoComponente" key="seg" class="p-4 grid gap-3">
-                    <div>
-                      <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
-                        Título del párrafo <span class="text-slate-400 normal-case font-bold">— lo que ve el pasajero</span>
-                      </label>
-                      <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
-                        {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">
-                        Nombre interno del párrafo <span class="text-slate-400 normal-case font-bold">— encabeza la orden</span>
-                      </label>
-                      <p class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700">
-                        {{ store.getI18nText(store.segmentoDeComponente(store.componenteActivo)?.nombreInternoSnapshot, store.cotizacion?.idiomaEdicion || 'es') || '—' }}
-                      </p>
-                    </div>
-                    <p class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
-                      Se editan en el párrafo, no aquí: es el mismo dato y una segunda puerta acabaría
-                      con dos versiones. Voltea la tarjeta para el nombre del insumo.
-                    </p>
-                </div>
-
-                <div v-else key="comp" class="p-4 grid gap-3">
-              <!-- ── El nombre INTERNO, en TODOS los componentes ─────────────
-                   Éste es el que mandan la orden y el cuadro de tráfico; el de abajo es lo único
-                   que ve el pasajero.
-
-                   ⚠️ Estuvo limitado a los manuales, con el argumento de que «los de catálogo ya
-                   tienen el del maestro». Es cierto y no basta: dejaba **sin forma de ajustar el
-                   nombre operativo en ESTE expediente**. La única salida era renombrar el maestro,
-                   que cambia el catálogo entero por un caso puntual — y encima ese cambio no llega
-                   solo a La Biblia: hay que aprobarlo por reconciliación.
-
-                   ⚠️ **Dejarlo en blanco lo DEVUELVE al del catálogo, no lo vacía.** Desde que
-                   la ruta del nombre es única, el resolutor no consulta el maestro: si esto queda
-                   vacío cae al título PÚBLICO —«Transporte» a secas— y la fila pierde su nombre
-                   operativo. Así que el vaciado se trata como «revertir»: al salir del campo se
-                   repone el del catálogo, y el snapshot nunca se queda sin valor.
-
-                   Es la única forma de que la promesa de abajo sea verdad. Estuvo tres horas
-                   siendo mentira —la pantalla decía «en blanco usa el del catálogo» mientras el
-                   resolutor devolvía el título público—, que es justo el fallo que esta tanda
-                   venía a matar: no falla, devuelve otra cosa plausible.
-
-                   Ver `BibliaSnapshotService::resolverNombreComponente()` y docs §2.b. -->
-              <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                  Nombre interno <span class="text-slate-400 normal-case font-bold">— para la orden y La Biblia</span>
-                </label>
-                <input :value="store.componenteActivo.nombreInternoSnapshot ?? ''"
-                       @input="e => { if (store.componenteActivo) store.componenteActivo.nombreInternoSnapshot = (e.target as HTMLInputElement).value || null }"
-                       @blur="reponerNombreDelCatalogoSiQuedoVacio"
-                       type="text" maxlength="255"
-                       :placeholder="nombreMaestroDelComponenteActivo || 'Traslado a La Olla de Juanita (ida)'"
-                       class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500 placeholder:text-slate-300 placeholder:font-medium">
-                <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] text-slate-400 font-bold mt-1 ml-1">
-                  Bórralo para volver al del catálogo: «{{ nombreMaestroDelComponenteActivo }}»
-                </p>
-              </div>
-
-              <div>
-                <!-- ⚠️ El asterisco cae en transporte, tren y vuelo: ahí este texto NO se publica.
-                     Las dos superficies del cliente —el itinerario y el «qué incluye»— toman el
-                     título del párrafo, así que marcarlo obligatorio pedía pulir algo que no se
-                     enseña. Sigue guardándose: es el último recurso de La Biblia si el nombre
-                     interno quedara vacío. -->
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                  Nombre Público <span v-if="elComponenteSePublica">*</span>
-                  <span v-else class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
-                </label>
-
-                <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
-                  <input :value="store.getI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"
-                         @input="e => { if(store.cotizacion && store.componenteActivo) store.setI18nText(store.componenteActivo.tituloSnapshot, store.cotizacion.idiomaEdicion, (e.target as HTMLInputElement).value) }"
-                         type="text" class="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-bold outline-none shadow-sm focus:ring-2 focus:ring-sky-500">
-
-                  <button @click="store.componenteActivo.sobreescribirTraduccion = !store.componenteActivo.sobreescribirTraduccion"
-                          :class="store.componenteActivo.sobreescribirTraduccion ? 'bg-orange-100 text-orange-600 border-orange-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'"
-                          class="px-4 border rounded-xl transition-colors shadow-sm" title="Forzar traducción de este componente">
-                    <i class="fas fa-language"></i>
-                  </button>
-                </div>
-
-                <div v-else class="relative">
-                  <input value="Componente Contenedor (Solo ítems)"
-                         type="text" disabled
-                         class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none cursor-not-allowed">
-                </div>
-              </div>
-
-                  <!-- De qué insumo del catálogo cuelga la línea. Sólo lectura: elegirlo se hace
-                       arriba, y aquí sólo hace falta saber cuál es. -->
-                  <p v-if="nombreMaestroDelComponenteActivo" class="text-[10px] font-bold text-slate-400 leading-snug ml-1">
-                    <i class="fas fa-box-open mr-1"></i> Insumo: {{ nombreMaestroDelComponenteActivo }}
-                  </p>
-                </div>
-                </transition>
-              </div>
-              <!-- ══ fin de la tarjeta de identificadores ══ -->
 
               <div class="col-span-2 grid grid-cols-2 gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
 
