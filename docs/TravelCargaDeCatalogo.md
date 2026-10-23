@@ -322,6 +322,9 @@ cotización es el olvido que deja al pasajero en otro terminal—, pero el preci
 `TRANS-HTL_CUZ-TERM_CDS_CUZ`, `TRANS-TERM_CDS_CUZ-HTL_CUZ` y `REC-TITICACA-TERM_CDS_PUN` cuelgan de
 los componentes que ya cobraban esos traslados. Con Cruz del Sur se eligen ésos; con Transzela, los
 del Terminal Terrestre.
+Por defecto, el **sedán**, que en el catálogo se llama **Auto** (1 a 3 pasajeros): Puno ya lo
+tenía; el componente de Cusco no, y se crea con `app:travel:traslados-terminal-sedan
+--monto-cusco=<soles>` cuando Jorge fije el precio.
 
 ### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
 
