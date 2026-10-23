@@ -14,7 +14,11 @@
           : (showError ? 'ring-1 ring-red-400 border-red-300' : '')
       ]"
     >
-      <span class="truncate font-bold text-sm" :class="!selectedLabel ? 'text-slate-400 font-medium' : ''">
+      <!-- Hasta DOS líneas y después «…»: con una, las plantillas de itinerario se quedaban en
+           «Two Day MAPI: CUZ OLLA MAPI…» y no se sabía cuál estaba elegida (23/10/2026). El
+           `title` lleva el nombre entero. -->
+      <span class="min-w-0 line-clamp-2 break-words font-bold text-sm leading-snug" :class="!selectedLabel ? 'text-slate-400 font-medium' : ''"
+            :title="selectedLabel || undefined">
         {{ selectedLabel || placeholder }}
       </span>
       <span class="flex items-center gap-2 shrink-0">
@@ -88,9 +92,10 @@
           ]"
         >
           <span class="min-w-0 flex-1">
-            <!-- Con segunda línea el nombre se ENVUELVE en vez de cortarse: el punto de
-                 tener dos líneas es que quepa, no repartir el mismo recorte. -->
-            <span class="block" :class="opt.sublabel ? 'leading-snug' : 'truncate'">{{ opt.label }}</span>
+            <!-- El nombre se ENVUELVE, siempre: en la lista es donde se elige, y cortado no se
+                 distinguían opciones que sólo difieren al final («Full Day MAPI: CUZ OLLA MAPI OL…»
+                 dos veces, 23/10/2026). Antes sólo se envolvía con segunda línea. -->
+            <span class="block leading-snug break-words">{{ opt.label }}</span>
             <!--
               En PASTILLAS y no como una cadena con separadores: con proveedor, modalidad,
               categoría, procedencia y edad, el texto seguido se envolvía en tres o cuatro

@@ -331,6 +331,11 @@ Detalles que no se ven leyendo el componente:
   lista, y se reposiciona en `scroll`/`resize` mientras está abierta. Es un componente muy
   reutilizado (tarifas, prestador, comprador, servicios): cualquier cambio ahí se prueba en varias
   pantallas.
+- **Los nombres no se cortan donde se elige** (23/10/2026). En la lista, cada opción se envuelve
+  entera; en el disparador, la elegida ocupa hasta dos líneas (`line-clamp-2`, con el nombre en el
+  `title`). Con `truncate` las plantillas de itinerario del Constructor de Storytelling salían como
+  «Full Day MAPI: CUZ OLLA MAPI OL…» dos veces y no se distinguían: difieren al final. Vale para los
+  18 selectores; donde el nombre es corto no cambia nada.
 
 ### ⚠️ La factura del teletransporte: la `z` deja de ser relativa (2026-08-29)
 
