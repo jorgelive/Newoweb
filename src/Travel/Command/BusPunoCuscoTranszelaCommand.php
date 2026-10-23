@@ -20,8 +20,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Transzela, el segundo proveedor del bus Cusco ↔ Puno (23/10/2026).
  *
- * Jorge: «Transzela sólo tiene un servicio, está 50 soles». En su web la ruta figura como Inca
- * Suite, y así se llama la tarifa: el proveedor va en `prestador`/`comprador`, no en el nombre
+ * Jorge: «Transzela sólo tiene un servicio, está 50 soles». Se llama Inka Suite —con k, Jorge—, y
+ * así se llama la tarifa: el proveedor va en `prestador`/`comprador`, no en el nombre
  * (`docs/TravelCargaDeCatalogo.md`). La de por defecto sigue siendo Cruz del Sur Evolution Regular
  * (`app:travel:bus-puno-cusco-cruz-del-sur`).
  *
@@ -31,14 +31,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:travel:bus-puno-cusco-transzela',
-    description: 'Añade Transzela (Inca Suite, S/50) al bus Cusco ↔ Puno.',
+    description: 'Añade Transzela (Inka Suite, S/50) al bus Cusco ↔ Puno.',
     hidden: true,
 )]
 final class BusPunoCuscoTranszelaCommand extends Command
 {
     private const string COMPONENTE = 'Transporte Puno ↔ Cusco (ida o vuelta)';
     private const string PROVEEDOR = 'Transzela';
-    private const string TARIFA = 'Bus Inca Suite';
+    private const string TARIFA = 'Bus Inka Suite';
+
+    /** Como se cargó primero, mal escrito («Inca»): la tarifa existente se renombra. */
+    private const string TARIFA_ANTES = 'Bus Inca Suite';
     private const string MONTO = '50.00';
 
     public function __construct(private readonly EntityManagerInterface $em)
@@ -65,6 +68,17 @@ final class BusPunoCuscoTranszelaCommand extends Command
         }
 
         foreach ($componente->getTarifas() as $tarifa) {
+            if ($tarifa->getNombreInterno() === self::TARIFA_ANTES) {
+                $io->text(sprintf('· «%s» %s «%s»', self::TARIFA_ANTES, $seco ? 'pasaría a' : 'pasa a', self::TARIFA));
+                if (!$seco) {
+                    $tarifa->setNombreInterno(self::TARIFA);
+                    $tarifa->setTitulo([['language' => 'es', 'content' => self::TARIFA]]);
+                    $tarifa->setNombreParaPrestador('Traslado Puno ↔ Cusco · ' . self::TARIFA);
+                    $this->em->flush();
+                }
+
+                return Command::SUCCESS;
+            }
             if ($tarifa->getNombreInterno() === self::TARIFA) {
                 $io->success(sprintf('«%s» ya está (S/%s).', self::TARIFA, $tarifa->getMonto()));
 
