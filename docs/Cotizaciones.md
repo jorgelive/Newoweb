@@ -8847,6 +8847,12 @@ Y hay **salida explícita**: el botón «Automático» devuelve el día a `orden
 fijado a mano un cambio de hora deja de recolocar nada y la única forma de volver sería adivinar
 los números.
 
+**Dónde nace un servicio nuevo** (`agregarServicio(fecha?)`): el botón del final («Inyectar nuevo
+servicio al itinerario») lo pone el **día siguiente al último** del viaje, automático. Cada día lleva
+además su botón «Inyectar servicio en este día» (23/10/2026), que lo crea **en ese día**: automático
+si el día lo es, y si está ordenado a mano, **detrás de todos** (`max + 10`), que es donde está el
+botón — así el día no queda mitad fijado y mitad automático.
+
 ⚠️ **No se puede soltar en otro día.** La fecha de un servicio sale de sus componentes, así que un
 arrastre entre días tendría que reescribirlas o mentir: dos operaciones en un gesto. El store
 rechaza el movimiento y **no avisa** — un gesto que no significa nada no es un error, y anunciar

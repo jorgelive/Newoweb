@@ -3584,7 +3584,11 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         cotizacion.value.numPax = newPax;
     };
 
-    const agregarServicio = (): void => {
+    /**
+     * @param fecha `YYYY-MM-DD`: el día en que nace, desde el botón de cada día (Jorge, 23/10/2026).
+     *              Sin ella, el día siguiente al último del viaje (ver abajo).
+     */
+    const agregarServicio = (fecha?: string): void => {
         if (!cotizacion.value) return;
 
         const cots = cotizacion.value.cotservicios || [];
@@ -3611,13 +3615,20 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             .map((f) => getFechaLimpia(f).slice(0, 10))
             .sort()
             .at(-1);
-        const fechaBase = ultimoDia
-            ? getFechaLimpia(addDurationToDate(ultimoDia, 24))
-            : (modoCatalogo.value ? FECHA_BASE_NOMINAL : hoyNaive());
+        const fechaBase = fecha
+            ? getFechaLimpia(fecha)
+            : ultimoDia
+                ? getFechaLimpia(addDurationToDate(ultimoDia, 24))
+                : (modoCatalogo.value ? FECHA_BASE_NOMINAL : hoyNaive());
 
-        // Nace en un día vacío —el siguiente al último—, así que siempre es automático (`orden = 0`).
-        // Hasta el 10/10/2026 nacía en el último día y podía caer en medio de uno colocado a mano;
-        // por eso se le daba sitio (`max + 10`). Con el día propio ese caso ya no existe.
+        // Al final del día siguiente al último nace en un día vacío, así que es automático
+        // (`orden = 0`). Desde el botón de un día puede caer en uno colocado A MANO: ahí va detrás de
+        // todos (`max + 10`), que es donde está el botón. Es el caso que existía hasta el 10/10/2026.
+        const ordenesDelDia = fecha
+            ? cots.filter((s: CotServicio) => getFechaLimpia(s.fechaInicioAbsoluta) === fechaBase).map((s: CotServicio) => s.orden ?? 0)
+            : [];
+        const orden = ordenesDelDia.some((o) => o > 0) ? Math.max(...ordenesDelDia) + 10 : 0;
+
         const nuevoServicio = {
             id: crypto.randomUUID(),
             servicioMaestroId: null,
@@ -3627,7 +3638,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             fechaInicioAbsoluta: fechaBase,
             // 0 = automático: se coloca por la hora de sus componentes, y sin hora por lo que es.
             // Deja de ser 0 si alguien lo mueve a mano.
-            orden: 0,
+            orden,
             // Lo pone `onServicioMaestroChange()` al elegir el maestro; sin maestro, es un producto.
             contenedorGenerico: false,
             cotsegmentos: [],

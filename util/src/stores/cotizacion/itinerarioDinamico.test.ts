@@ -262,4 +262,30 @@ describe('agregarServicio · nace al día siguiente', () => {
         expect(nuevo?.orden).toBe(0);
         expect(idsPorDia(store).at(-1)).toEqual([nuevo?.id]);
     });
+
+    it('desde el botón de un día, nace en ESE día (23/10/2026)', () => {
+        const store = montar([
+            servicio('dia1', '2030-01-01', 0, [{ ordenNarrativo: 30 }]),
+            servicio('dia3', '2030-01-03', 0, [{ ordenNarrativo: 30 }]),
+        ]);
+
+        store.agregarServicio('2030-01-01');
+
+        const nuevo = store.cotizacion?.cotservicios?.at(-1);
+        expect(nuevo?.fechaInicioAbsoluta).toBe('2030-01-01');
+        expect(nuevo?.orden).toBe(0);
+    });
+
+    it('en un día colocado a mano, va detrás de todos, que es donde está el botón', () => {
+        const store = montar([
+            servicio('colocado1', '2030-01-01', 10, [{ ordenNarrativo: 30 }]),
+            servicio('colocado2', '2030-01-01', 20, [{ ordenNarrativo: 30 }]),
+        ]);
+
+        store.agregarServicio('2030-01-01');
+
+        const nuevo = store.cotizacion?.cotservicios?.at(-1);
+        expect(nuevo?.orden).toBe(30);
+        expect(idsPorDia(store)).toEqual([['colocado1', 'colocado2', nuevo?.id]]);
+    });
 });

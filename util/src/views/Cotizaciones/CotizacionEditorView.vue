@@ -2471,10 +2471,17 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
             </div>
+            <!-- Un servicio en ESTE día, al final de él: el botón de abajo lo pone al día siguiente
+                 del último, y meter un traslado en el día 13 obligaba a crearlo al final y cambiarle
+                 la fecha (Jorge, 23/10/2026). -->
+            <button @click="store.agregarServicio(dia.fechaAbsoluta)"
+                    class="mt-3 w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-black text-[11px] uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all">
+              <i class="fas fa-plus mr-1.5"></i> Inyectar servicio en este día
+            </button>
           </div>
 
           <button @click="store.agregarServicio()" class="w-full py-6 border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 font-black text-xs uppercase tracking-widest hover:border-[#376875] hover:text-[#376875] hover:bg-white transition-all shadow-sm">
-            <i class="fas fa-plus-circle mr-2 text-lg"></i> Inyectar nuevo hito al itinerario
+            <i class="fas fa-plus-circle mr-2 text-lg"></i> Inyectar nuevo servicio al itinerario
           </button>
 
         </div>
