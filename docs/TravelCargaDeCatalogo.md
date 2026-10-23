@@ -314,12 +314,14 @@ Regular** (S/55, por defecto) y **Bus Evolution VIP** (S/75), precios de su web.
 comprador Cruz del Sur, y lo que se le pide al proveedor en `nombreParaPrestador`
 (`app:travel:bus-puno-cusco-cruz-del-sur`). Transzela, su otro proveedor, tiene **un solo
 servicio, Bus Inka Suite, a S/50** (`app:travel:bus-puno-cusco-transzela`); el Regular de Cruz del
-Sur sigue por defecto. ⚠️ **Cruz del Sur no sale del Terminal Terrestre**: en Cusco usa Av. Industrial 121
-(Bancopata) y en Puno Jr. 1 de Mayo 703, así que los traslados al terminal no sirven igual para
-las dos empresas. **Segmento aparte, mismo componente** (`app:travel:terminales-cruz-del-sur`): el
+Sur sigue por defecto. ⚠️ **En CUSCO, Cruz del Sur no sale del Terminal Terrestre**: usa Av.
+Industrial 121 (Bancopata), así que allí los traslados al terminal no sirven igual para las dos
+empresas. **En Puno sí salen las dos del Terminal Terrestre** (Jr. 1 de Mayo 703, Jorge): un
+terminal «de Cruz del Sur» en Puno se creó por error con la dirección de su web —que es la del
+Terminal Terrestre— y se retiró con sus dos segmentos (`app:travel:retirar-terminal-cruz-del-sur-puno`). **Segmento aparte, mismo componente** (`app:travel:terminales-cruz-del-sur`): el
 destino vive en el `finPunto` del segmento —uno solo por segmento, y corregirlo a mano en cada
 cotización es el olvido que deja al pasajero en otro terminal—, pero el precio es el mismo, así que
-`TRANS-HTL_CUZ-TERM_CDS_CUZ`, `TRANS-TERM_CDS_CUZ-HTL_CUZ` y `REC-PUNO-TERM_CDS_PUN` cuelgan de
+`TRANS-HTL_CUZ-TERM_CDS_CUZ` y `TRANS-TERM_CDS_CUZ-HTL_CUZ` cuelgan de
 los componentes que ya cobraban esos traslados. Con Cruz del Sur se eligen ésos; con Transzela, los
 del Terminal Terrestre.
 Por defecto, el **sedán**, que en el catálogo se llama **Auto** (1 a 3 pasajeros), a **S/25** en
@@ -330,15 +332,15 @@ las dos ciudades (Jorge): el de Cusco se creó con `app:travel:traslados-termina
 Al llegar el bus los reciben en el terminal y los llevan a un hotel de Puno, y es ALLÍ —no en el
 terminal— donde usan los servicios higiénicos, dejan el equipaje en custodia y pueden desayunar con
 costo extra mientras esperan el recojo (Jorge). Los segmentos se llamaban `REC-TITICACA-…` y decían «les llevamos al
-punto de inicio de la excursión»; ahora son `REC-PUNO-TERM_PUN` y `REC-PUNO-TERM_CDS_PUN`, y el
+punto de inicio de la excursión»; ahora es `REC-PUNO-TERM_PUN`, para las dos empresas, y el
 componente es «Transporte Terminal Puno → Hotel de espera». El destino queda **sin definir**: el hotel
 de espera no es el alojamiento del pasajero, y marcarlo así envenenaría el punto de recojo de lo
 siguiente.
 
 **La vuelta al terminal es por su cuenta** (`app:travel:puno-al-terminal-por-cuenta`). Tras la
 excursión tienen la tarde libre en el centro y van al bus de las 22:00 solos: Uber o mototaxi,
-menos de 10 minutos y de S/10, o 20 a pie (Jorge). Segmentos `TRANS-CENTRO_PUN-TERM_PUN` y
-`…TERM_CDS_PUN`, a las **20:30** «para que no se les pase».
+menos de 10 minutos y de S/10, o 20 a pie (Jorge). Segmento `TRANS-CENTRO_PUN-TERM_PUN`, a las
+**20:30** «para que no se les pase».
 
 ### «Por cuenta del cliente»: el componente que sólo pone hora (23/10/2026)
 

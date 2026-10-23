@@ -29,8 +29,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Al volver de la excursión del Titicaca no hay traslado al terminal: el pasajero tiene la tarde
  * libre en el centro de Puno y va al bus de las 22:00 por su cuenta. Jorge: desde la Plaza de Armas
  * al Terminal Terrestre hay Uber y mototaxi —menos de 10 minutos, menos de S/10— o 20 minutos a pie,
- * y tienen que salir a las 20:30 «para que no se les pase». Un segmento por terminal, como los demás
- * traslados: el de Cruz del Sur sin minutos, porque no se sabe la distancia.
+ * y tienen que salir a las 20:30 «para que no se les pase». Uno solo: en Puno las dos empresas salen
+ * del Terminal Terrestre.
  *
  * ── Por qué hace falta un componente ────────────────────────────────────────
  *
@@ -66,15 +66,6 @@ final class PunoAlTerminalPorCuentaCommand extends Command
                 . 'Armas son menos de 10 minutos en Uber o en mototaxi —el tuk tuk de aquí—, por menos de S/10, '
                 . 'o unos 20 minutos caminando.',
             'punto' => 'Terminal Terrestre de Puno',
-        ],
-        [
-            'slug' => 'TRANS-CENTRO_PUN-TERM_CDS_PUN',
-            'nombre' => 'Del centro de Puno al terminal de Cruz del Sur, por su cuenta',
-            'titulo' => 'Al terminal, por su cuenta',
-            'contenido' => 'Después de la excursión tienen la tarde libre para pasear y cenar en el centro de '
-                . 'Puno. Hacia las 20:30 salgan al terminal de Cruz del Sur, en el jirón 1 de Mayo, también por '
-                . 'su cuenta: hay Uber y mototaxis —el tuk tuk de aquí— desde la Plaza de Armas.',
-            'punto' => 'Terminal Cruz del Sur Puno',
         ],
     ];
 

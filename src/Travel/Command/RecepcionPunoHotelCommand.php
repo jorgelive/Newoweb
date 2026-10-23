@@ -24,7 +24,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * ```
  * REC-TITICACA-TERM_PUN      →  REC-PUNO-TERM_PUN       desde el Terminal Terrestre
- * REC-TITICACA-TERM_CDS_PUN  →  REC-PUNO-TERM_CDS_PUN   desde el terminal de Cruz del Sur
+ * REC-TITICACA-TERM_CDS_PUN  →  retirado: en Puno Cruz del Sur sale del Terminal Terrestre
  * ```
  *
  * El componente cambia igual de nombre y de título: su título público es la etiqueta «Incluye:» que
@@ -60,16 +60,6 @@ final class RecepcionPunoHotelCommand extends Command
             'contenido' => 'Les esperamos a la llegada del bus en el Terminal Terrestre y les llevamos a un '
                 . 'hotel de Puno. Allí pueden usar los servicios higiénicos, dejar el equipaje en custodia y, '
                 . 'si quieren, desayunar —con costo extra— mientras esperan a que les recojan.',
-        ],
-        [
-            'antes' => 'REC-TITICACA-TERM_CDS_PUN',
-            'slug' => 'REC-PUNO-TERM_CDS_PUN',
-            'nombre' => 'Recepción en el terminal de Cruz del Sur en Puno y traslado al hotel',
-            'titulo' => 'Llegada a Puno',
-            'contenido' => 'Les esperamos a la llegada del bus en el terminal de Cruz del Sur, en el jirón 1 '
-                . 'de Mayo, y les llevamos a un hotel de Puno. Allí pueden usar los servicios higiénicos, dejar '
-                . 'el equipaje en custodia y, si quieren, desayunar —con costo extra— mientras esperan a que '
-                . 'les recojan.',
         ],
     ];
 

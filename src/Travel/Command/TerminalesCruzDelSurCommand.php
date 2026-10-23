@@ -25,8 +25,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Los terminales propios de Cruz del Sur, y los traslados que van a ellos (23/10/2026).
  *
- * Cruz del Sur NO sale del Terminal Terrestre: en Cusco usa Av. Industrial 121 (Bancopata) y en
- * Puno Jr. 1 de Mayo 703-705. Los traslados del catálogo llevaban el destino fijo en el Terminal
+ * Cruz del Sur NO sale del Terminal Terrestre de CUSCO: usa Av. Industrial 121 (Bancopata). En Puno
+ * sí —el jirón 1 de Mayo ES el Terminal Terrestre—, así que el punto y la recepción de Puno que
+ * creó este comando se retiraron (`app:travel:retirar-terminal-cruz-del-sur-puno`). Los traslados del catálogo llevaban el destino fijo en el Terminal
  * Terrestre, que es de donde sale Transzela, así que con Cruz del Sur el chofer iba al sitio
  * equivocado.
  *
@@ -63,7 +64,6 @@ final class TerminalesCruzDelSurCommand extends Command
     /** Nombre del punto → [ciudad, dirección]. */
     private const array PUNTOS = [
         'Terminal Cruz del Sur Cusco' => ['Cusco', 'Av. Industrial 121, Urb. Bancopata, Santiago, Cusco'],
-        'Terminal Cruz del Sur Puno' => ['Puno', 'Jr. 1 de Mayo 703-705, Barrio César Vallejo, Puno'],
     ];
 
     /** Los del Terminal Terrestre, que sólo se tipan y se atan a su ciudad. */
@@ -106,20 +106,6 @@ final class TerminalesCruzDelSurCommand extends Command
             'inicio' => PuntoModoEnum::FIJO,
             'fin' => PuntoModoEnum::ALOJAMIENTO,
             'inicioPunto' => 'Terminal Cruz del Sur Cusco',
-            'finPunto' => null,
-        ],
-        [
-            'slug' => 'REC-PUNO-TERM_CDS_PUN',
-            'nombre' => 'Recepción en el terminal de Cruz del Sur en Puno',
-            'titulo' => 'Llegada a Puno y espera',
-            'contenido' => 'Les esperamos a la llegada del bus en el terminal de Cruz del Sur, en el jirón '
-                . '1 de Mayo. Después les llevamos al punto de inicio de la excursión.',
-            'servicio' => 'TRF_PUN',
-            'componente' => 'Transporte Terminal Puno → Hotel de espera',
-            'hora' => '05:30',
-            'inicio' => PuntoModoEnum::FIJO,
-            'fin' => PuntoModoEnum::SIN_DEFINIR,
-            'inicioPunto' => 'Terminal Cruz del Sur Puno',
             'finPunto' => null,
         ],
     ];
@@ -209,10 +195,10 @@ final class TerminalesCruzDelSurCommand extends Command
                 ->setInicioModo($def['inicio'])
                 ->setFinModo($def['fin']);
             if ($def['inicioPunto'] !== null) {
-                $segmento->setInicioPunto($puntos[$def['inicioPunto']] ?? throw new \LogicException($def['inicioPunto']));
+                $segmento->setInicioPunto($puntos[$def['inicioPunto']]);
             }
             if ($def['finPunto'] !== null) {
-                $segmento->setFinPunto($puntos[$def['finPunto']] ?? throw new \LogicException($def['finPunto']));
+                $segmento->setFinPunto($puntos[$def['finPunto']]);
             }
             $this->em->persist($segmento);
             $servicio->addSegmento($segmento);
