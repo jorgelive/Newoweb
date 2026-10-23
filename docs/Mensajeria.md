@@ -6789,6 +6789,16 @@ ahora que, si un mensaje trae un aviso y un pedido, se llama a las dos: el aviso
 la nota no avisa. El cambio de toallas de cortesía al cuarto día se anota y se le dice que se
 indicará al equipo.
 
+**Y CUÁNDO se atiende lo anotado depende de si ya llegó (22/10/2026).** La respuesta de
+`anotar_peticion` decía siempre «queda apuntado para su llegada… lo verá quien prepare la casita»,
+también a quien ya estaba dentro. Ahora tiene dos ramas (`AnotarPeticionSkill::cuandoSeAtiende()`):
+antes de la entrada, para su llegada; ya alojado, **para el día siguiente** —las solicitudes se
+reciben de 9:00 a 21:00 y se programan para el día siguiente (Jorge; ficha «Solicitudes y
+requerimientos», `app:pms:guia:horario-solicitudes`)—, y si lo necesita hoy se escala diciendo para
+cuándo. El caso: José Paredes (AG2CZY), alojado, pidió la plancha a las 17:54 para salir esa noche
+y se le prometió. El dato va en la respuesta de la skill y no sólo en la guía porque el agente,
+ante «¿me traen papel?», anota sin consultar la guía: ensayado, sin esto nunca decía «mañana».
+
 #### El índice global de la guía: el triaje elige el tema exacto
 
 El triaje lleva en su bloque cacheado un **índice global** de temas de la guía

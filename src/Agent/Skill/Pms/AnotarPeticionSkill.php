@@ -12,6 +12,7 @@ use App\Agent\Skill\SkillDominioInterface;
 use App\Agent\Skill\SkillInterface;
 use App\Agent\Skill\SkillParameter;
 use App\Agent\Skill\SkillResult;
+use App\Pms\Entity\PmsEventoCalendario;
 use App\Pms\Entity\PmsPeticion;
 use App\Pms\Entity\PmsReserva;
 use App\Pms\Guia\PmsGuiaEstanciaResolver;
@@ -185,11 +186,33 @@ final readonly class AnotarPeticionSkill implements SkillInterface, SkillDominio
             'anotada' => true,
             'casita' => $evento->getPmsUnidad()?->getNombre(),
             'peticion' => $peticion->getTexto(),
-            // Se le dice al modelo qué puede prometer y qué no: queda anotado para la llegada,
-            // no «se lo llevamos ahora». La diferencia la nota el huésped que espera en la sala.
-            'aviso' => 'Queda anotado en su estancia y lo verá quien prepare la casita el día de '
-                . 'su llegada. Díselo así: que queda apuntado para su llegada. NO le prometas '
-                . 'una hora ni que se lo suben ahora mismo.',
+            // Se le dice al modelo qué puede prometer y qué no. La diferencia la nota el huésped
+            // que espera en la sala.
+            'aviso' => self::cuandoSeAtiende($evento),
         ]);
+    }
+
+    /**
+     * Qué se le puede decir de CUÁNDO, según si ya está alojado.
+     *
+     * 🔥 Decía siempre «queda apuntado para su llegada… lo verá quien prepare la casita el día de su
+     * llegada». Para quien escribe antes de llegar es verdad; para quien ya está dentro es falso. José
+     * Paredes (AG2CZY, 22/10/2026) pidió la plancha alojado, a las 17:54, y el agente le prometió que
+     * se la llevaban. Las solicitudes se reciben de 9:00 a 21:00 y se programan para el DÍA SIGUIENTE
+     * (Jorge; ficha `horario-solicitudes`). Las dos ramas, en positivo y con el hecho delante.
+     */
+    private static function cuandoSeAtiende(PmsEventoCalendario $evento): string
+    {
+        $zona = $evento->zonaHoraria();
+        $inicio = $evento->getInicio();
+        $yaLlego = $inicio === null
+            || new \DateTimeImmutable('now', $zona) >= new \DateTimeImmutable($inicio->format('Y-m-d H:i:s'), $zona);
+
+        return $yaLlego
+            ? 'Queda anotado en su estancia. Ya está alojado: las solicitudes se reciben de 9:00 a 21:00 y se '
+                . 'preparan para el DÍA SIGUIENTE. Díselo así: que queda anotado y se lo llevan mañana. Si lo '
+                . 'necesita HOY, no le prometas que llega hoy: escala diciendo qué necesita y para cuándo.'
+            : 'Queda anotado en su estancia y lo verá quien prepare la casita para su llegada. Díselo así: que '
+                . 'queda apuntado para su llegada. NO le prometas una hora ni que se lo suben ahora mismo.';
     }
 }

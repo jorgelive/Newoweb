@@ -2055,6 +2055,12 @@ agente —si la necesita HOY, no se promete: se escala diciendo para cuándo— 
 ensayo «¿la secadora hay que pedirla?» acabó en «la guía no dice si hay secador». Ensayado 3 de 3
 después del cambio, con el modelo real y la hora en el contexto (`docs/Agent.md` §2.0 bis).
 
+**«Solicitudes y requerimientos»** (`horario-solicitudes`) decía «Horario de atención al cliente:
+9:00–21:00», que se lee como «en ese horario te lo traemos». Es el horario en que se RECIBEN, y se
+preparan para el día siguiente (Jorge). La reescribe `app:pms:guia:horario-solicitudes`
+conservando lo del teléfono, y `anotar_peticion` lo dice en su respuesta (`docs/Mensajeria.md`,
+«Y CUÁNDO se atiende lo anotado»). Ensayado 3 de 3.
+
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 
 Los ítems de «Ingreso» son pasos —Ubicación, Llaves, Puerta, Después de ingresar…— y para pasar de
