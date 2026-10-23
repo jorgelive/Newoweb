@@ -471,6 +471,40 @@ watch(catalogoAbierto, (abierto) => {
     } catch { /* sin persistencia: el editor sigue funcionando igual */ }
 });
 
+/**
+ * Los nombres del SERVICIO, plegados bajo el selector del catálogo (Jorge, 23/10/2026): por
+ * defecto sólo se ve el desplegable. Misma regla que los del componente (`nombresAbiertos`):
+ * se abren solos donde el nombre es trabajo por hacer —falta el operativo, o el público cuando
+ * el cliente lo lee—; cerrarlos lo decide el operador.
+ *
+ * El mono-segmento sin plantilla nunca cuenta como «falta»: ahí el nombre lo pone el segmento y
+ * los campos son de sólo lectura.
+ */
+const nombresServicioAbiertos = ref(false);
+
+const faltaNombreServicio = computed(() => {
+  const servicio = store.servicioActivo;
+  if (!servicio || store.esMonoSegmentoSinPlantilla(servicio)) return false;
+
+  const sinOperativo = store.getI18nText(servicio.nombreInternoSnapshot, 'es').trim() === '';
+  const sinPublico = !store.esContenedorGenerico(servicio)
+    && store.getI18nText(servicio.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es').trim() === '';
+
+  return sinOperativo || sinPublico;
+});
+
+watch(
+  () => [store.servicioActivo?.id, faltaNombreServicio.value] as const,
+  ([id, falta], antes) => {
+    if (id !== antes?.[0]) {
+      nombresServicioAbiertos.value = falta;
+    } else if (falta) {
+      nombresServicioAbiertos.value = true;
+    }
+  },
+  { immediate: true },
+);
+
 const isReporteOpen = ref(false);
 const verEnSoles = ref(false);
 
@@ -3151,6 +3185,20 @@ store.$onAction(({ name, args }) => {
                     :min-chars-busqueda="3"
                 />
               </div>
+
+              <!-- ── Los nombres, PLEGADOS bajo el selector ───────────────────
+                   Por defecto sólo se ve el catálogo; cuándo se abren solos, en
+                   `nombresServicioAbiertos`. -->
+              <div class="pt-2 border-t border-slate-200">
+                <button type="button" @click="nombresServicioAbiertos = !nombresServicioAbiertos"
+                        class="w-full flex items-center gap-2 text-left">
+                  <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <i class="fas fa-chevron-right mr-1 transition-transform" :class="{ 'rotate-90': nombresServicioAbiertos }"></i>
+                    Nombres
+                  </span>
+                </button>
+
+                <div v-if="nombresServicioAbiertos" class="mt-3 space-y-4">
               <!-- Servicio mono-segmento sin plantilla: el nombre del servicio es genérico y su
                    público se descarta para el cliente (pax sólo lo pinta con >1 segmento). El
                    segmento es el que dice qué cosa es → se muestra en read-only, sin persistir. -->
@@ -3224,12 +3272,17 @@ store.$onAction(({ name, args }) => {
                 </div>
               </div>
               </template>
-              <div>
-                <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
-                <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
+                </div>
               </div>
               </template>
 
+            </div>
+
+            <!-- La fecha, FUERA del bloque del catálogo (Jorge, 23/10/2026): no es un dato del
+                 catálogo, y plegarla con él la escondía. -->
+            <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+              <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1"><i class="far fa-calendar-alt mr-1"></i> Fecha Ejecución (Milestone)</label>
+              <input v-model="store.servicioActivo.fechaInicioAbsoluta" @change="store.onServicioFechaChange" type="date" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-[#376875] outline-none shadow-sm">
             </div>
 
             <div class="bg-teal-50 border border-teal-100 rounded-xl p-4">

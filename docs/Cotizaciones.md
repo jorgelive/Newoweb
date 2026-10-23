@@ -9230,6 +9230,12 @@ cantidad en una sola fila —la cantidad es de sólo lectura y no merecía fila 
 tarifas subieron bajo la cantidad (Jorge, 23/10/2026): después de la hora son lo que se viene a
 revisar, y quedaban al fondo.
 
+**La ficha del SERVICIO sigue la misma regla.** Dentro del bloque «Catálogo Maestro» sólo se ve el
+selector; los dos nombres van bajo un **Nombres** plegado que se abre solo si falta el operativo o
+el público que lee el cliente (`nombresServicioAbiertos`, `faltaNombreServicio`). La **fecha de
+ejecución** salió del bloque a su propia tarjeta: no es un dato del catálogo, y plegarla con él la
+escondía.
+
 ### Sin párrafo manda el componente, sea del tipo que sea
 
 `mandaElSegmento()` dice quién manda **cuando existen los dos**; no promete que el segmento exista.
@@ -9921,6 +9927,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
   segundos se guarda en `propuestaCopiada` como NÚMERO y no como booleano, porque la cabecera se
   repite por propuesta y un flag compartido ponía el visto en las tres.
 - **Que un dato más salga en la tarjeta del componente** → el bloque de pastillas junto a `prestadorNombreSnapshot` en `CotizacionEditorView.vue` (§6.d).
+- **Cuándo se abren solos los nombres del servicio o del componente** → `faltaNombreServicio` / `faltaNombrePublico` en `CotizacionEditorView.vue`.
 - **Que el bloque «Catálogo Maestro» arranque cerrado** → `leerPreferencia()` en `CotizacionEditorView.vue`; hoy abre salvo que se haya cerrado antes (§6.d).
 - **Cómo se calcula costo/venta/markup/alternativas** → `resumenFinanciero` en `util/.../cotizacionEditorStore.ts`.
 - **Qué ve el cliente (y qué se oculta)** → `expurgarParaCliente` en `util/.../cotizacionEditorModel.ts` (+ tipos `OpcionUpgradeCliente`, `InclusionServicio`, etc.). Recordar re-guardar para regenerar snapshots.
