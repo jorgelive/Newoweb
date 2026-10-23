@@ -40,7 +40,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  *   Cusco  hotel → terminal CDS      «Transporte Htl Cusco ↔ Paradero Cusco»   20:00
  *   Cusco  terminal CDS → hotel      el mismo                                   05:00
- *   Puno   terminal CDS → tour       «Transporte Term Puno - Punto de Inicio»   05:30
+ *   Puno   terminal CDS → tour       «Transporte Terminal Puno → Hotel de espera»   05:30
  *
  * Las horas son las de los segmentos hermanos del Terminal Terrestre. Los textos dicen sólo lo que
  * se sabe: la recepción de Puno NO promete aseo ni custodia, que el hermano sí dice, porque no
@@ -109,13 +109,13 @@ final class TerminalesCruzDelSurCommand extends Command
             'finPunto' => null,
         ],
         [
-            'slug' => 'REC-TITICACA-TERM_CDS_PUN',
+            'slug' => 'REC-PUNO-TERM_CDS_PUN',
             'nombre' => 'Recepción en el terminal de Cruz del Sur en Puno',
             'titulo' => 'Llegada a Puno y espera',
             'contenido' => 'Les esperamos a la llegada del bus en el terminal de Cruz del Sur, en el jirón '
                 . '1 de Mayo. Después les llevamos al punto de inicio de la excursión.',
             'servicio' => 'TRF_PUN',
-            'componente' => 'Transporte Term Puno - Punto de Inicio',
+            'componente' => 'Transporte Terminal Puno → Hotel de espera',
             'hora' => '05:30',
             'inicio' => PuntoModoEnum::FIJO,
             'fin' => PuntoModoEnum::SIN_DEFINIR,

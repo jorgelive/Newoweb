@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * todos los traslados de Cusco y Puno. Ninguno de los seis segmentos de terminal —Terminal
  * Terrestre y Cruz del Sur, ida, vuelta y recepción en Puno— tenía tarifa por defecto.
  *
- * - **Puno** («Transporte Term Puno - Punto de Inicio») ya tenía su Auto: sólo se pone por defecto.
+ * - **Puno** («Transporte Terminal Puno → Hotel de espera») ya tenía su Auto: sólo se pone por defecto.
  * - **Cusco** («Transporte Htl Cusco ↔ Paradero Cusco») no tenía sedán: Van, Master, Sprinter y Bus.
  *   Se crea el Auto con `--monto-cusco` (en soles), y no antes: el precio lo decide Jorge.
  *
@@ -39,7 +39,7 @@ final class TrasladosTerminalSedanCommand extends Command
 {
     private const string AUTO = 'Auto';
     private const string CUSCO = 'Transporte Htl Cusco ↔ Paradero Cusco (ida o vuelta)';
-    private const string PUNO = 'Transporte Term Puno - Punto de Inicio';
+    private const string PUNO = 'Transporte Terminal Puno → Hotel de espera';
 
     public function __construct(private readonly EntityManagerInterface $em)
     {

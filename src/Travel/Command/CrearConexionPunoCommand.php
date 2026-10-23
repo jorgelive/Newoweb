@@ -96,7 +96,7 @@ final class CrearConexionPunoCommand extends Command
      */
     private const AL_POOL_PUNO = [
         'Transporte Puno ↔ Cusco (ida o vuelta)',
-        'Transporte Term Puno - Punto de Inicio',
+        'Transporte Terminal Puno → Hotel de espera',
         'Transporte Aeropuerto Juliaca ↔ Hotel Puno (ida o vuelta)',
         'Transporte Hotel Puno - Aeropuerto Juliaca',
         'Transporte Htl Puno - Estacion Tren Puno',
@@ -165,13 +165,13 @@ final class CrearConexionPunoCommand extends Command
             'servicio' => self::SERVICIO_PUNO['codigo'],
         ],
         [
-            'slug' => 'REC-TITICACA-TERM_PUN',
+            'slug' => 'REC-PUNO-TERM_PUN',
             'nombre' => 'Recepción en el Terminal Terrestre de Puno',
             'titulo' => 'Llegada a Puno y espera',
             'contenido' => 'Les esperamos a la llegada del bus. Mientras arranca el tour pueden '
                 . 'asearse y dejar el equipaje en custodia; si quieren desayunar, hay dónde hacerlo '
                 . 'y va por su cuenta. Después les llevamos al punto de inicio de la excursión.',
-            'componente' => 'Transporte Term Puno - Punto de Inicio',
+            'componente' => 'Transporte Terminal Puno → Hotel de espera',
             'hora' => '05:30',
             'inicio' => PuntoModoEnum::FIJO,
             'fin' => PuntoModoEnum::SIN_DEFINIR,
