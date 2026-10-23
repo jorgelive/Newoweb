@@ -46,7 +46,7 @@ interface RespuestaAsistente {
 const emit = defineEmits<{ (e: 'datosCambiados'): void }>();
 
 /**
- * Espejo de App\Agent\Conversation\AgentEngineRegistry::catalogo().
+ * Espejo de App\Agent\Service\PanelAssistant::catalogoDeMotores().
  *
  * El catálogo lo sirve el backend (`GET /agent/motores`) porque depende de qué credenciales
  * tiene ESTE entorno: en local suele haber un solo proveedor configurado.
@@ -58,6 +58,8 @@ interface Motor {
     modelos: string[];
     modeloPorDefecto: string;
     porDefecto: boolean;
+    /** Sin créditos o sin clave: deshabilitado hasta que «comprobar» o el sondeo lo vean responder. */
+    fueraDeServicio: boolean;
 }
 
 /**
@@ -274,6 +276,49 @@ function esElVivo(indice: number): boolean {
 const motores = ref<Motor[]>([]);
 const proveedor = ref('');
 const modelo = ref('');
+const comprobando = ref(false);
+
+/** Se puede preguntar con él: tiene clave y no está sin servicio. */
+function elegible(m: Motor): boolean {
+    return m.disponible && !m.fueraDeServicio;
+}
+
+/**
+ * Pone el catálogo y, si el motor elegido ya no es elegible (o no hay ninguno), salta al de por
+ * defecto o al primero que funcione. Un motor elegido a mano y que sigue sano se respeta: el
+ * operador puede estar comparando.
+ */
+function aplicarCatalogo(lista: Motor[]): void {
+    motores.value = lista;
+    const actual = lista.find((m) => m.proveedor === proveedor.value);
+    if (actual && elegible(actual)) return;
+
+    const inicial = lista.find((m) => m.porDefecto && elegible(m)) ?? lista.find(elegible);
+    if (inicial) {
+        proveedor.value = inicial.proveedor;
+        modelo.value = inicial.modeloPorDefecto;
+    }
+}
+
+/**
+ * «Comprobar»: pregunta a cada motor si responde y reactiva los que vuelven —tras recargar
+ * créditos, sin esperar a la media hora del sondeo—. `POST /agent/motores/comprobar`.
+ */
+async function comprobarMotores(): Promise<void> {
+    if (comprobando.value) return;
+    comprobando.value = true;
+    error.value = '';
+    try {
+        const r = await apiClient.post<{ motores: Motor[] }>('/agent/motores/comprobar');
+        aplicarCatalogo(r.data.motores ?? []);
+        const caidos = motores.value.filter((m) => m.disponible && m.fueraDeServicio).map((m) => m.etiqueta);
+        if (caidos.length) error.value = `Siguen sin responder: ${caidos.join(', ')}.`;
+    } catch {
+        error.value = 'No se pudo comprobar los motores.';
+    } finally {
+        comprobando.value = false;
+    }
+}
 
 let reconocimiento: ReconocimientoVoz | null = null;
 
@@ -297,22 +342,18 @@ onMounted(async () => {
     hilo.value = restaurarHilo();
     if (hilo.value.length) void bajarAlUltimo();
 
+    await cargarMotores();
+});
+
+async function cargarMotores(): Promise<void> {
     try {
         const r = await apiClient.get<{ motores: Motor[] }>('/agent/motores');
-        motores.value = r.data.motores ?? [];
+        aplicarCatalogo(r.data.motores ?? []);
     } catch {
         // Sin catálogo no se bloquea nada: se pregunta sin `proveedor` y contesta el de por
         // defecto del entorno, que es exactamente lo que hacía antes de existir el selector.
-        return;
     }
-
-    const inicial =
-        motores.value.find((m) => m.porDefecto) ?? motores.value.find((m) => m.disponible);
-    if (inicial) {
-        proveedor.value = inicial.proveedor;
-        modelo.value = inicial.modeloPorDefecto;
-    }
-});
+}
 
 /**
  * El constructor vive en `window` con prefijo en los navegadores basados en WebKit. El cast
@@ -367,11 +408,14 @@ async function preguntar(): Promise<void> {
         }
     } catch (e: unknown) {
         // El backend manda `{error: string}` en 4xx/5xx; cualquier otra cosa es un fallo de red.
-        const detalle =
+        const datos =
             typeof e === 'object' && e !== null && 'response' in e
-                ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+                ? (e as { response?: { data?: { error?: string; motorFueraDeServicio?: boolean } } }).response?.data
                 : undefined;
-        error.value = detalle ?? 'No se pudo consultar al asistente.';
+        error.value = datos?.error ?? 'No se pudo consultar al asistente.';
+        // El motor se quedó sin crédito: el backend ya lo marcó, así que el catálogo nuevo lo trae
+        // deshabilitado y salta al que funcione. La pregunta queda en el campo para reenviarla.
+        if (datos?.motorFueraDeServicio) void cargarMotores();
         // Se retira la pregunta del hilo: si falló, no formó parte de la conversación y
         // mandarla en el siguiente historial confundiría al modelo.
         hilo.value.pop();
@@ -628,11 +672,22 @@ onBeforeUnmount(() => reconocimiento?.stop());
           v-for="m in motores"
           :key="m.proveedor"
           :value="m.proveedor"
-          :disabled="!m.disponible"
+          :disabled="!elegible(m)"
         >
-          {{ m.etiqueta }}{{ m.disponible ? '' : ' (sin clave)' }}
+          {{ m.etiqueta }}{{ !m.disponible ? ' (sin clave)' : m.fueraDeServicio ? ' (sin servicio)' : '' }}
         </option>
       </select>
+
+      <button
+        v-if="motores.length > 1"
+        type="button"
+        :disabled="cargando || comprobando"
+        class="w-6 h-6 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 flex items-center justify-center disabled:opacity-40"
+        title="Comprobar los motores y reactivar los que vuelvan a responder (tras recargar créditos)"
+        @click="comprobarMotores"
+      >
+        <i class="fas fa-rotate text-[10px]" :class="{ 'fa-spin': comprobando }" aria-hidden="true"></i>
+      </button>
 
       <select
         v-if="(motorActual?.modelos.length ?? 0) > 1"

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Agent\Service;
 
 use App\Agent\Access\ActorInterface;
+use App\Agent\Conversation\AgentEngineInterface;
 use App\Agent\Conversation\AgentEngineRegistry;
+use App\Agent\Conversation\MotoresFueraDeServicio;
+use App\Agent\Conversation\SelectorDePotencia;
 use App\Agent\Conversation\ReglasCompartidas;
 use App\Agent\Conversation\ConversationRequest;
 use App\Agent\Conversation\ConversationResponse;
@@ -13,6 +16,7 @@ use App\Agent\Skill\SkillRegistry;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * El asistente del panel: adaptador delgado entre la interfaz del equipo y el motor.
@@ -35,6 +39,8 @@ final readonly class PanelAssistant
     public function __construct(
         private AgentEngineRegistry $motores,
         private SkillRegistry $skills,
+        private MotoresFueraDeServicio $fuera,
+        private SelectorDePotencia $potencias,
     ) {}
 
     public function estaDisponible(): bool
@@ -77,9 +83,62 @@ final readonly class PanelAssistant
             throw new InvalidArgumentException('El asistente no está configurado en este entorno.');
         }
 
+        // Sin proveedor pedido, el de por defecto; y si ése está sin servicio, su suplente, igual
+        // que en el chat del huésped. Uno PEDIDO no se cambia en silencio: quien elige en el
+        // desplegable está comparando (ver `AgentEngineRegistry::elegir()`), y el front ya
+        // deshabilita los que están fuera.
+        if ($proveedor === null && $this->fuera->estaFuera($motor->nombre())) {
+            $motor = $this->potencias->suplenteDe($motor->nombre()) ?? $motor;
+        }
+
         $modelo = $this->motores->validarModelo($motor, $modelo);
 
-        $respuesta = $motor->conversar(new ConversationRequest(
+        try {
+            $respuesta = $this->conversar($motor, $actor, $pregunta, $historial, $modelo);
+        } catch (Throwable $e) {
+            // Créditos o clave: queda deshabilitado en el desplegable hasta que alguien lo compruebe
+            // (el botón) o lo vea responder el sondeo. Ver `MotoresFueraDeServicio`.
+            if (DecisionDelSondeo::esDefinitivo($e->getMessage())) {
+                $this->fuera->sacar($motor->nombre(), $e->getMessage());
+
+                throw new MotorFueraDeServicioException($motor->etiqueta(), $e);
+            }
+
+            throw $e;
+        }
+
+        return [
+            'respuesta' => $this->texto($respuesta),
+            'herramientas' => $respuesta->skillsUsadas,
+            'hubo_escritura' => $this->huboEscritura($respuesta->skillsUsadas),
+            'proveedor' => $motor->nombre(),
+            'modelo' => $modelo ?? $motor->modeloPorDefecto(),
+        ];
+    }
+
+    /**
+     * Catálogo de proveedores y modelos para el desplegable del panel, con los que están sin
+     * servicio (créditos, clave) marcados para deshabilitarlos.
+     *
+     * @return list<array{proveedor: string, etiqueta: string, disponible: bool, modelos: list<string>, modeloPorDefecto: string, porDefecto: bool, fueraDeServicio: bool}>
+     */
+    public function catalogoDeMotores(): array
+    {
+        return array_map(
+            fn (array $m): array => [...$m, 'fueraDeServicio' => $this->fuera->estaFuera($m['proveedor'])],
+            $this->motores->catalogo(),
+        );
+    }
+
+    /** @param list<array{rol: string, texto: string}> $historial */
+    private function conversar(
+        AgentEngineInterface $motor,
+        ActorInterface $actor,
+        string $pregunta,
+        array $historial,
+        ?string $modelo,
+    ): ConversationResponse {
+        return $motor->conversar(new ConversationRequest(
             actor: $actor,
             systemPrompt: $this->systemPrompt(),
             mensaje: $pregunta,
@@ -91,14 +150,6 @@ final readonly class PanelAssistant
             // prompt es el prefijo cacheado: con la hora dentro cambiaría cada minuto.
             contexto: $this->ahora(),
         ));
-
-        return [
-            'respuesta' => $this->texto($respuesta),
-            'herramientas' => $respuesta->skillsUsadas,
-            'hubo_escritura' => $this->huboEscritura($respuesta->skillsUsadas),
-            'proveedor' => $motor->nombre(),
-            'modelo' => $modelo ?? $motor->modeloPorDefecto(),
-        ];
     }
 
     /**
@@ -126,16 +177,6 @@ final readonly class PanelAssistant
         }
 
         return false;
-    }
-
-    /**
-     * Catálogo de proveedores y modelos para el desplegable del panel.
-     *
-     * @return list<array{proveedor: string, etiqueta: string, disponible: bool, modelos: list<string>, modeloPorDefecto: string, porDefecto: bool}>
-     */
-    public function catalogoDeMotores(): array
-    {
-        return $this->motores->catalogo();
     }
 
     /**

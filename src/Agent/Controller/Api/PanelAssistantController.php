@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Agent\Controller\Api;
 
 use App\Dto\Lee;
+use App\Agent\Service\MotorFueraDeServicioException;
 use App\Agent\Service\PanelAssistant;
+use App\Agent\Service\SondeoDeMotores;
 use App\Agent\Access\AgentActorFactory;
 use App\Entity\User;
 use InvalidArgumentException;
@@ -34,6 +36,7 @@ final class PanelAssistantController extends AbstractController
         private readonly PanelAssistant $asistente,
         private readonly AgentActorFactory $actores,
         private readonly LoggerInterface $logger,
+        private readonly SondeoDeMotores $sondeo,
     ) {}
 
     /**
@@ -46,6 +49,22 @@ final class PanelAssistantController extends AbstractController
     public function motores(): JsonResponse
     {
         return $this->json(['motores' => $this->asistente->catalogoDeMotores()]);
+    }
+
+    /**
+     * El botón «comprobar» del desplegable: pregunta a cada motor si responde, reactiva los que
+     * vuelven (tras recargar créditos, sin esperar a la siguiente media hora del cron) y devuelve el
+     * catálogo al día. Una generación mínima por motor. Ver `SondeoDeMotores`.
+     */
+    #[Route('/motores/comprobar', name: 'app_agent_motores_comprobar', methods: ['POST'])]
+    public function comprobarMotores(): JsonResponse
+    {
+        $resultado = $this->sondeo->sondear();
+
+        return $this->json([
+            'motores' => $this->asistente->catalogoDeMotores(),
+            'responden' => array_keys(array_filter($resultado, static fn (array $r): bool => $r['fallo'] === null)),
+        ]);
     }
 
     #[Route('/consulta', name: 'app_agent_consulta', methods: ['POST'])]
@@ -109,6 +128,15 @@ final class PanelAssistantController extends AbstractController
             );
         } catch (InvalidArgumentException $e) {
             return $this->json(['error' => $e->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (MotorFueraDeServicioException $e) {
+            // El front lee `motorFueraDeServicio` para volver a pedir el catálogo: el motor ya sale
+            // deshabilitado y el operador no repite la pregunta contra el mismo.
+            $this->logger->error('Asistente del panel: ' . $e->getMessage(), ['exception' => $e->getPrevious()]);
+
+            return $this->json(
+                ['error' => $e->getMessage() . ' Elige otro o pulsa «comprobar» tras recargarlo.', 'motorFueraDeServicio' => true],
+                JsonResponse::HTTP_SERVICE_UNAVAILABLE
+            );
         } catch (Throwable $e) {
             // El mensaje del proveedor puede llevar detalles de la petición: se registra, no
             // se devuelve.

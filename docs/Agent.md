@@ -827,6 +827,14 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
   que entrar a los chats ya.
 - La marca vive en la caché (7 días, por si el sondeo dejara de correr); un despliegue la borra y el
   primer turno que vuelva a chocar la repone.
+- **En el asistente del panel** (`PanelAssistant`): el desplegable de proveedor sale con los que están
+  fuera **deshabilitados** («(sin servicio)», campo `fueraDeServicio` de
+  `PanelAssistant::catalogoDeMotores()`). Un 401/402/403 en una consulta lo saca de servicio, contesta
+  503 con `motorFueraDeServicio` y el front vuelve a pedir el catálogo y salta a uno sano. Sin
+  proveedor pedido se usa el suplente; uno **pedido** no se cambia en silencio (el panel compara).
+- **El botón 🔄 junto al desplegable** (`POST /agent/motores/comprobar`) hace lo mismo que el cron
+  —`SondeoDeMotores::sondear()`, compartido— para no esperar media hora tras recargar: reactiva los
+  que responden y el equipo recibe el mismo «vuelve a responder». Una generación mínima por motor.
 - ⚠️ `AiConversationProcessor::conSuplente()` repite el turno **entero**. Un 402 llega en la primera
   llamada, así que no ha corrido ninguna skill; si llegara a mitad de turno, una de escritura podría
   correr dos veces.
@@ -1158,6 +1166,7 @@ devuelve vacío porque la enumeración de frentes aún no la lee nadie para el p
 | Cuánto razona Claude y sus ajustes de chat | `.env` → `ANTHROPIC_EFFORT`, `ANTHROPIC_AJUSTES_CHAT` · `AnthropicEngine::AJUSTES_DE_CHAT` | apagados por defecto; para el chat, `low` + `1` (comparativa del 18/10/2026, tercera ronda) |
 | Comparar cómo contesta otro motor con conversaciones reales | `src/Agent/Command/AgentReplayCommand.php` | `--motor`, `--modelo`, `--salida` (JSON por turno); el triaje clasifica con el de siempre y no responde |
 | Cuándo avisa la vigilancia del motor (y cuándo calla) | `src/Agent/Service/DecisionDelSondeo.php` | `tras()`, `esDefinitivo()`, `pista()` — la frecuencia, en `tools/cron/www-data.crontab` |
+| Reactivar a mano un motor tras recargar (botón del panel) | `PanelAssistantController::comprobarMotores()` → `SondeoDeMotores::sondear()` | el mismo camino que el cron; el botón, en `util/src/components/common/AsistenteBar.vue` (`comprobarMotores()`) |
 | Quién contesta cuando un motor se queda sin créditos | `src/Agent/Conversation/SelectorDePotencia.php` | `suplenteDe()` (orden), `elegir()` (desvío); la marca, `MotoresFueraDeServicio`; el reintento en el turno, `AiConversationProcessor::conSuplente()` |
 | Que un negocio se presente en conversaciones de otro | `src/Agent/Contract/PresentacionDeNegocioInterface.php` | `presentacion()` — hoy Turismo al huésped de una casita |
 | Cambiar qué se le dice al modelo al cortarle las herramientas | idem | `ORDEN_DE_CIERRE` |

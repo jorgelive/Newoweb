@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Agent\Command;
 
-use App\Agent\Conversation\AgentEngineRegistry;
-use App\Agent\Conversation\MotorSondeableInterface;
 use App\Agent\Service\DecisionDelSondeo;
-use App\Agent\Service\VigilanteDelMotor;
+use App\Agent\Service\SondeoDeMotores;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,8 +36,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class AgentVigilarMotorCommand extends Command
 {
     public function __construct(
-        private readonly AgentEngineRegistry $motores,
-        private readonly VigilanteDelMotor $vigilante,
+        private readonly SondeoDeMotores $sondeo,
     ) {
         parent::__construct();
     }
@@ -52,29 +49,13 @@ final class AgentVigilarMotorCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $motores = $this->motores->disponibles();
+        if ($input->getOption('sin-avisar') === true) {
+            $fallos = $this->sondeo->comprobar();
 
-        if ($motores === []) {
-            // Sin ningún motor configurado no hay nada que sondear: es una decisión de configuración,
-            // no una caída, y el agente ya lo dice en cada turno.
-            $io->warning('No hay ningún motor de IA configurado.');
-
-            return Command::SUCCESS;
-        }
-
-        $fallos = [];
-
-        foreach ($motores as $motor) {
-            if (!$motor instanceof MotorSondeableInterface) {
-                $io->warning(sprintf('El motor «%s» no sabe sondearse.', $motor->nombre()));
-
-                continue;
+            if ($fallos === []) {
+                $io->warning('No hay ningún motor de IA configurado.');
             }
 
-            $fallos[$motor->nombre()] = $motor->sondear();
-        }
-
-        if ($input->getOption('sin-avisar') === true) {
             foreach ($fallos as $nombre => $fallo) {
                 $fallo === null
                     ? $io->success(sprintf('«%s» responde.', $nombre))
@@ -84,14 +65,20 @@ final class AgentVigilarMotorCommand extends Command
             return Command::SUCCESS;
         }
 
-        $acciones = $this->vigilante->resultadosDelSondeo($fallos);
+        $resultado = $this->sondeo->sondear();
 
-        foreach ($fallos as $nombre => $fallo) {
+        if ($resultado === []) {
+            // Sin ningún motor configurado no hay nada que sondear: es una decisión de configuración,
+            // no una caída, y el agente ya lo dice en cada turno.
+            $io->warning('No hay ningún motor de IA configurado.');
+        }
+
+        foreach ($resultado as $nombre => ['fallo' => $fallo, 'accion' => $accion]) {
             $io->writeln(sprintf(
                 '%s · %s · %s',
                 $nombre,
                 $fallo === null ? 'responde' : 'NO responde: ' . $fallo,
-                match ($acciones[$nombre] ?? DecisionDelSondeo::NADA) {
+                match ($accion) {
                     DecisionDelSondeo::AVISAR_CAIDA => 'avisado de la caída',
                     DecisionDelSondeo::AVISAR_RECUPERACION => 'avisado de la recuperación',
                     default => 'sin aviso',
