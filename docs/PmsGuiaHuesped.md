@@ -2722,6 +2722,9 @@ el agente recibe como enlace. Sin mapa cargado, el marcador se quita.
 
 Lo movió `app:pms:guia:mapa-al-establecimiento` (archivado): sustituye en los siete idiomas y los
 **sella** (`soloSellar`) en vez de retraducirlos, porque cambiar un marcador no es cambiar el texto.
+Sellar sólo escribe en filas sin huella, así que primero se la quita (salvo `'manual'`); la primera
+ejecución no lo hacía y dejó los seis hashes viejos, y `--resellar` lo arregló
+(`docs/Autotraduccion.md` §8).
 Se cambia en el panel: Establecimiento → Medios → «Mapa».
 
 El rótulo de la tarjeta («Ver ubicación») sale de `gui_ver_ubicacion` (`pax:textos:guia`): estaba

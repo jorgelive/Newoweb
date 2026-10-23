@@ -213,6 +213,13 @@ contenido del que dudas.
 Dos cinturones impiden que traduzca: el modo `soloSellar` no llama al traductor, y además apaga
 `ejecutarTraduccion` en cada entidad, así que el listener sale antes de nada en el flush.
 
+⚠️ **Sellar sólo escribe donde NO hay huella.** Una fila que ya tenía `origenHash` se queda con el
+de su español viejo, así que sellar tras cambiar el español **no hace nada** y el siguiente guardado
+retraduce igual. Pasó el 23/10/2026 al cambiar un marcador en «Ubicación (general)»: el comando
+dijo que sellaba y los seis hashes siguieron siendo los de antes. Para re-sellar, se quita primero
+la huella de las traducciones —respetando `'manual'`— y luego se sella: ver
+`PmsGuiaMapaAlEstablecimientoCommand::sellar()`.
+
 ### Qué se selló el 31/08/2026, y qué no
 
 | | Entidades | Por qué |

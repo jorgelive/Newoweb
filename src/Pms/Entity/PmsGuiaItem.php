@@ -135,7 +135,7 @@ class PmsGuiaItem
     #[Assert\Count(min: 1, minMessage: 'Debe ingresar al menos un título')]
     private array $titulo = [];
 
-    /** @var list<array{language?: string, content?: string|null}> */
+    /** @var list<array{language?: string, content?: string|null, origenHash?: string}> */
     #[ORM\Column(type: 'json', nullable: true)]
     #[AutoTranslate(sourceLanguage: 'es', format: 'html')]
     private ?array $descripcion = [];
@@ -477,11 +477,11 @@ class PmsGuiaItem
     public function setTitulo(array $titulo): self { $this->titulo = MaestroIdioma::normalizarParaDB($titulo); return $this; }
 
     /**
-     * @return list<array{language?: string, content?: string|null}>
+     * @return list<array{language?: string, content?: string|null, origenHash?: string}>
      */
     public function getDescripcion(): ?array { return MaestroIdioma::ordenarParaFormulario($this->descripcion ?? []); }
     /**
-     * @param list<array{language?: string, content?: string|null}>|null $descripcion
+     * @param list<array{language?: string, content?: string|null, origenHash?: string}>|null $descripcion
      */
     public function setDescripcion(?array $descripcion): self { $this->descripcion = MaestroIdioma::normalizarParaDB($descripcion ?? []); return $this; }
 

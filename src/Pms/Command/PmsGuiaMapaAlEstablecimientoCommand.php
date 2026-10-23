@@ -31,6 +31,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * listener no las rehace. Cambiar un marcador no es cambiar el texto, y retraducir seis idiomas por
  * eso podía mover la redacción que ya estaba bien. Por comando y no por SQL, por `#[AutoTranslate]`.
  *
+ * ⚠️ **Hay que QUITAR la huella vieja antes de sellar.** Sellar sólo marca las filas SIN
+ * `origenHash`; las que lo tenían se quedaban con el del español de antes y el siguiente guardado
+ * de la ficha retraducía los seis idiomas. Pasó en la primera ejecución (23/10/2026), y `--resellar`
+ * es lo que lo arregló: vuelve a sellar las fichas que ya dicen `{{ mapa }}`.
+ *
  * Idempotente: sin `{{ map: … }}` que mover no escribe nada. Si dos fichas o dos idiomas apuntan a
  * sitios distintos, se para y lo dice: elegir cuál vale no le toca a un comando.
  */
@@ -53,12 +58,17 @@ final class PmsGuiaMapaAlEstablecimientoCommand extends Command
     protected function configure(): void
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Sólo dice qué haría');
+        $this->addOption('resellar', null, InputOption::VALUE_NONE, 'Vuelve a sellar las fichas que ya dicen {{ mapa }} (ver la cabecera)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $simular = (bool) $input->getOption('dry-run');
+
+        if ($input->getOption('resellar') === true) {
+            return $this->resellar($io, $simular);
+        }
 
         $establecimientos = $this->em->getRepository(PmsEstablecimiento::class)->findAll();
         if (\count($establecimientos) !== 1) {
@@ -137,14 +147,58 @@ final class PmsGuiaMapaAlEstablecimientoCommand extends Command
                 $item->setAgenteContenido(preg_replace(self::MARCADOR, '{{ mapa }}', $item->getAgenteContenido()));
             }
 
-            // Sellar en vez de traducir: ver la cabecera.
-            $item->setEjecutarTraduccion(false);
-            $this->traductor->processEntity($item, forceExecution: true, soloSellar: true);
+            $this->sellar($item);
         }
 
         $this->em->flush();
         $io->success(sprintf('Mapa guardado en «%s»; %d ficha(s) dicen ahora {{ mapa }}.', $establecimiento->getNombreComercial(), \count($fichas)));
 
         return Command::SUCCESS;
+    }
+
+    private function resellar(SymfonyStyle $io, bool $simular): int
+    {
+        $fichas = array_values(array_filter(
+            $this->em->getRepository(PmsGuiaItem::class)->findAll(),
+            static fn (PmsGuiaItem $i): bool => str_contains(json_encode($i->getDescripcion()) ?: '', '{{ mapa }}'),
+        ));
+
+        $io->listing(array_map(static fn (PmsGuiaItem $i): string => (string) $i->getNombreInterno(), $fichas));
+
+        if ($simular || $fichas === []) {
+            $io->note($simular ? 'Simulación: no se ha escrito nada.' : 'Ninguna ficha dice {{ mapa }}.');
+
+            return Command::SUCCESS;
+        }
+
+        array_walk($fichas, $this->sellar(...));
+        $this->em->flush();
+        $io->success(sprintf('%d ficha(s) reselladas.', \count($fichas)));
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Marca las traducciones como hechas desde el español ACTUAL, sin llamar al traductor. Se les
+     * quita antes la huella vieja: el sellado sólo escribe donde no hay ninguna.
+     */
+    private function sellar(PmsGuiaItem $item): void
+    {
+        $item->setDescripcion(array_map(
+            static function (array $fila): array {
+                $huella = $fila['origenHash'] ?? null;
+
+                // Una traducción curada a mano conserva su centinela: no se retraduce nunca.
+                if (($fila['language'] ?? '') === 'es' || $huella === AutoTranslationService::HASH_MANUAL) {
+                    return $fila;
+                }
+
+                return array_filter($fila, static fn (string $clave): bool => $clave !== 'origenHash', \ARRAY_FILTER_USE_KEY);
+            },
+            $item->getDescripcion() ?? []
+        ));
+
+        $item->setEjecutarTraduccion(false);
+        $this->traductor->processEntity($item, forceExecution: true, soloSellar: true);
     }
 }
