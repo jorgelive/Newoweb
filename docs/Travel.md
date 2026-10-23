@@ -2716,6 +2716,7 @@ es un error de formato para nadie, es una cotización con un álbum de un dólar
 |---|---|---|
 | Leer un campo nuevo de la logística específica del modal | `src/Travel/Dto/FilaDeLogistica.php` | `fromArray()` — y el controlador lo copia a la entidad |
 | **Filtrar una colección por una relación (organización, prestador…)** | la entidad del recurso | `#[ApiFilter(UuidRelacionFilter::class, …)]` — **nunca** `SearchFilter` (devuelve cero) ni una extensión a mano (devuelve de más). Regenerar `api.d.ts` en `util/` y `pax/` (§6 bis) |
+| Filtrar las plantillas del panel (por servicio u otro campo) | `src/Travel/Controller/Crud/TravelItinerarioCrudController.php` | `configureFilters()` — `EntityFilter` sobre `servicio` (22/10/2026) |
 | **Cambiar si un tipo lleva punto de recojo/entrega** | `src/Travel/Enum/ComponenteTipoEnum.php` | `puntosDeServicio()` (§11 quater) |
 | **Cambiar qué lugar le toca a un componente** | `src/Travel/Command/TravelEtiquetarLugaresCommand.php` | `REGLAS` — patrón y a qué otros lugares arrastra (§11 ter) |
 | **Escribirle a una organización proveedora** | `src/Travel/Service/Message/TravelProveedorDeContexto.php` | `para()` — el hilo lo abre `POST /message/conversations/abrir` |

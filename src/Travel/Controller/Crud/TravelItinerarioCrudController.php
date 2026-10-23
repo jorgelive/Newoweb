@@ -22,6 +22,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -53,6 +55,15 @@ class TravelItinerarioCrudController extends BaseCrudController
             ->setEntityLabelInPlural('Plantillas Comerciales')
             ->setSearchFields(['id', 'slug', 'nombreInterno'])
             ->setDefaultSort(['createdAt' => 'DESC']);
+    }
+
+    /**
+     * Por servicio: con 8 plantillas sólo del Titicaca, 3 del Valle y 2 de Machu Picchu, la lista
+     * entera ordenada por fecha de creación no sirve para encontrar las de un producto.
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters->add(EntityFilter::new('servicio', 'Servicio'));
     }
 
     public function configureAssets(Assets $assets): Assets
