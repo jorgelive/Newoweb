@@ -30,10 +30,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * El componente cambia igual de nombre y de título: su título público es la etiqueta «Incluye:» que
  * lee el cliente, y decía «…al punto de inicio del Tour».
  *
- * - **El desayuno va por su cuenta**, como decía el texto anterior: el hotel es un sitio donde
- *   esperar, no un servicio incluido.
- * - **Sin aseo ni custodia**: el texto del Terminal Terrestre los prometía y ninguna fuente dice
- *   que el hotel de espera los dé.
+ * - **En el hotel, no en el terminal**, pueden usar los servicios higiénicos, dejar el equipaje en
+ *   custodia y desayunar, opcional y con costo extra (Jorge: «es lo mismo, … es en un hotel en
+ *   Puno donde hacen eso»). El texto viejo lo situaba en el terminal; salió de la ficha de otro
+ *   operador (…mantanifullday.com), y Jorge confirmó que su recepción funciona igual.
  * - **El destino sigue «sin definir»**: no es el alojamiento del pasajero —puede no dormir en
  *   Puno—, y marcarlo como tal envenenaría el «dónde recojo» de lo que viene después.
  *
@@ -58,8 +58,8 @@ final class RecepcionPunoHotelCommand extends Command
             'nombre' => 'Recepción en el Terminal Terrestre de Puno y traslado al hotel',
             'titulo' => 'Llegada a Puno',
             'contenido' => 'Les esperamos a la llegada del bus en el Terminal Terrestre y les llevamos a un '
-                . 'hotel de Puno, donde pueden desayunar —va por su cuenta— y esperar tranquilos a que les '
-                . 'recojan.',
+                . 'hotel de Puno. Allí pueden usar los servicios higiénicos, dejar el equipaje en custodia y, '
+                . 'si quieren, desayunar —con costo extra— mientras esperan a que les recojan.',
         ],
         [
             'antes' => 'REC-TITICACA-TERM_CDS_PUN',
@@ -67,8 +67,9 @@ final class RecepcionPunoHotelCommand extends Command
             'nombre' => 'Recepción en el terminal de Cruz del Sur en Puno y traslado al hotel',
             'titulo' => 'Llegada a Puno',
             'contenido' => 'Les esperamos a la llegada del bus en el terminal de Cruz del Sur, en el jirón 1 '
-                . 'de Mayo, y les llevamos a un hotel de Puno, donde pueden desayunar —va por su cuenta— y '
-                . 'esperar tranquilos a que les recojan.',
+                . 'de Mayo, y les llevamos a un hotel de Puno. Allí pueden usar los servicios higiénicos, dejar '
+                . 'el equipaje en custodia y, si quieren, desayunar —con costo extra— mientras esperan a que '
+                . 'les recojan.',
         ],
     ];
 

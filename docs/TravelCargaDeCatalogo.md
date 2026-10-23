@@ -327,8 +327,9 @@ las dos ciudades (Jorge): el de Cusco se creó con `app:travel:traslados-termina
 --monto-cusco=25`, y el de Puno, que estaba en USD 5, se igualó (`Version20261023150000`).
 
 **La recepción en Puno lleva a un hotel, no al tour** (`app:travel:recepcion-puno-hotel`, 23/10/2026).
-Al llegar el bus los reciben en el terminal y los llevan a un hotel de Puno donde desayunar —por su
-cuenta— y esperar el recojo. Los segmentos se llamaban `REC-TITICACA-…` y decían «les llevamos al
+Al llegar el bus los reciben en el terminal y los llevan a un hotel de Puno, y es ALLÍ —no en el
+terminal— donde usan los servicios higiénicos, dejan el equipaje en custodia y pueden desayunar con
+costo extra mientras esperan el recojo (Jorge). Los segmentos se llamaban `REC-TITICACA-…` y decían «les llevamos al
 punto de inicio de la excursión»; ahora son `REC-PUNO-TERM_PUN` y `REC-PUNO-TERM_CDS_PUN`, y el
 componente es «Transporte Terminal Puno → Hotel de espera». El destino queda **sin definir**: el hotel
 de espera no es el alojamiento del pasajero, y marcarlo así envenenaría el punto de recojo de lo
