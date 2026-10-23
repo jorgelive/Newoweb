@@ -335,6 +335,23 @@ componente es «Transporte Terminal Puno → Hotel de espera». El destino queda
 de espera no es el alojamiento del pasajero, y marcarlo así envenenaría el punto de recojo de lo
 siguiente.
 
+**La vuelta al terminal es por su cuenta** (`app:travel:puno-al-terminal-por-cuenta`). Tras la
+excursión tienen la tarde libre en el centro y van al bus de las 22:00 solos: Uber o mototaxi,
+menos de 10 minutos y de S/10, o 20 a pie (Jorge). Segmentos `TRANS-CENTRO_PUN-TERM_PUN` y
+`…TERM_CDS_PUN`, a las **20:30** «para que no se les pase».
+
+### «Por cuenta del cliente»: el componente que sólo pone hora (23/10/2026)
+
+Un segmento sin componente no tiene hora —vive en el pivote— y el itinerario lo coloca con la hora
+nominal, que para lo que no tiene tipo es por la mañana. Para lo que el pasajero hace solo pero a
+una hora concreta, el componente genérico **«Por cuenta del cliente»**: tipo `actividad_fijo`,
+enlazado en modo `NO_INCLUIDO` y **sin tarifa**. Sin tarifa no es costo ni entra en una orden de
+servicio (`OperacionServicio::isSoloReferencia()`); en la propuesta sale «No incluye: Por cuenta del
+cliente». Está en el pool de todos los contenedores genéricos.
+
+⚠️ **En modo `INCLUIDO` y sin tarifa sería otra cosa**: así es como se publica un opcional
+(`construirInclusiones()`).
+
 ### El traslado a Coco Bongo: la ficha es de la CIUDAD, no del destino (30/08/2026)
 
 El servicio Coco Bongo tenía sus dos entradas (general y fiesta blanca) y ningún traslado. Al
