@@ -91,6 +91,20 @@ describe('guardar una cotización', () => {
         expect(tarifas?.map((t) => t.id)).toEqual(['t-2']);
     });
 
+    it('no manda lo que es de solo lectura: contenedorGenerico lo pone el servidor (23/10/2026)', async () => {
+        const store = useCotizacionEditorStore();
+        const servida = cotizacion([tarifa('t-1')]);
+        (servida.cotservicios[0] as Record<string, unknown>).contenedorGenerico = true;
+        // @ts-expect-error — fixture mínimo: lleva lo que el guardado lee.
+        store.cotizacion = servida;
+        put.mockResolvedValue({ data: cotizacion([tarifa('t-1')]) });
+
+        expect(await store.guardarCotizacion()).toBe(true);
+
+        const enviado = put.mock.calls[0][1] as { cotservicios: Record<string, unknown>[] };
+        expect(enviado.cotservicios[0]).not.toHaveProperty('contenedorGenerico');
+    });
+
     it('un alta cortada por la red que sí se creó se da por guardada, y deja de ser «nueva»', async () => {
         const store = useCotizacionEditorStore();
         // @ts-expect-error — fixture mínimo, todavía sin `createdAt`: es un alta.

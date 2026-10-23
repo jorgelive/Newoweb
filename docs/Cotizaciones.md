@@ -8622,8 +8622,12 @@ la mañana y enmarcados como «el tour». Con la marca, los resorts ya no necesi
 ⚠️ **La marca NO se copia a la cotización**: la pone `CotservicioContenedorGenericoListener` al
 cargar cada cotservicio, leyendo el catálogo (una consulta por petición). Por eso vale igual en los
 tres caminos de serialización —un normalizador sólo habría cubierto el primero— y por eso
-cambiarla en el catálogo cambia también las propuestas enviadas. Es presentación, no dinero. Lo que
-el editor manda al guardar la ignora.
+cambiarla en el catálogo cambia también las propuestas enviadas. Es presentación, no dinero.
+
+Es **de solo lectura**: no tiene grupo de escritura, y el editor la **borra del payload** antes de
+guardar (`guardarCotizacion()`, como `ganancia` o `createdAt`), con test en `guardadoCotizacion.test.ts`.
+Hasta el 23/10/2026 la mandaba y el servidor la ignoraba en silencio —comprobado con el serializador—:
+funcionaba, pero mandarla decía que se podía escribir.
 
 La regla del mono-segmento (`esMonoSegmentoSinPlantilla`) sigue para los PRODUCTOS de una pieza; ya
 no es la que decide qué es un contenedor. Un día ordenado a mano sigue mandando: los segmentos de un

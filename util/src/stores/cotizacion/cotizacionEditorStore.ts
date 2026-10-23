@@ -2858,8 +2858,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         cottarifas?: TarifaPayload[];
     };
 
-    type ServicioPayload = Omit<CotServicio, 'cotcomponentes'> & {
+    type ServicioPayload = Omit<CotServicio, 'cotcomponentes' | 'contenedorGenerico'> & {
         cotcomponentes?: ComponentePayload[];
+        // De solo lectura: lo pone el servidor al cargar, desde el catálogo. Se borra antes de enviar.
+        contenedorGenerico?: boolean;
     };
 
     type CotizacionPayload = Omit<Cotizacion,
@@ -3135,6 +3137,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // Limpieza y formateo del árbol relacional
             if (payload.cotservicios && Array.isArray(payload.cotservicios)) {
                 payload.cotservicios.forEach((servicio) => {
+                    // De SOLO LECTURA: lo resuelve `CotservicioContenedorGenericoListener` al cargar,
+                    // desde el catálogo. El servidor lo ignoraba (no tiene grupo de escritura), pero
+                    // mandarlo era decir que se podía escribir (revisión del 23/10/2026).
+                    delete servicio.contenedorGenerico;
 
                     if (servicio.servicioMaestroId) {
                         servicio.servicioMaestroId = extractIdStr(servicio.servicioMaestroId);
