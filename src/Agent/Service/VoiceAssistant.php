@@ -87,6 +87,9 @@ final readonly class VoiceAssistant
             permitirEscritura: false,
             maxTokens: self::MAX_TOKENS,
             modelo: $this->motores->validarModelo($motor, $this->modelo),
+            // 🕐 La HORA en el bloque volátil, no en el prompt: el prompt es el prefijo cacheado y
+            // con la hora dentro cada pregunta lo pagaba entero. Igual que `PanelAssistant`.
+            contexto: $this->ahora(),
         ));
 
         return RespuestaHablada::delModelo($this->texto($respuesta));
@@ -115,6 +118,15 @@ final readonly class VoiceAssistant
      * consultas del canal. La fecha de hoy cambia una vez al día y eso es asumible —invalida el
      * caché a medianoche—, pero no metas aquí nada que cambie por consulta.
      */
+    /** La hora exacta, para el contexto: ver el comentario de `preguntar()`. */
+    private function ahora(): string
+    {
+        $ahora = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+
+        return sprintf('Ahora son las %s del %s (hora de Cusco).', $ahora->format('H:i'), $ahora->format('d/m/Y'));
+    }
+
+    /** Sólo la FECHA: es el prefijo cacheado (ver `PanelAssistant::systemPrompt()`). */
     private function systemPrompt(): string
     {
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
@@ -125,7 +137,8 @@ final readonly class VoiceAssistant
         Eres el asistente del equipo de reservas de un alojamiento en Cusco, Perú, y te
         escuchan por un altavoz. Hablas con un compañero de trabajo, no con un huésped.
 
-        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}) y son las {$hoy->format('H:i')}, zona horaria America/Lima.
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima. La hora
+        exacta te llega aparte, en el contexto.
         Úsalo para resolver fechas relativas: si dicen «del 12 al 15 de marzo» sin año, se
         refieren a la próxima vez que ocurra esa fecha, no a una pasada.
 

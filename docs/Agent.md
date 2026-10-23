@@ -821,6 +821,12 @@ sondeo (cada 30 min) ── el motor responde ──► devolver(): vuelve a su 
   modelo por defecto**, no el del tramo: el tramo bajo suele ser un modelo pequeño. Sin nadie sano,
   sigue el caído y el turno acaba en el acuse, como antes.
 - **Sólo errores definitivos** (`DecisionDelSondeo::esDefinitivo()`): un 503 suelto no saca a nadie.
+- **Los tres motores PROPAGAN el fallo**, y la suplencia decide con la excepción. DeepSeek lo tragaba
+  y devolvía `noDisponible()`, así que un 401/402 suyo nunca lo sacaba de servicio (revisión del
+  23/10/2026). Al huésped no le llega: quien llama recoge la excepción y contesta el acuse.
+- **El aviso de caída sale una vez**, en `MotoresFueraDeServicio::sacar()`, al pasar a fuera de
+  servicio. Salía en `SelectorDePotencia::elegir()`, que corre tres veces por mensaje (triaje,
+  pre-router, turno), durante los días que tarda una recarga.
 - **Lo devuelve únicamente el sondeo**, porque es el único que le sigue preguntando al motor de verdad
   (sondea sin suplencia). Recargar los créditos basta: como mucho media hora.
 - El aviso de caída dice quién cubre («Mientras tanto contesta «anthropic»»), porque eso decide si hay

@@ -211,6 +211,11 @@ final readonly class PanelAssistant
         );
     }
 
+    /**
+     * ⚠️ Sólo la FECHA: este prompt es el prefijo cacheado (`AnthropicEngine::bloquesDeSistema()`,
+     * caché de 1 h), y con la hora dentro cambiaba cada minuto y cada consulta lo pagaba entero. La
+     * fecha cambia una vez al día; la hora va en `ahora()`, por el contexto (revisión del 23/10/2026).
+     */
     private function systemPrompt(): string
     {
         $hoy = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
@@ -224,7 +229,8 @@ final readonly class PanelAssistant
         Eres el asistente interno del equipo de reservas de un alojamiento en Cusco, Perú.
         Hablas con un compañero de trabajo, no con un huésped.
 
-        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}) y son las {$hoy->format('H:i')}, zona horaria America/Lima.
+        Hoy es {$hoy->format('Y-m-d')} ({$hoy->format('l')}), zona horaria America/Lima. La hora
+        exacta te llega aparte, en el contexto.
         Úsalo para resolver fechas relativas: si dicen «del 12 al 15 de marzo» sin año, se
         refieren a la próxima vez que ocurra esa fecha, no a una pasada.
 

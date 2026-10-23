@@ -78,13 +78,7 @@ final readonly class SelectorDePotencia
             return $elegido;
         }
 
-        $this->logger->warning(sprintf(
-            'Agent: «%s» está fuera de servicio; el tramo %s lo atiende «%s» hasta que vuelva.',
-            $elegido->motor->nombre(),
-            $potencia->value,
-            $suplente->nombre()
-        ));
-
+        // Sin aviso aquí: esto corre en cada resolución. Lo dice una vez `MotoresFueraDeServicio::sacar()`.
         return new MotorElegido($suplente, null, $potencia);
     }
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Agent\Conversation;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Los motores que se han quedado sin servicio (créditos agotados, clave rechazada) y cuyos tramos
@@ -27,16 +29,33 @@ final readonly class MotoresFueraDeServicio
 
     private const int VIGENCIA_SEGUNDOS = 7 * 86400;
 
-    public function __construct(private CacheItemPoolInterface $cache) {}
+    public function __construct(
+        private CacheItemPoolInterface $cache,
+        private LoggerInterface $logger = new NullLogger(),
+    ) {}
 
     public function estaFuera(string $motor): bool
     {
         return $this->cache->getItem(self::CLAVE . $motor)->isHit();
     }
 
-    /** @param string $motivo Lo que dijo el proveedor; queda guardado para el log del selector. */
+    /**
+     * @param string $motivo Lo que dijo el proveedor.
+     *
+     * El aviso sale AQUÍ y una vez, al pasar a fuera de servicio. Salía en
+     * `SelectorDePotencia::elegir()` en cada resolución: triaje + pre-router + turno eran tres
+     * líneas por mensaje durante los días que tarda una recarga (revisión del 23/10/2026).
+     */
     public function sacar(string $motor, string $motivo): void
     {
+        if (!$this->estaFuera($motor)) {
+            $this->logger->error(sprintf(
+                'Agent: «%s» queda fuera de servicio hasta que el sondeo lo vea responder: %s',
+                $motor,
+                mb_strimwidth($motivo, 0, 200, '…')
+            ));
+        }
+
         $this->cache->save($this->cache->getItem(self::CLAVE . $motor)->set($motivo)->expiresAfter(self::VIGENCIA_SEGUNDOS));
     }
 

@@ -5892,6 +5892,12 @@ cachear**.
 Ahora el prefijo es idéntico para todas: lo escribe la primera consulta de la hora y lo leen
 todas las demás, **vengan del huésped que vengan**.
 
+⚠️ **Y la HORA tampoco va en el prefijo: va en el contexto.** La fecha sí (cambia una vez al día);
+la hora, con minutos, haría del prefijo uno distinto cada minuto. El chat del huésped siempre la mandó
+por el contexto; el panel y la voz la llevaron en el prompt del 22 al 23/10/2026 y cada consulta
+pagaba el prefijo entero. Hoy los tres: fecha en `systemPrompt()`, hora en `contexto`
+(`PanelAssistant::ahora()`, `VoiceAssistant::ahora()`).
+
 #### ⏱️ Por qué `ttl: 1h` y no el defecto de 5 min
 
 Escribir caché cuesta más que un token normal y leerlo cuesta una décima. Con el prefijo del

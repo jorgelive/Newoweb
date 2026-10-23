@@ -157,10 +157,13 @@ final readonly class DeepSeekEngine implements AgentEngineInterface, MotorSondea
             } catch (Throwable $e) {
                 $this->logger->error(sprintf('Agent (deepseek): %s', $e->getMessage()));
 
-                // Se declara no disponible y quien llama decide. Nunca se propaga: al otro lado hay
-                // un huésped esperando. Lo redactado en vueltas anteriores no se entrega: era un
-                // preámbulo a las herramientas, no una respuesta (ver abajo).
-                return ConversationResponse::noDisponible();
+                // 🔁 Se PROPAGA, como en Anthropic y Google (revisión del 23/10/2026). Devolvía
+                // `noDisponible()` y la suplencia —que decide con la excepción
+                // (`AiConversationProcessor::conSuplente()`, `PanelAssistant::preguntar()`)— no veía
+                // nunca un 401/402 de DeepSeek: el motor no salía de servicio y el turno acababa en
+                // acuse. Al huésped no le llega el error: quien llama lo recoge y contesta el acuse,
+                // igual que con los otros dos. Lo redactado en vueltas anteriores tampoco se entrega.
+                throw $e;
             }
 
             $leida = DeepSeekRespuesta::fromArray($respuesta);
