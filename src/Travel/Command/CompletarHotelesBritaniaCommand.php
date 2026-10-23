@@ -29,8 +29,10 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  *   por el nombre exacto: es lo que evitó repetir el error del boleto de Pukará.
  * - **Britania Crystal Collection** se crea.
  * - La dirección SÍ se carga: es la que lee el trasladista al recoger en el hotel.
- * - Teléfono y correo NO: de la ficha salen las órdenes al proveedor, y la web da correos que se
- *   contradicen entre secciones (y uno con errata). Lo decide Jorge.
+ * - Teléfono y correo, comprobados (Jorge): la web escribe «hbritaniamiaflores.com», que NO existe
+ *   —sin DNS—; el bueno es hbritaniamiraflores.com, con correo en Google Workspace, igual que
+ *   britaniam.com. Para Crystal la web da un buzón en cada dominio: son alias del mismo correo
+ *   («no gastan mailboxes por gusto»), y se usa el de la ficha del hotel.
  *
  * Idempotente: sólo rellena lo vacío, y no repite habitaciones ni fotos.
  *
@@ -48,7 +50,7 @@ final class CompletarHotelesBritaniaCommand extends Command
 
     /**
      * @var list<array{buscar: list<string>, nombre: string, titulo: string, descripcion: string, url: string,
-     *                 direccion: string, fotos: list<string>,
+     *                 direccion: string, telefono: string, email: string, fotos: list<string>,
      *                 habitaciones: list<array{nombre: string, descripcion: string, fotos: list<string>}>}>
      */
     private const array HOTELES = [
@@ -61,6 +63,8 @@ final class CompletarHotelesBritaniaCommand extends Command
                 . 'Desayuno buffet, wifi gratuito, aire acondicionado y estacionamiento privado.',
             'url' => 'https://www.hbritania.com/es/miraflores/',
             'direccion' => 'Calle Independencia 211, Miraflores, Lima',
+            'telefono' => '+51 961 359 381',
+            'email' => 'agencias@hbritaniamiraflores.com',
             'fotos' => ['mir__dsc08866-hdr_copy.jpg', 'mir__dsc08846.png', 'mir__dsc08660.jpg', 'mir__dsc08677.jpg', 'mir__suite_moderna_1.jpg'],
             'habitaciones' => [
                 ['nombre' => 'Habitación Individual', 'fotos' => ['mir__eyuy.png'],
@@ -85,6 +89,8 @@ final class CompletarHotelesBritaniaCommand extends Command
                 . 'buffet se sirve en su restaurante, Chavela 376. Wifi gratuito y estacionamiento subterráneo.',
             'url' => 'https://www.hbritania.com/es/crystal-collection/',
             'direccion' => 'Calle Narciso de la Colina 345, Miraflores, Lima',
+            'telefono' => '+51 991 486 719',
+            'email' => 'reservascrystal@hbritaniamiraflores.com',
             'fotos' => ['cry__hyyy.png', 'cry__e343.jpg', 'cry__dsc04721-hdr.jpg', 'cry__dsc04547-hdr.jpg', 'cry__p1024274.jpg', 'cry__chavela376_crystal_3.jpg'],
             'habitaciones' => [
                 ['nombre' => 'Habitación Individual', 'fotos' => ['cry__13.png'],
@@ -177,6 +183,18 @@ final class CompletarHotelesBritaniaCommand extends Command
                         ->setUrl($def['url'])
                         ->setDireccion($def['direccion'])
                         ->setVisibleParaCliente(true);
+                }
+            }
+
+            if (($hotel->getTelefono() ?? '') === '' || ($hotel->getEmail() ?? '') === '') {
+                $io->text(sprintf('  contacto: %s · %s', $def['telefono'], $def['email']));
+                if (!$seco) {
+                    if (($hotel->getTelefono() ?? '') === '') {
+                        $hotel->setTelefono($def['telefono']);
+                    }
+                    if (($hotel->getEmail() ?? '') === '') {
+                        $hotel->setEmail($def['email']);
+                    }
                 }
             }
 
