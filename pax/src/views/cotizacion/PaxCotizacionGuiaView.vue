@@ -1005,6 +1005,33 @@ const componentesQueAbarcan = computed(() => {
 const muestraFechaDeLinea = (l: PaxInclusionItem): boolean =>
     !(l.origen === 'item' && l.componenteId && componentesQueAbarcan.value.has(l.componenteId));
 
+/**
+ * El prestador que la TARJETA nombra: el del primer componente del bloque que lo tenga visible.
+ *
+ * Hasta el 23/10/2026 el nombre del hotel sólo aparecía dentro del detalle de lo incluido, así que
+ * la tarjeta del alojamiento decía «Alojamiento en Lima» y nunca en cuál (Jorge). Sale con foto o
+ * sin ella: lo que decide es que el backend lo haya inyectado, es decir, que el componente esté
+ * marcado y la ficha tenga título.
+ */
+const componentesNoIncluidos = computed(() => {
+  const ids = new Set<string>();
+  for (const srv of store.inclusiones) {
+    for (const l of srv.noIncluidos) if (l.componenteId) ids.add(l.componenteId);
+  }
+  return ids;
+});
+
+const proveedorDeBloque = (item: BloqueVista): { info: PrestadorInfo; suReserva: boolean } | null => {
+  for (const c of item.componentes) {
+    const info = proveedorDeComponente(c.id);
+    // Un no incluido es lo que el pasajero ya tiene reservado: se dice como suyo, igual que en
+    // el detalle (`prestadorDeLinea`), no como un proveedor nuestro. El `modo` no viaja en el
+    // componente público; se lee de sus líneas de inclusiones.
+    if (info) return { info, suReserva: componentesNoIncluidos.value.has(c.id) };
+  }
+  return null;
+};
+
 const modalProveedor = ref<PrestadorInfo | null>(null);
 const abrirProveedor = (p: PrestadorInfo) => { modalProveedor.value = p; };
 
@@ -3000,6 +3027,16 @@ const rotuloProcedencia = computed(() => {
                 <p class="font-black text-gray-800 text-sm leading-snug">
                   {{ store.traducir(item.segmento.tituloSnapshot) }}
                 </p>
+                <!-- La noche 2 sigue siendo en el mismo hotel: se nombra también aquí. -->
+                <button
+                    v-if="proveedorDeBloque(item)"
+                    type="button"
+                    @click="abrirProveedor(proveedorDeBloque(item)!.info)"
+                    class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#376875] hover:text-[#E07845] transition-colors"
+                >
+                  <i class="fas fa-hotel text-[9px] text-[#E07845]"></i>
+                  {{ store.traducir(proveedorDeBloque(item)!.info.titulo) }}
+                </button>
               </div>
             </article>
 
@@ -3080,6 +3117,20 @@ const rotuloProcedencia = computed(() => {
                   <i class="far fa-clock"></i>
                   {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                 </span>
+
+                <!-- Quién lo presta —el hotel—, en la tarjeta y no sólo en el detalle. Ver
+                     `proveedorDeBloque`. -->
+                <button
+                    v-if="proveedorDeBloque(item)"
+                    type="button"
+                    @click="abrirProveedor(proveedorDeBloque(item)!.info)"
+                    class="mb-3 inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 hover:bg-[#376875]/12 border border-[#376875]/20 rounded-lg px-2.5 py-1.5 transition-colors"
+                >
+                  <i class="fas fa-hotel text-[11px] text-[#E07845]"></i>
+                  <span v-if="proveedorDeBloque(item)!.suReserva" class="text-slate-500 font-semibold">{{ maestroStore.t('cot_su_reserva') || 'Su reserva:' }}</span>
+                  {{ store.traducir(proveedorDeBloque(item)!.info.titulo) }}
+                  <i class="fas fa-circle-arrow-right text-[9px] text-[#E07845] no-imprimir"></i>
+                </button>
 
                 <!-- Estado de la actividad: «Incluye», o la excepción con nombre. Ver
                      `estadoPorActividad`. Va también en modo Resumen, que es donde más se lee. -->

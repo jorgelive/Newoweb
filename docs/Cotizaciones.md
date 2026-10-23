@@ -4835,6 +4835,13 @@ Ahora el editor lo dice donde se decide (`prestadorSinFicha()` en `CotizacionEdi
 ⚠️ Mira sólo el título, no `visibleParaCliente` de la organización: ésa es la semilla al asignar, y
 en la propuesta ya decidió la bandera del componente.
 
+**Y la tarjeta del día lo nombra** (`proveedorDeBloque()` en `PaxCotizacionGuiaView.vue`): hasta el
+23/10/2026 el nombre del prestador sólo salía dentro del detalle de lo incluido, así que la tarjeta
+decía «Alojamiento en Lima» y nunca en cuál. Ahora lleva una pastilla «🏨 Habitat Hotel →» que abre
+su ficha, con foto o sin ella, y la tarjeta compacta de la noche 2+ también lo nombra. En un no
+incluido dice «Su reserva: …», como el detalle; el `modo` no viaja en el componente público y se
+lee de las líneas de inclusiones.
+
 ## 6.e Dónde recoge y dónde deja cada servicio (22/08/2026)
 
 En la tarjeta de cada servicio del editor sale una línea con `fa-route`:
