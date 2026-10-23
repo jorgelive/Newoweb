@@ -3588,6 +3588,10 @@ store.$onAction(({ name, args }) => {
                          @pointercancel.stop="onDetallePointerUp">
     <span class="text-[9px] font-black px-2 py-1 rounded-lg border shadow-sm flex items-center gap-1.5 cursor-help select-none"
           :class="bloque.audiencias?.includes('cliente') ? 'bg-sky-50 text-sky-700 border-sky-100' : 'bg-slate-100 text-slate-600 border-slate-200'">
+      <!-- Delante, QUÉ es: una nota. Sin esto el chip sólo decía a quién va, y se leía como
+           una etiqueta más del componente. La raya la separa de los iconos de audiencia. -->
+      <i class="fas fa-note-sticky" title="Nota del componente"></i>
+      <span class="w-px h-3 bg-current opacity-25" aria-hidden="true"></span>
       <i v-for="a in bloque.audiencias" :key="a" class="fas" :class="AUDIENCIA_DETALLE_CONFIG[a]?.icon"
          :title="AUDIENCIA_DETALLE_CONFIG[a]?.documento"></i>
       {{ (bloque.audiencias ?? []).map(a => AUDIENCIA_DETALLE_CONFIG[a]?.label).filter(Boolean).join(' · ') || 'Sin audiencia' }}
