@@ -122,7 +122,7 @@ final class CrearPlantillasMapiCommand extends Command
                 'CONTACT-MAPI-HTL' => '06:30',
                 // A la llegada del tren de retorno (14:30 → 16:30), no a la global de las 18:20.
                 'TRANS_DIRECT_RET-MAPI-OLL_CUZ' => '16:30',
-                // El resto, copiadas de «2D MAPI: OLLA MAPI OLLA CUZ (BM)», que es su hermana.
+                // El resto, copiadas de «2D MAPI: CUZ OLLA MAPI OLLA CUZ (BM)», que es su hermana.
                 'SUBBAJ_BUS-MAPI-SUB' => '07:00',
                 'VIS-MAPI-C2|Ingreso a Machu Picchu' => '08:00',
                 'VIS-MAPI-C2|Guiado Machu Picchu' => '08:30',

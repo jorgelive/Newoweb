@@ -1719,7 +1719,7 @@ donde **durmió en Machu Picchu Pueblo**, en su hotel.
 | Plantilla | Día · orden | Segmento |
 |---|---|---|
 | Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal) | 1 · 3 | Contacto en la estación |
-| Two Day MAPI: OLLA MAPI OLLA CUZ (bimodal) | 2 · 1 | Contacto en el hotel |
+| Two Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal) | 2 · 1 | Contacto en el hotel |
 | Two Day Camino inca | 2 · 1 | Contacto en el hotel |
 
 Lo monta `app:travel:crear-contacto-machupicchu`, idempotente y con `--dry-run`.

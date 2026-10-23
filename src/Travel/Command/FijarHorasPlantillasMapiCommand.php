@@ -65,7 +65,7 @@ final class FijarHorasPlantillasMapiCommand extends Command
             'CONTACT-MAPI-HTL' => '06:30',
             'TRANS_DIRECT_RET-MAPI-OLL_CUZ' => '16:30',
         ],
-        '2D MAPI: OLLA MAPI OLLA CUZ (BM)' => [
+        '2D MAPI: CUZ OLLA MAPI OLLA CUZ (BM)' => [
             'CONTACT-MAPI-HTL' => '06:30',
             'TRANS_BIM_RET-MAPI-OLL_CUZ' => '16:30',
         ],

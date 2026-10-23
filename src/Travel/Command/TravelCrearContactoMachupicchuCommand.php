@@ -77,7 +77,7 @@ final class TravelCrearContactoMachupicchuCommand extends Command
         'Full Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal)' => ['dia' => 1, 'orden' => 3, 'segmento' => self::SEG_ESTACION],
 
         // Durmieron en Machu Picchu Pueblo: el contacto abre el día 2, en su hotel.
-        'Two Day MAPI: OLLA MAPI OLLA CUZ (bimodal)' => ['dia' => 2, 'orden' => 1, 'segmento' => self::SEG_HOTEL],
+        'Two Day MAPI: CUZ OLLA MAPI OLLA CUZ (bimodal)' => ['dia' => 2, 'orden' => 1, 'segmento' => self::SEG_HOTEL],
         'Two Day Camino inca' => ['dia' => 2, 'orden' => 1, 'segmento' => self::SEG_HOTEL],
     ];
 
