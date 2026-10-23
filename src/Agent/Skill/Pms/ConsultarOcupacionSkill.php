@@ -68,7 +68,12 @@ final readonly class ConsultarOcupacionSkill implements SkillInterface, SkillDom
                 . 'está dentro. NO la confundas con listar_entradas_salidas, que sólo da quién '
                 . 'llega o se va esos días: alguien que entró antes y sigue alojado aparece '
                 . 'aquí y allí no. Incluye bloqueos y cierres de mantenimiento, que ocupan la '
-                . 'casita pero no son personas: los distingue el campo es_estancia en false.',
+                . 'casita pero no son personas: los distingue el campo es_estancia en false. '
+                . 'De cada estancia da también reservada_el (cuándo se hizo la reserva) y '
+                . 'anticipacion_dias (con cuántos días de antelación); y en «anticipacion», la '
+                . 'media y la mediana YA CALCULADAS de las reservas que ENTRAN en el rango: para '
+                . '«anticipación media de este mes», pide el mes entero y da esas cifras tal cual, '
+                . 'sin recalcularlas.',
             parametros: [
                 SkillParameter::texto('desde', 'Primera noche a mirar, en formato YYYY-MM-DD.'),
                 SkillParameter::texto('hasta', 'Día en que termina el rango, en formato '
@@ -167,11 +172,53 @@ final readonly class ConsultarOcupacionSkill implements SkillInterface, SkillDom
             'hasta' => $hasta->format('Y-m-d'),
             'casita_consultada' => $unidad?->getNombre(),
             'total' => count($ocupacion),
+            'anticipacion' => self::anticipacion($ocupacion, $desde->format('Y-m-d'), $hasta->format('Y-m-d')),
             'estancias' => array_map(
                 static fn (PmsOcupacionDto $o) => $o->toArray(),
                 $ocupacion
             ),
         ], static fn ($v) => $v !== null));
+    }
+
+    /**
+     * Media y mediana de la anticipación, calculadas aquí y no por el modelo: sumar setenta números
+     * de cabeza es donde un modelo se equivoca con toda la seguridad del mundo (22/10/2026, «¿cuál es
+     * el promedio de anticipación de este mes?»).
+     *
+     * Cuenta RESERVAS, no estancias —una reserva con dos casitas es una decisión de compra—, y sólo
+     * las que ENTRAN en el rango: las que llegaron el mes anterior y siguen dentro son de otro mes.
+     * Fuera los bloqueos y las reservas sin fecha.
+     *
+     * @param list<PmsOcupacionDto> $ocupacion
+     *
+     * @return array{reservas: int, media_dias: float, mediana_dias: float, criterio: string}|null
+     */
+    public static function anticipacion(array $ocupacion, string $desde, string $hasta): ?array
+    {
+        $porReserva = [];
+
+        foreach ($ocupacion as $o) {
+            if ($o->esEstancia && $o->reservaId !== null && $o->anticipacionDias !== null
+                && $o->nocheExtra === null && $o->entra >= $desde && $o->entra < $hasta) {
+                $porReserva[$o->reservaId] = $o->anticipacionDias;
+            }
+        }
+
+        if ($porReserva === []) {
+            return null;
+        }
+
+        $dias = array_values($porReserva);
+        sort($dias);
+        $n = count($dias);
+        $mitad = intdiv($n, 2);
+
+        return [
+            'reservas' => $n,
+            'media_dias' => round(array_sum($dias) / $n, 1),
+            'mediana_dias' => $n % 2 === 1 ? (float) $dias[$mitad] : ($dias[$mitad - 1] + $dias[$mitad]) / 2.0,
+            'criterio' => 'reservas que entran en el rango, una vez cada una; días entre que se reservó y la llegada',
+        ];
     }
 
     /**

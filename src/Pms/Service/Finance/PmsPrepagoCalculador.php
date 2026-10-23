@@ -118,21 +118,10 @@ final readonly class PmsPrepagoCalculador
 
     public function esDeUltimaHora(PmsInformacionFinanciera $finanzas): bool
     {
-        $reserva = $finanzas->getReserva();
-        $llegada = $reserva?->getFechaLlegada();
-        // La fecha del canal es la de verdad —una reserva importada tarde nace hoy aunque se
-        // hiciera hace un mes—; `createdAt`, el respaldo para las que no la traen.
-        $reservadaEl = $reserva?->getPrimeraFechaReservaCanal() ?? $reserva?->getCreatedAt();
+        // La regla de qué fecha cuenta (la del canal, o `createdAt`) vive en la reserva.
+        $dias = $finanzas->getReserva()?->getAnticipacionDias();
 
-        if ($llegada === null || $reservadaEl === null) {
-            return false;
-        }
-
-        $dias = (int) (new DateTimeImmutable($reservadaEl->format('Y-m-d')))
-            ->diff(new DateTimeImmutable($llegada->format('Y-m-d')))
-            ->format('%r%a');
-
-        return $dias <= self::DIAS_DE_ULTIMA_HORA;
+        return $dias !== null && $dias <= self::DIAS_DE_ULTIMA_HORA;
     }
 
     /** ¿Hay algún pago registrado, en cualquier moneda? Ver `pendiente()`. */

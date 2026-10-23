@@ -41,6 +41,10 @@ final readonly class PmsOcupacionDto
         /** ¿Se confirmó su hora de llegada / de salida? Ver `PmsEventoCalendario::$llegadaConfirmadaAt`. */
         public bool $llegadaConfirmada = false,
         public bool $salidaConfirmada = false,
+        /** Día en que se hizo la reserva (`Y-m-d`); `null` en un bloqueo. Ver `PmsReserva::getFechaReserva()`. */
+        public ?string $reservadaEl = null,
+        /** Días entre la reserva y su primera llegada. Ver `PmsReserva::getAnticipacionDias()`. */
+        public ?int $anticipacionDias = null,
     ) {}
 
     /** «sale el 08/10 a las 10:00 (sin confirmar)». */
@@ -118,6 +122,8 @@ final readonly class PmsOcupacionDto
             'noche_extra'     => $this->nocheExtra,
             'llegada_confirmada' => $this->llegadaConfirmada,
             'salida_confirmada'  => $this->salidaConfirmada,
+            'reservada_el'       => $this->reservadaEl,
+            'anticipacion_dias'  => $this->anticipacionDias,
         ], static fn ($v) => $v !== null);
     }
 }

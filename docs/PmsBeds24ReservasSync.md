@@ -44,6 +44,7 @@ Documento de arquitectura del sistema bidireccional de sincronización de reserv
 12.19. [Nulos: decide el dominio, no los datos](#1219-nulos-decide-el-dominio-no-los-datos-26092026)
 12.20. [El pull y el webhook construían el DTO por dos caminos](#1220-el-pull-y-el-webhook-construían-el-dto-por-dos-caminos-26092026)
 12.21. [El nivel 9 (`mixed`) en Pms: lo que no era sólo tipos](#1221-el-nivel-9-mixed-en-pms-lo-que-no-era-sólo-tipos-26092026)
+12.22. [Cuándo se hizo la reserva y con cuánta antelación](#1222-cuándo-se-hizo-la-reserva-y-con-cuánta-antelación-22102026)
 13. [Dónde tocar para cambiar X](#13-dónde-tocar-para-cambiar-x)
 
 > Horario extra (early check-in / late check-out → evento `extension` invisible): §7.1.b.
@@ -6899,10 +6900,29 @@ código anterior.
 con `ArrayParameterType::STRING`) y no con `quote()`, que en DBAL 3 devuelve `mixed`. Comprobado
 contra la base local: mismos veredictos que antes.
 
+## 12.22 Cuándo se hizo la reserva y con cuánta antelación (22/10/2026)
+
+El dato estaba —`bookingTime` de Beds24 en `PmsEventoCalendario::$fechaReservaCanal` y, la más
+antigua, en `PmsReserva::$primeraFechaReservaCanal`— pero no salía de la base: ni en el detalle de la
+estancia ni al agente, que contestó «ninguna de mis herramientas da la fecha en que se hizo cada
+reserva» a «¿cuál es la anticipación media de este mes?».
+
+| Qué | Dónde | Regla |
+|---|---|---|
+| Fecha de la reserva | `PmsReserva::getFechaReserva()` (grupo `pms_reserva:read`) | la del canal; si no la trae (directa, panel), `createdAt`. La del canal manda: una reserva importada tarde **nace hoy** aunque se hiciera hace un mes |
+| Antelación | `PmsReserva::getAnticipacionDias()` | días de calendario hasta la **primera** llegada; reservar el mismo día es 0 |
+| Al agente | `PmsDisponibilidadService::ocupacion()` → `reservada_el`, `anticipacion_dias` | ⚠️ **espejo en SQL** de los dos de arriba: si cambia la regla, cambian los tres |
+| Media y mediana | `ConsultarOcupacionSkill::anticipacion()` | calculadas en código: reservas que **entran** en el rango, una vez cada una |
+| En pantalla | `ReservaEditDrawer.vue` (`reservadaTexto`) | «Reservada el 24/08/2026 · 34 días antes», junto al localizador |
+
+`PmsPrepagoCalculador::esDeUltimaHora()` hacía su propia cuenta con la misma fallback; ahora llama a
+`getAnticipacionDias()`, que es la única definición.
+
 ## 13. Dónde tocar para cambiar X
 
 | Necesidad | Archivo | Método/Campo |
 |---|---|---|
+| Qué fecha cuenta como «se reservó el» y la antelación | `PmsReserva` | `getFechaReserva()`, `getAnticipacionDias()` — y su espejo SQL en `PmsDisponibilidadService::ocupacion()` (§12.22) |
 | Añadir un campo de Beds24 a la reserva | `Beds24BookingDto` | `fromArray()` — el ÚNICO camino, pull y webhook (§12.20) |
 | Un `status` de Beds24 que corresponde a VARIOS estados nuestros (`black` = bloqueo o extensión) | `BookingPullPersister` + `BookingsPushMappingStrategy` | `elegirEstado()` lee el `custom3` que escribe el push (`PREFIJO_ESTADO`) — §7.1.b |
 | Cambiar qué link reclama una reserva que llega del pull | `BookingPullPersister` | `upsert()` — manda el `bookId`; el `custom1` sólo adopta links LIBRES (§9.7) |

@@ -183,6 +183,11 @@ final readonly class PmsDisponibilidadService
                    -- que arma la URL de su guía. Devolver el del evento hacía que dos skills
                    -- dieran códigos distintos del mismo huésped.
                    r.localizador                 AS localizador,
+                   -- Cuándo se reservó y con cuántos días de antelación. ⚠️ ESPEJO de
+                   -- `PmsReserva::getFechaReserva()` y `::getAnticipacionDias()`: la fecha del
+                   -- canal y, si no la hay, la de alta; contra la PRIMERA llegada de la reserva.
+                   DATE(COALESCE(r.primera_fecha_reserva_canal, r.created_at)) AS reservada_el,
+                   DATEDIFF(r.fecha_llegada, DATE(COALESCE(r.primera_fecha_reserva_canal, r.created_at))) AS anticipacion_dias,
                    e.llegada_confirmada_at IS NOT NULL AS llegada_confirmada,
                    e.salida_confirmada_at  IS NOT NULL AS salida_confirmada,
                    -- Si lo único que cae en el rango es su noche extra, cuál: los mensajes dicen
@@ -208,7 +213,8 @@ final readonly class PmsDisponibilidadService
          * @var list<array{evento_id: string, reserva_id: ?string, casita_id: string, casita: ?string,
          *     establecimiento: ?string, huesped: ?string, entra: string, sale: string,
          *     hora_entrada: ?string, hora_salida: ?string, estado: string, es_ota: int|string|null,
-         *     localizador: ?string, noche_extra: ?string, llegada_confirmada: int|string,
+         *     localizador: ?string, noche_extra: ?string, reservada_el: ?string,
+         *     anticipacion_dias: int|string|null, llegada_confirmada: int|string,
          *     salida_confirmada: int|string}> $filas
          */
         $filas = $this->em->getConnection()->executeQuery(
@@ -242,6 +248,8 @@ final readonly class PmsDisponibilidadService
                 nocheExtra:      $f['noche_extra'] !== null ? (string) $f['noche_extra'] : null,
                 llegadaConfirmada: (bool) $f['llegada_confirmada'],
                 salidaConfirmada:  (bool) $f['salida_confirmada'],
+                reservadaEl:       $f['reservada_el'] !== null ? (string) $f['reservada_el'] : null,
+                anticipacionDias:  $f['anticipacion_dias'] !== null ? (int) $f['anticipacion_dias'] : null,
             ),
             $filas
         );

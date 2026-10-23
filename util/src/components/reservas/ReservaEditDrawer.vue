@@ -864,6 +864,9 @@ const reservaInfo = ref<{
     safeToDelete: boolean;
     motivoNoBorrable: string | null;
     syncStatusAggregate: PmsSyncStatus | undefined;
+    /** Cuándo se hizo y con cuánta antelación: `PmsReserva::getFechaReserva()` / `getAnticipacionDias()`. */
+    fechaReserva: string | null;
+    anticipacionDias: number | null;
 }>({
     localizador: null,
     referenciaCanalAggregate: null,
@@ -872,6 +875,24 @@ const reservaInfo = ref<{
     safeToDelete: false,
     motivoNoBorrable: null,
     syncStatusAggregate: undefined,
+    fechaReserva: null,
+    anticipacionDias: null,
+});
+
+/**
+ * «Reservada el 24/08/2026 · 34 días antes». La fecha se corta del texto, sin pasar por `Date`:
+ * es hora de pared del establecimiento y convertirla al huso del navegador podría moverle el día.
+ */
+const reservadaTexto = computed(() => {
+    const { fechaReserva, anticipacionDias } = reservaInfo.value;
+    if (!fechaReserva) return '';
+    const [a, m, d] = fechaReserva.slice(0, 10).split('-');
+    const antes =
+        anticipacionDias === null ? ''
+            : anticipacionDias === 0 ? ' · el mismo día'
+            : anticipacionDias === 1 ? ' · 1 día antes'
+            : ` · ${anticipacionDias} días antes`;
+    return `Reservada el ${d}/${m}/${a}${antes}`;
 });
 
 /** Link público de la guía del huésped (mismo path que PmsMessageDataResolver::getMessageVariables() -> guide_url). */
@@ -1374,6 +1395,8 @@ async function cargarDatos(): Promise<void> {
                 safeToDelete: reserva.safeToDelete ?? false,
                 motivoNoBorrable: reserva.motivoNoBorrable ?? null,
                 syncStatusAggregate: reserva.syncStatusAggregate,
+                fechaReserva: reserva.fechaReserva ?? null,
+                anticipacionDias: reserva.anticipacionDias ?? null,
             };
 
             const ids = idsDeEventos(reserva);
@@ -1915,6 +1938,10 @@ async function ejecutarBorrado(): Promise<void> {
                             class="font-mono font-black tracking-wide text-slate-200 normal-case text-[11px]"
                             title="Localizador de la reserva">
                             {{ reservaInfo.localizador }}
+                        </span>
+                        <span v-if="reservadaTexto" class="normal-case tracking-normal font-semibold text-slate-400"
+                            title="Fecha en que se hizo la reserva (la del canal; si no la trae, la de alta) y antelación hasta la llegada">
+                            {{ reservadaTexto }}
                         </span>
                     </p>
                     <h2 class="font-black text-base tracking-tight truncate mt-0.5">

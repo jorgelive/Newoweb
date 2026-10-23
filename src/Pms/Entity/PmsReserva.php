@@ -556,6 +556,40 @@ class PmsReserva
     public function getPrimeraFechaReservaCanal(): ?DateTimeInterface { return $this->primeraFechaReservaCanal; }
     public function setPrimeraFechaReservaCanal(?DateTimeInterface $val): self { $this->primeraFechaReservaCanal = $val; return $this; }
 
+    /**
+     * Cuándo se hizo la reserva: la fecha del canal y, si no la trae (directa, panel), `createdAt`.
+     * La del canal es la de verdad: una reserva importada tarde nace hoy aunque se hiciera hace un
+     * mes. Hora de pared del establecimiento (`BookingPullPersister::aHoraDelEstablecimiento()`).
+     *
+     * ⚠️ Espejo en SQL: `PmsDisponibilidadService::ocupacion()` (`reservada_el`), para el agente.
+     */
+    #[Groups(['pms_reserva:read'])]
+    public function getFechaReserva(): ?DateTimeInterface
+    {
+        return $this->primeraFechaReservaCanal ?? $this->createdAt;
+    }
+
+    /**
+     * Días entre que se reservó y la primera llegada, por fecha de calendario: reservar el 3 para
+     * entrar el 3 es 0. `null` si falta alguna de las dos. Negativo sólo con datos rotos (una
+     * reserva creada después de llegar, cargada a mano).
+     *
+     * ⚠️ Espejo en SQL: `PmsDisponibilidadService::ocupacion()` (`anticipacion_dias`).
+     */
+    #[Groups(['pms_reserva:read'])]
+    public function getAnticipacionDias(): ?int
+    {
+        $reservadaEl = $this->getFechaReserva();
+
+        if ($reservadaEl === null || $this->fechaLlegada === null) {
+            return null;
+        }
+
+        return (int) (new DateTimeImmutable($reservadaEl->format('Y-m-d')))
+            ->diff(new DateTimeImmutable($this->fechaLlegada->format('Y-m-d')))
+            ->format('%r%a');
+    }
+
     public function getUltimaFechaModificacionCanal(): ?DateTimeInterface { return $this->ultimaFechaModificacionCanal; }
     public function setUltimaFechaModificacionCanal(?DateTimeInterface $val): self { $this->ultimaFechaModificacionCanal = $val; return $this; }
 

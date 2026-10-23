@@ -33538,6 +33538,17 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo se hizo la reserva: la fecha del canal y, si no la trae (directa, panel), `createdAt`.
+             */
+            readonly fechaReserva?: string | null;
+            /**
+             * @description Días entre que se reservó y la primera llegada, por fecha de calendario: reservar el 3 para
+             *     entrar el 3 es 0. `null` si falta alguna de las dos. Negativo sólo con datos rotos (una
+             *     reserva creada después de llegar, cargada a mano).
+             */
+            readonly anticipacionDias?: number | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -33712,6 +33723,17 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo se hizo la reserva: la fecha del canal y, si no la trae (directa, panel), `createdAt`.
+             */
+            readonly fechaReserva?: string | null;
+            /**
+             * @description Días entre que se reservó y la primera llegada, por fecha de calendario: reservar el 3 para
+             *     entrar el 3 es 0. `null` si falta alguna de las dos. Negativo sólo con datos rotos (una
+             *     reserva creada después de llegar, cargada a mano).
+             */
+            readonly anticipacionDias?: number | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -33825,6 +33847,17 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo se hizo la reserva: la fecha del canal y, si no la trae (directa, panel), `createdAt`.
+             */
+            readonly fechaReserva?: string | null;
+            /**
+             * @description Días entre que se reservó y la primera llegada, por fecha de calendario: reservar el 3 para
+             *     entrar el 3 es 0. `null` si falta alguna de las dos. Negativo sólo con datos rotos (una
+             *     reserva creada después de llegar, cargada a mano).
+             */
+            readonly anticipacionDias?: number | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
@@ -33937,6 +33970,17 @@ export interface components {
              *     hayan llegado a Beds24.
              */
             readonly syncStatusAggregate?: string;
+            /**
+             * Format: date-time
+             * @description Cuándo se hizo la reserva: la fecha del canal y, si no la trae (directa, panel), `createdAt`.
+             */
+            readonly fechaReserva?: string | null;
+            /**
+             * @description Días entre que se reservó y la primera llegada, por fecha de calendario: reservar el 3 para
+             *     entrar el 3 es 0. `null` si falta alguna de las dos. Negativo sólo con datos rotos (una
+             *     reserva creada después de llegar, cargada a mano).
+             */
+            readonly anticipacionDias?: number | null;
             /** @description 2. EL ARMADOR DE URL MULTI-CANAL */
             readonly urlCanalExtranet?: string | null;
         };
