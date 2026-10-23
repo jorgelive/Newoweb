@@ -2071,10 +2071,9 @@ valora la disponibilidad y si cobra o no. Dos cosas lo contradecían:
   casita está libre, puede llegar desde esa hora». `PmsInstruccionesDominio::espacioAlrededor()`
   ahora sólo se lo da al EQUIPO. Al huésped le basta `confirmar_hora`, que fuera del horario no
   promete nada y avisa al equipo con la noche de al lado.
-- **«Tiene un costo adicional»** lo afirmaban `confirmar_hora` y la ficha «Equipaje y horarios
-  flexibles», y el agente lo decía sin que se lo preguntaran. Ahora: puede tenerlo, lo valora el
-  equipo, y sólo si pregunta (`app:pms:guia:horario-flexible-costo`, que cambia esas dos frases y
-  respeta el resto de la ficha, editada en el panel).
+- **El costo SÍ se dice** (Jorge, el mismo día): que adelantar o atrasar la hora tiene un costo
+  adicional y depende de la disponibilidad, y que se le pasa la solicitud al equipo. Lo que el agente
+  no hace es concederlo. `confirmar_hora` se lo dice así de entrada; la ficha ya lo decía.
 
 ## 7 ter. «Siguiente»: pasar de un paso al otro sin volver a la lista (14/10/2026)
 

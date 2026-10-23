@@ -404,12 +404,12 @@ final readonly class ConfirmarHoraSkill implements SkillInterface, SkillDominioI
             'motivo' => $esSalida ? 'salida_tardia' : 'entrada_temprana',
             'horario_del_alojamiento' => $limite,
             'aviso' => sprintf(
-                'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s y que lo '
-                . 'consultas con el equipo, que depende de la disponibilidad. Ofrécele mientras '
-                . 'guardar el equipaje (conocimiento «Guardar equipaje»). SI PREGUNTA SI TIENE COSTO: '
-                // 22/10/2026, Jorge: el equipo evalúa en cada caso si cobra o no. «Sí, tiene un
-                // costo» lo afirmaba —y el modelo lo soltaba sin que se lo preguntaran—.
-                . 'el equipo valora la disponibilidad y si tiene costo, y se lo confirma. La petición queda '
+                // 22/10/2026, Jorge: se le puede decir de entrada que tiene costo y depende de la
+                // disponibilidad; lo que no decide el agente es si se concede.
+                'NO se ha apuntado y NO le confirmes nada. Dile que el %s es a las %s, que '
+                . 'adelantarlo o atrasarlo tiene un costo adicional y depende de la disponibilidad, y '
+                . 'que le pasas su solicitud al equipo, que le confirma por aquí. Ofrécele mientras '
+                . 'guardar el equipaje (conocimiento «Guardar equipaje»). La petición queda '
                 . 'pegada a su estancia y el equipo YA está avisado: no hace falta escalar_al_equipo.',
                 $esSalida ? 'check-out' : 'check-in',
                 $limite
