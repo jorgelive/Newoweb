@@ -3062,7 +3062,7 @@ const rotuloProcedencia = computed(() => {
                 <div class="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
 
                 <!-- Flechas de galería -->
-                <template v-if="imagenesDe(item.segmento).length > 1">
+                <template v-if="galeriaDe(item).length > 1">
                   <button @click="desplazarGaleria($event, -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm flex items-center justify-center transition-colors">
                     <i class="fas fa-chevron-left text-xs"></i>
                   </button>
@@ -3070,7 +3070,7 @@ const rotuloProcedencia = computed(() => {
                     <i class="fas fa-chevron-right text-xs"></i>
                   </button>
                   <span class="absolute top-3 right-3 text-[9px] font-black text-white bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1 uppercase tracking-wider">
-                    <i class="fas fa-images mr-1"></i>{{ imagenesDe(item.segmento).length }}
+                    <i class="fas fa-images mr-1"></i>{{ galeriaDe(item).length }}
                   </span>
                 </template>
 
@@ -3086,8 +3086,12 @@ const rotuloProcedencia = computed(() => {
 
               <div :class="modoResumen ? 'p-4 md:p-5' : 'p-5 md:p-7'">
                 <!-- Encabezado con título. Se muestra si no hubo galería o en modo
-                     Resumen (donde la galería se oculta y el título toma su lugar). -->
-                <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
+                     Resumen (donde la galería se oculta y el título toma su lugar).
+                     ⚠️ Mira la galería que se PINTA (`galeriaDe`), no sólo las fotos del segmento:
+                     la galería suma las del prestador, y un alojamiento sin fotos propias pero
+                     con hotel fotografiado sacaba el título dos veces — sobre la foto y debajo
+                     (Habitat Hotel, 23/10/2026). Igual las flechas y el contador. -->
+                <div v-if="modoResumen || !galeriaDe(item).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco && !item.contenedorGenerico" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
                       {{ store.traducir(item.servicio.tituloSnapshot) }}

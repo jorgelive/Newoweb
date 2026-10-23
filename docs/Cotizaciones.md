@@ -4842,6 +4842,11 @@ su ficha, con foto o sin ella, y la tarjeta compacta de la noche 2+ también lo 
 incluido dice «Su reserva: …», como el detalle; el `modo` no viaja en el componente público y se
 lee de las líneas de inclusiones.
 
+⚠️ **Al ponerle fotos al hotel salió el título dos veces.** La galería de la tarjeta (`galeriaDe`)
+suma las fotos del prestador, pero el título del cuerpo, las flechas y el contador miraban sólo las
+del segmento (`imagenesDe(segmento)`). Un alojamiento sin fotos propias y con hotel fotografiado
+pintaba el título sobre la foto y otra vez debajo. Ahora los tres miran la galería que se pinta.
+
 ## 6.e Dónde recoge y dónde deja cada servicio (22/08/2026)
 
 En la tarjeta de cada servicio del editor sale una línea con `fa-route`:
