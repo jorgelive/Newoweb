@@ -3628,6 +3628,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // 0 = automático: se coloca por la hora de sus componentes, y sin hora por lo que es.
             // Deja de ser 0 si alguien lo mueve a mano.
             orden: 0,
+            // Lo pone `onServicioMaestroChange()` al elegir el maestro; sin maestro, es un producto.
+            contenedorGenerico: false,
             cotsegmentos: [],
             cotcomponentes: [],
             sobreescribirTraduccion: false
@@ -5239,6 +5241,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             // i18n, cliente) sale del titulo. Son ejes distintos y ya no se copian entre sí.
             servicio.nombreInternoSnapshot = nombreOperativoComoI18n(maestro.nombreInterno);
             servicio.tituloSnapshot = JSON.parse(JSON.stringify(getTituloSafe(maestro)));
+            // No se guarda —el servidor la vuelve a leer del catálogo al cargar—: es para que el
+            // editor lo trate ya como contenedor sin esperar a recargar.
+            servicio.contenedorGenerico = maestro.contenedorGenerico === true;
             await fetchServicioDetalles(val);
         }
     };
@@ -6030,6 +6035,22 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     const esMonoSegmentoSinPlantilla = (servicio: CotServicio | null | undefined): boolean =>
         !!servicio && servicio.cotsegmentos?.length === 1 && !servicio.itinerarioMaestroId;
 
+    // ── Contenedor genérico ─────────────────────────────────────────────────────
+    // «Transporte en Cusco», «Vuelo»: el servicio sólo agrupa piezas sueltas y el cliente no lo ve
+    // —cada segmento sale como su tarjeta y se ordena por su hora (`dominio/cotizacion/itinerarioVista.ts`)—.
+    // Lo dice el CATÁLOGO (`TravelServicio::$contenedorGenerico`), no el número de segmentos: el mono-
+    // segmento de arriba sigue sirviendo para los productos de una pieza.
+    const esContenedorGenerico = (servicio: CotServicio | null | undefined): boolean =>
+        servicio?.contenedorGenerico === true;
+
+    /** Los títulos de sus segmentos, que es lo que el cliente lee de un contenedor. */
+    const titulosDeSegmentos = (servicio: CotServicio | null | undefined, idioma: string): string =>
+        [...(servicio?.cotsegmentos ?? [])]
+            .sort((a, b) => (a.dia - b.dia) || (a.orden - b.orden))
+            .map((seg) => getI18nText(seg.tituloSnapshot, idioma))
+            .filter((t) => t !== '')
+            .join(' · ');
+
     // Maestro del único segmento, para leer su `nombreInterno` (no vive en el snapshot). Tolera
     // `poolSegmentos` vacío (carga fallida) → null.
     const segmentoUnicoMaestro = (servicio: CotServicio | null | undefined): Segmento | null => {
@@ -6047,7 +6068,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         subgruposDelFile,
         cargarSubgrupos,
         catalogos, cotizacion, fileActual, modoCatalogo, idiomasDisponibles, isLoading, isCargaInicial, inspectorActivo, dataActiva,
-        esMonoSegmentoSinPlantilla, segmentoUnicoMaestro,
+        esMonoSegmentoSinPlantilla, segmentoUnicoMaestro, esContenedorGenerico, titulosDeSegmentos,
         puntosPorServicio, puntosDeServicio, fetchPuntosDeServicios,
         // Vistas tipadas del nodo abierto: es por donde deben leerlo las vistas.
         servicioActivo, componenteActivo, tarifaActiva,

@@ -8602,6 +8602,33 @@ No hay forma de intercalar algo *dentro* de un grupo. La solución es **partir e
 cotservicios** —resort mañana / excursión / resort noche—, que además es el patrón normal del
 sistema: en una propuesta real «Alojamiento» aparece **12 veces** como cotservicios distintos.
 
+✅ **Salvo en un contenedor genérico (23/10/2026).** `TravelServicio::$contenedorGenerico` marca los
+servicios que son un REPERTORIO —transportes de cada ciudad, vuelos, alojamiento, actividades de
+resort…—, y en ésos cada segmento es su propio grupo (`componerItinerario()`, clave
+`servicio::segmento`): se coloca por SU hora, intercalado con lo demás. En VVUJZJ, el traslado al
+terminal (20:00) y el bus nocturno (22:00) de «Transporte en Cusco» salían pegados al aeropuerto de
+la mañana y enmarcados como «el tour». Con la marca, los resorts ya no necesitan partirse en tres.
+
+**Lo que hace la marca, consumidor por consumidor:**
+
+| Dónde | Qué cambia |
+|---|---|
+| `dominio/cotizacion/itinerarioVista.ts` | un grupo por segmento; el bloque lleva el hecho `contenedorGenerico` |
+| `PaxCotizacionGuiaView.vue` | sin marco, sin título del servicio, sin «¿Qué incluye…?», sin la etiqueta pequeña (ni en «noche 2/3»); el aviso de «Servicio opcional» se queda |
+| Editor (`util`) | la tarjeta lleva los títulos de sus segmentos y «… · contenedor»; el detalle sustituye el nombre público por la explicación |
+| PHP → Node (`ItinerarioCompuesto`) | lo mismo que la guía, porque la marca viene en la serialización pública |
+| Órdenes de servicio y precios | nada: van por componente |
+
+⚠️ **La marca NO se copia a la cotización**: la pone `CotservicioContenedorGenericoListener` al
+cargar cada cotservicio, leyendo el catálogo (una consulta por petición). Por eso vale igual en los
+tres caminos de serialización —un normalizador sólo habría cubierto el primero— y por eso
+cambiarla en el catálogo cambia también las propuestas enviadas. Es presentación, no dinero. Lo que
+el editor manda al guardar la ignora.
+
+La regla del mono-segmento (`esMonoSegmentoSinPlantilla`) sigue para los PRODUCTOS de una pieza; ya
+no es la que decide qué es un contenedor. Un día ordenado a mano sigue mandando: los segmentos de un
+contenedor comparten el `orden` de su servicio.
+
 Con el resort partido, el mismo día ordena bien: 07:00 desayuno → 08:00 Saona → 19:00 cena →
 21:30 show.
 
@@ -9862,6 +9889,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Badges modalidad/categoría** → `modCatBadges` (`cotizacionEditorModel.ts` en util; local en `PaxCotizacionGuiaView.vue` en pax).
 - **Que el cliente lea una descripción del hotel o de lo que contrató** → `descripcion` (i18n) de `TravelOrganizacion` y `TravelOrganizacionServicio`, en EasyAdmin. Viaja como `prestadorDescripcion` / `prestadorServicioDescripcion` desde `CotizacionCotcomponentePrestadorPublicNormalizer` y se pinta en el modal del proveedor de `PaxCotizacionGuiaView.vue`. Mismo gate que el nombre: sin `prestadorVisible` no sale. Ver §6.t.
 - **De dónde salen las fotos de la tarjeta de un segmento** → `galeriaPorBloque` en `PaxCotizacionGuiaView.vue`. Propias del segmento si las hay; si no, las del servicio del prestador de sus componentes, deduplicadas por foto en toda la guía (§6.t). Si no sale ninguna, mira antes `prestadorVisible` que el código: sin él no se inyectan.
+- **Que un servicio se pinte como piezas sueltas y no como «un tour»** → la marca «Contenedor genérico» del servicio en el panel (`TravelServicio::$contenedorGenerico`); la llevan a la cotización `CotservicioContenedorGenericoListener` y la agrupación `componerItinerario()` (§6.u, «Salvo en un contenedor genérico»).
 - **Cómo se compone el itinerario del cliente (días, bloques, estadías, orden)** → `componerItinerario()` en `pax/src/dominio/itinerarioVista.ts`. **No lo replicques en PHP** (§6.u): la vista lo llama desde un `computed` de una línea y cualquier consumidor nuevo debe importar ese módulo. Ojo con el espejo de `posicionDeServicio()` en el store del editor.
 - **Lo que se imprime del itinerario (el «PDF»)** → los dos bloques `@media print` al final de `PaxCotizacionGuiaView.vue` + la función `imprimir()`. **Contenido** que sobre en papel se quita en el modo Resumen, no en el CSS (§6.u).
 - **Una cadena de UI de la guía que sale en castellano estando en otro idioma** → falta la clave en `pax_ui_i18n`; se crea por comando (`pax:textos:itinerario`), nunca por SQL — lleva `#[AutoTranslate]` (§6.u).

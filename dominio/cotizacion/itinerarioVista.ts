@@ -80,6 +80,12 @@ export interface SegmentoMinimo {
 export interface ServicioMinimo {
   id: string;
   orden?: number | null;
+  /**
+   * Un REPERTORIO —«Transporte en Cusco», «Vuelo»— y no un producto. Lo pone el servidor desde el
+   * catálogo (`TravelServicio::$contenedorGenerico`). Sus segmentos no forman un grupo: cada uno
+   * se coloca en el día por su propia hora. Ausente = producto, que es lo que había antes.
+   */
+  contenedorGenerico?: boolean | null;
   cotsegmentos?: SegmentoMinimo[] | null;
   cotcomponentes?: ComponenteMinimo[] | null;
 }
@@ -235,6 +241,11 @@ export interface BloqueVista<S extends ServicioMinimo> {
   totalUnidades: number;
   totalSegmentosServicio: number;
   /**
+   * ¿Su servicio es un contenedor genérico? Un hecho, como el de abajo: el módulo ya lo usó para
+   * no agrupar sus segmentos, y cada consumidor decide si además calla el nombre del servicio.
+   */
+  contenedorGenerico: boolean;
+  /**
    * ¿Es el primer bloque de su servicio en este día?
    *
    * Es un **hecho de estructura**, no una decisión de pantalla. De él cuelgan cosas distintas en
@@ -312,6 +323,7 @@ export function componerItinerario<S extends ServicioMinimo>(
           unidad, sustantivoUnidad,
           indiceUnidad: rep + 1, totalUnidades,
           totalSegmentosServicio: segs.length,
+          contenedorGenerico: servicio.contenedorGenerico === true,
           esPrimeroDelServicioEnElDia: false,
         });
       });
@@ -338,9 +350,16 @@ export function componerItinerario<S extends ServicioMinimo>(
     //
     // La primera noche sí conserva su sitio en el relato —llegar y dormir allí es parte de lo que
     // se compró—; las repeticiones son un «sigues aquí», que es nota de cierre y no de apertura.
+    //
+    // ⚠️ **Un contenedor genérico no forma grupo: cada segmento es el suyo.** El grupo es atómico
+    // —todo lo de un servicio sale seguido, colocado por su hora más temprana—, y eso es lo
+    // correcto en una excursión. En «Transporte en Cusco» pegaba el traslado al terminal de las
+    // 20:00 detrás del aeropuerto de las 07:00, por delante de todo lo del día. Con la clave por
+    // segmento, cada traslado va a su hora como si fuera un servicio suelto.
     const grupos = new Map<string, BloqueVista<S>[]>();
     for (const b of bloques) {
-      const clave = b.esRepeticion ? `${b.servicio.id}::repeticion` : b.servicio.id;
+      const unidad = b.contenedorGenerico ? `${b.servicio.id}::${b.segmento.id}` : b.servicio.id;
+      const clave = b.esRepeticion ? `${unidad}::repeticion` : unidad;
       if (!grupos.has(clave)) grupos.set(clave, []);
       grupos.get(clave)!.push(b);
     }

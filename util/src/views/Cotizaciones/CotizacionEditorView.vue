@@ -2403,12 +2403,20 @@ store.$onAction(({ name, args }) => {
                          se descarta en la vista del cliente; el segmento es el que dice qué cosa es. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-                      <template v-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      <!-- Contenedor genérico: lo que el cliente lee son sus segmentos, no «Transporte en Cusco». -->
+                      <template v-if="store.esContenedorGenerico(servicio) && servicio.cotsegmentos?.length">{{ store.titulosDeSegmentos(servicio, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      <template v-else-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
                       <template v-else>{{ store.getI18nText(servicio.nombreInternoSnapshot, 'es') || store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
                     </div>
 
+                    <!-- Contenedor: su nombre sólo lo ve el operador, y aquí se dice para qué sirve. -->
+                    <p v-if="store.esContenedorGenerico(servicio) && servicio.cotsegmentos?.length"
+                       class="text-[11px] font-bold text-slate-500 mt-1 leading-snug"
+                       title="Contenedor genérico: el cliente no ve el servicio, cada segmento sale suelto y a su hora.">
+                      <i class="fas fa-box-open mr-1 text-slate-300"></i> {{ store.getI18nText(servicio.nombreInternoSnapshot, 'es') }} · contenedor
+                    </p>
                     <!-- Mono-segmento: el nombre interno lo pone el segmento (no el servicio). -->
-                    <p v-if="store.esMonoSegmentoSinPlantilla(servicio)"
+                    <p v-else-if="store.esMonoSegmentoSinPlantilla(servicio)"
                        class="text-[11px] font-bold text-slate-500 mt-1 leading-snug">
                       <i class="fas fa-tag mr-1 text-slate-300"></i> {{ store.segmentoUnicoMaestro(servicio)?.nombreInterno || store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, 'es') }}
                     </p>
@@ -3141,7 +3149,14 @@ store.$onAction(({ name, args }) => {
                   el nombre público, útil en servicios genéricos («Vuelo» → «Vuelo Lima Cusco»). Un idioma.
                 </p>
               </div>
-              <div>
+              <!-- Un contenedor genérico no tiene nombre público: el cliente lee cada segmento. -->
+              <p v-if="store.esContenedorGenerico(store.servicioActivo)"
+                 class="text-[10px] text-slate-500 bg-slate-50 border border-dashed border-slate-300 rounded-lg px-3 py-2">
+                <i class="fas fa-box-open mr-1 text-slate-400"></i>
+                <b>Contenedor genérico.</b> El cliente no ve este servicio: cada segmento sale como su propia
+                tarjeta, con su título, y se ordena en el día por su hora. Se marca en el catálogo (Servicios).
+              </p>
+              <div v-else>
                 <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Nombre Público *</label>
                 <div class="flex gap-2">
                   <input :value="store.getI18nText(store.servicioActivo.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es')"

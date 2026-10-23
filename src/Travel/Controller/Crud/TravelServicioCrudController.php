@@ -107,6 +107,13 @@ class TravelServicioCrudController extends BaseCrudController
 
         yield TextField::new('codigo', 'Código (SKU)')->setColumns(4)->setHelp('Ej: VINI-1D');
         yield TextField::new('nombreInterno', 'Nombre Operativo')->setColumns(8);
+        // Ver TravelServicio::$contenedorGenerico. En el listado, para ver de un vistazo cuáles son.
+        yield BooleanField::new('contenedorGenerico', 'Contenedor genérico')
+            ->renderAsSwitch(false)
+            ->setColumns(12)
+            ->setHelp('Agrupa piezas sueltas (transportes, vuelos, alojamiento…). El cliente no ve el '
+                . 'servicio: cada segmento sale como su propia tarjeta y se ordena por su hora. Déjalo '
+                . 'apagado en excursiones y productos: sus segmentos van juntos bajo su nombre.');
 
         yield FormField::addPanel('Contenido Comercial')->setIcon('fa fa-bullhorn');
 

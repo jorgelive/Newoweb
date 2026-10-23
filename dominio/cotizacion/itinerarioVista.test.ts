@@ -390,6 +390,42 @@ describe('lo que no tiene reloj, en su sitio', () => {
     });
 });
 
+describe('contenedor genérico', () => {
+    const seg = (id: string, orden: number) => ({ id, dia: 1, orden, fechaAbsoluta: '2030-03-01', tituloSnapshot: [] });
+    const comp = (id: string, segmento: string, hora: string) => ({
+        id, cotsegmento: { id: segmento }, fechaHoraInicio: `2030-03-01T${hora}:00`, fechaHoraFin: null,
+        sinHorario: false, horaServicioCompleto: false, ordenNarrativo: 10, tituloSnapshot: [],
+    });
+    const transporte = (contenedorGenerico: boolean) => ({
+        id: 'transporte', orden: 0, tituloSnapshot: [], contenedorGenerico,
+        cotsegmentos: [seg('aeropuerto', 1), seg('terminal', 2), seg('bus', 3)],
+        cotcomponentes: [comp('c1', 'aeropuerto', '07:00'), comp('c2', 'terminal', '20:00'), comp('c3', 'bus', '22:00')],
+    });
+    const tour = {
+        id: 'tour', orden: 0, tituloSnapshot: [],
+        cotsegmentos: [seg('city', 1)],
+        cotcomponentes: [comp('c4', 'city', '14:00')],
+    };
+    const orden = (dias: DiaVista<ServicioMinimo>[]) => dias[0]!.bloques.map((b) => b.segmento.id);
+
+    /**
+     * El caso de VVUJZJ: el traslado al terminal y el bus nocturno de «Transporte en Cusco» iban
+     * pegados al aeropuerto de la mañana —el grupo es atómico— y por delante del tour de la tarde.
+     */
+    it('sin la marca, el servicio es un grupo: todo lo suyo sale seguido', () => {
+        expect(orden(componerItinerario({ cotservicios: [transporte(false), tour] })))
+            .toEqual(['aeropuerto', 'terminal', 'bus', 'city']);
+    });
+
+    it('con la marca, cada segmento va a su hora, intercalado con los demás servicios', () => {
+        const dias = componerItinerario({ cotservicios: [transporte(true), tour] });
+
+        expect(orden(dias)).toEqual(['aeropuerto', 'city', 'terminal', 'bus']);
+        expect(dias[0]!.bloques.filter((b) => b.servicio.id === 'transporte').every((b) => b.contenedorGenerico)).toBe(true);
+        expect(dias[0]!.bloques.find((b) => b.servicio.id === 'tour')!.contenedorGenerico).toBe(false);
+    });
+});
+
 describe('bordes', () => {
     it('sin cotización, sin días', () => {
         expect(componerItinerario(null)).toEqual([]);

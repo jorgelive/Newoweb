@@ -56,6 +56,26 @@ class TravelServicio
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     private ?string $codigo = null;
 
+    /**
+     * Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+     *
+     * El servicio sólo agrupa piezas sueltas —dos traslados del mismo día no son «un tour»— y su
+     * nombre es genérico. Con la marca, el cliente no lo ve: cada segmento sale como su propia
+     * tarjeta y se ordena en el día por SU hora, no pegado a sus hermanos
+     * (`dominio/cotizacion/itinerarioVista.ts`). Sin ella, dos o más segmentos del mismo servicio
+     * en un día se enmarcan bajo su nombre, que es lo correcto en una excursión.
+     *
+     * ⚠️ Hasta el 23/10/2026 la regla era contar segmentos —«con uno solo, se promueve»—, y el
+     * traslado al terminal más el bus nocturno salían enmarcados como «Transporte en Cusco» con un
+     * «¿Qué incluye el tour?». Lo que decide es qué ES el servicio, no cuántas piezas lleva hoy.
+     *
+     * La lee cada cotización al cargarse (`CotservicioContenedorGenericoListener`): no se copia, así
+     * que cambiarla aquí cambia también las propuestas ya enviadas. Es presentación, no dinero.
+     */
+    #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $contenedorGenerico = false;
+
     /** @var list<array{language?: string, content?: string|null}> */
     #[Groups(['servicio:read', 'servicio:item:read', 'servicio:write'])]
     #[AutoTranslate(sourceLanguage: 'es', format: 'text')]
@@ -151,6 +171,17 @@ class TravelServicio
     public function setCodigo(?string $codigo): self
     {
         $this->codigo = $codigo;
+        return $this;
+    }
+
+    public function isContenedorGenerico(): bool
+    {
+        return $this->contenedorGenerico;
+    }
+
+    public function setContenedorGenerico(bool $contenedorGenerico): self
+    {
+        $this->contenedorGenerico = $contenedorGenerico;
         return $this;
     }
 

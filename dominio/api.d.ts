@@ -10409,6 +10409,11 @@ export interface components {
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10462,6 +10467,11 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10535,6 +10545,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_catalogo.read_pax_cotizacion.read"][];
@@ -10550,6 +10565,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente-pax_file.read_pax_cotizacion.read"][];
@@ -10591,6 +10611,11 @@ export interface components {
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10644,6 +10669,11 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.html-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10679,6 +10709,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_catalogo.read_pax_cotizacion.read"][];
@@ -10694,6 +10729,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.html-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.html-pax_file.read_pax_cotizacion.read"][];
@@ -10735,6 +10775,11 @@ export interface components {
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10788,6 +10833,11 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10823,6 +10873,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_catalogo.read_pax_cotizacion.read"][];
@@ -10838,6 +10893,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.jsonld-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.jsonld-pax_file.read_pax_cotizacion.read"][];
@@ -10879,6 +10939,11 @@ export interface components {
             /** @description Los segmentos que ve ESTE cliente. Con filtro, se caen los que se quedaron sin nada suyo. */
             readonly cotsegmentos?: string[];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10932,6 +10997,11 @@ export interface components {
             cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-cotizacion.read_timestamp.read"][];
             cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-cotizacion.read_timestamp.read"][];
             servicioMaestroId?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -10967,6 +11037,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_catalogo.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_catalogo.read_pax_cotizacion.read"][];
@@ -10982,6 +11057,11 @@ export interface components {
             }[];
             /** Format: date-time */
             fechaInicioAbsoluta?: string | null;
+            /**
+             * @description ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+             * @default false
+             */
+            contenedorGenerico: boolean;
             id?: string;
             readonly cotsegmentos?: components["schemas"]["CotizacionSegmento.multipart-pax_file.read_pax_cotizacion.read"][];
             readonly cotcomponentes?: components["schemas"]["CotizacionCotcomponente.multipart-pax_file.read_pax_cotizacion.read"][];
@@ -35481,6 +35561,11 @@ export interface components {
         Servicio: {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35516,6 +35601,11 @@ export interface components {
         "Servicio-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35528,6 +35618,11 @@ export interface components {
         "Servicio-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35537,6 +35632,11 @@ export interface components {
         "Servicio-servicio.write": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35547,6 +35647,11 @@ export interface components {
         "Servicio.html": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35582,6 +35687,11 @@ export interface components {
         "Servicio.html-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35594,6 +35704,11 @@ export interface components {
         "Servicio.html-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35603,6 +35718,11 @@ export interface components {
         "Servicio.jsonld": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35638,6 +35758,11 @@ export interface components {
         "Servicio.jsonld-servicio.item.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35650,6 +35775,11 @@ export interface components {
         "Servicio.jsonld-servicio.read": components["schemas"]["HydraItemBaseSchema"] & {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35659,6 +35789,11 @@ export interface components {
         "Servicio.multipart": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35694,6 +35829,11 @@ export interface components {
         "Servicio.multipart-servicio.item.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];
@@ -35706,6 +35846,11 @@ export interface components {
         "Servicio.multipart-servicio.read": {
             nombreInterno?: string;
             codigo?: string | null;
+            /**
+             * @description Un REPERTORIO, no un producto: «Transporte en Cusco», «Vuelo», «Alojamiento».
+             * @default false
+             */
+            contenedorGenerico: boolean;
             titulo?: {
                 [key: string]: string | null;
             }[];

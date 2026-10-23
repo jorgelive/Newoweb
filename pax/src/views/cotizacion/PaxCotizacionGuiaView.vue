@@ -430,7 +430,8 @@ const gruposPorDia = computed(() => {
     const grupos: GrupoDeServicio[] = [];
     for (const b of dia.bloques) {
       const ultimo = grupos.at(-1);
-      const mismo = ultimo && !b.esRepeticion && !ultimo.bloques[0].esRepeticion
+      // Un contenedor genérico no se enmarca: sus segmentos son piezas sueltas, no etapas de algo.
+      const mismo = ultimo && !b.esRepeticion && !ultimo.bloques[0].esRepeticion && !b.contenedorGenerico
           && ultimo.bloques[0].servicio.id === b.servicio.id;
       if (mismo) ultimo.bloques.push(b);
       else grupos.push({ key: b.key, bloques: [b], enMarco: false, ancla: null });
@@ -455,11 +456,24 @@ const estadoDeEtapa = (grupo: GrupoDeServicio, item: BloqueVista) =>
  * estar. El módulo dice el hecho estructural (`esPrimeroDelServicioEnElDia`); la guía decide qué
  * hace con él, y otro consumidor decidirá otra cosa.
  */
+const esCabeceraDeServicio = (b: BloqueVista): boolean =>
+    b.esPrimeroDelServicioEnElDia && !b.esRepeticion;
+
+/**
+ * ⚠️ **Un contenedor genérico —«Transporte en Cusco»— no se presenta como servicio**: ni título,
+ * ni «¿Qué incluye el tour?», ni la etiqueta pequeña sobre la tarjeta. Su nombre es genérico y lo
+ * que el cliente compró son los segmentos, que ya llevan su propio «Incluye». Hasta el 23/10/2026
+ * esto se decidía contando segmentos: con dos traslados el mismo día salía «el tour» de
+ * transportes. Ver `TravelServicio::$contenedorGenerico`.
+ *
+ * El aviso de «Servicio opcional» SÍ se queda (`esCabeceraDeServicio`): un traslado también puede
+ * ser opcional, y ese aviso lleva el precio.
+ */
 const tituloGrandeDeServicio = (b: BloqueVista): boolean =>
-    b.esPrimeroDelServicioEnElDia && b.totalSegmentosServicio > 1 && !b.esRepeticion;
+    esCabeceraDeServicio(b) && b.totalSegmentosServicio > 1 && !b.contenedorGenerico;
 
 const mostrarAccionInclusiones = (b: BloqueVista): boolean =>
-    b.esPrimeroDelServicioEnElDia && !b.esRepeticion && serviciosConInclusiones.value.has(b.servicio.id);
+    esCabeceraDeServicio(b) && !b.contenedorGenerico && serviciosConInclusiones.value.has(b.servicio.id);
 
 /**
  * Servicios que se venden enteros como opcionales (todas sus tarifas son alternativas).
@@ -2843,7 +2857,7 @@ const rotuloProcedencia = computed(() => {
 
             <!-- Servicio opcional entero: ENCIMA del título, una vez, con su precio —es lo primero
                  que hay que saber del servicio—. Ver `serviciosOpcionales`. -->
-            <div v-if="mostrarAccionInclusiones(item) && serviciosOpcionales.has(item.servicio.id)" class="mt-2 mb-2">
+            <div v-if="esCabeceraDeServicio(item) && serviciosOpcionales.has(item.servicio.id)" class="mt-2 mb-2">
               <span class="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                 <i class="fas fa-circle-question text-amber-500"></i>
                 {{ maestroStore.t('cot_servicio_opcional') || 'Servicio opcional' }}
@@ -2928,8 +2942,9 @@ const rotuloProcedencia = computed(() => {
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-[9px] font-black text-[#376875]/50 uppercase tracking-widest">
-                  {{ store.traducir(item.servicio.tituloSnapshot) }}
-                  <span class="normal-case text-slate-400 font-bold">· {{ etiquetaUnidad(item) }} {{ item.indiceUnidad }}/{{ item.totalUnidades }}</span>
+                  <!-- «Alojamiento · noche 2/3»: el nombre genérico de un contenedor no dice nada. -->
+                  <template v-if="!item.contenedorGenerico">{{ store.traducir(item.servicio.tituloSnapshot) }} · </template>
+                  <span class="normal-case text-slate-400 font-bold">{{ etiquetaUnidad(item) }} {{ item.indiceUnidad }}/{{ item.totalUnidades }}</span>
                 </p>
                 <p class="font-black text-gray-800 text-sm leading-snug">
                   {{ store.traducir(item.segmento.tituloSnapshot) }}
@@ -2972,7 +2987,7 @@ const rotuloProcedencia = computed(() => {
                 </template>
 
                 <div class="absolute bottom-0 left-0 p-5 md:p-6 pointer-events-none">
-                  <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
+                  <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco && !item.contenedorGenerico" class="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow">
                     {{ store.traducir(item.servicio.tituloSnapshot) }}
                   </p>
                   <h4 class="text-white text-lg md:text-xl font-black leading-tight drop-shadow-md">
@@ -2986,7 +3001,7 @@ const rotuloProcedencia = computed(() => {
                      Resumen (donde la galería se oculta y el título toma su lugar). -->
                 <div v-if="modoResumen || !imagenesDe(item.segmento).length" class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
+                    <p v-if="!tituloGrandeDeServicio(item) && !grupo.enMarco && !item.contenedorGenerico" class="text-[#376875]/60 text-[10px] font-black uppercase tracking-widest mb-1">
                       {{ store.traducir(item.servicio.tituloSnapshot) }}
                     </p>
                     <h4

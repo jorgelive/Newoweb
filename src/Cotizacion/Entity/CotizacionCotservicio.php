@@ -165,6 +165,16 @@ class CotizacionCotservicio
     #[ORM\Column(type: 'string', length: 36, nullable: true)]
     private ?string $servicioMaestroId = null;
 
+    /**
+     * ¿Su servicio maestro es un contenedor genérico? {@see \App\Travel\Entity\TravelServicio::$contenedorGenerico}.
+     *
+     * NO es columna: lo pone `CotservicioContenedorGenericoListener` al cargar, leyendo el catálogo.
+     * Así una propuesta ya enviada sigue al catálogo, y no hubo que rellenar 200 servicios. Va en la
+     * lectura de los dos lados —el editor y la guía del cliente— y en la que manda PHP al cálculo
+     * compartido; no en la escritura, que la ignora.
+     */
+    private bool $contenedorGenerico = false;
+
     public function __construct()
     {
         $this->initializeId();
@@ -574,6 +584,10 @@ class CotizacionCotservicio
         }
         return $this;
     }
+
+    #[Groups(['cotizacion:read', 'cotizacion:item:read', 'pax_cotizacion:read'])]
+    public function isContenedorGenerico(): bool { return $this->contenedorGenerico; }
+    public function setContenedorGenerico(bool $contenedorGenerico): self { $this->contenedorGenerico = $contenedorGenerico; return $this; }
 
     public function getServicioMaestroId(): ?string { return $this->servicioMaestroId; }
     public function setServicioMaestroId(?string $servicioMaestroId): self { $this->servicioMaestroId = $servicioMaestroId; return $this; }
