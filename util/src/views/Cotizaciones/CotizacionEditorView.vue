@@ -4009,7 +4009,112 @@ store.$onAction(({ name, args }) => {
                 <input v-model="store.componenteActivo.cantidad" type="number" readonly class="w-full bg-slate-100 text-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black text-center outline-none shadow-inner cursor-not-allowed">
               </div>
 
-              <div class="col-span-2 grid grid-cols-1 gap-3">
+              <!-- ══ TARIFAS, justo bajo la cantidad (Jorge, 23/10/2026) ══════════════
+                   Es lo que se viene a revisar después de la hora, y quedaba al fondo, detrás de
+                   modo, estado, prestador y comprador. -->
+              <div class="col-span-2 border-t border-sky-100 pt-5">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
+                    <span>Tarifas / Costos</span>
+                  </h3>
+                  <span v-if="store.isComponenteConAlerta(store.componenteActivo)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
+                      <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
+                  </span>
+                  <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
+                </div>
+                <!-- Aquí, encima de las tarifas, porque es donde se decide el precio del hotel. Una
+                     línea y sin botón de cerrar: sólo existe mientras viajen peruanos, así que no
+                     hay un «ya lo sé» que guardar. -->
+                <p v-if="store.avisoIgvDe(store.componenteActivo)"
+                   class="mb-3 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
+                  <i class="fas fa-receipt mr-1"></i>{{ store.avisoIgvDe(store.componenteActivo) }}
+                </p>
+                <div class="space-y-3">
+                  <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
+                       class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
+
+                    <button @click.stop="store.eliminarTarifa(store.componenteActivo.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
+                      <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+
+                    <div class="flex justify-between items-start pr-8">
+                      <div>
+                        <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
+                          {{ tarifa.nombreInternoSnapshot || '⚠️ Sin nombre' }}
+                        </span>
+                        <div class="flex gap-2 mt-1 flex-wrap">
+                          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex items-center gap-1"
+                                :class="pintarModalidad(tarifa).operativa
+                                  ? 'bg-violet-50 text-violet-600 border-violet-200'
+                                  : 'bg-slate-100 text-slate-500 border-slate-200'">
+                             <i :class="pintarModalidad(tarifa).icono"></i>
+                             {{ pintarModalidad(tarifa).texto }}
+                          </span>
+
+                          <!-- Sólo la operativa lleva distintivo: es la excepción —se reparte entre
+                               todos y el cliente NO la ve— y marcar también las otras dos llenaría
+                               la tarjeta de insignias para decir lo normal. -->
+                          <span v-if="pintarModalidad(tarifa).operativa"
+                                class="text-[9px] font-black bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
+                            <i class="fas fa-eye-slash"></i> Operativa · no la ve el cliente
+                          </span>
+
+                          <span v-if="pintarModalidad(tarifa).operativa && tarifa.grupoTarifa == null"
+                                class="text-[9px] font-bold bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                            <i class="fas fa-infinity text-slate-400"></i> Costo del viaje · suma siempre
+                          </span>
+                          <!-- ⚠️ **El rol no se enseña en una operativa, porque ahí no significa
+                               nada.** Una operativa no compite con ninguna línea —no es algo entre
+                               lo que el cliente elija—, así que su rol es `estandar` por obligación
+                               técnica y no por decisión. Enseñar «ESTÁNDAR» junto a «OPERATIVA ·
+                               NO LA VE EL CLIENTE» invitaba a la pregunta «¿y por qué no
+                               alternativa?», que es exactamente la confusión que la fase 5 vino a
+                               quitar al sacar `operativo` del enum de roles. -->
+                          <span v-if="!pintarModalidad(tarifa).operativa"
+                                class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
+                                :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
+                            <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
+                            {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
+                          </span>
+
+                          <!-- El mismo número quiere decir dos cosas distintas: en una tarifa normal
+                               es el grupo en el que COMPITE; en una operativa es la opción de la que
+                               DEPENDE. Se dice con palabras para no hacer adivinar. -->
+                          <span v-if="tarifa.grupoTarifa != null && pintarModalidad(tarifa).operativa"
+                                class="text-[9px] font-black bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
+                            <i class="fas fa-link"></i> Sólo con «{{ store.etiquetaDelGrupoDe(tarifa) }}»
+                          </span>
+
+                          <span v-else-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
+                            Grupo {{ tarifa.grupoTarifa }}
+                          </span>
+
+                        </div>
+                      </div>
+                      <div class="text-right shrink-0">
+                        <span class="font-black text-orange-600 text-base block">{{ formatMoneda(costoMostradoDe(tarifa), tarifa.moneda) }}</span>
+                        <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
+                          <i class="fas fa-tag text-[9px]"></i>
+                          {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
+                          <span class="text-slate-400 font-bold normal-case">
+                            ({{ tarifa.comisionOverrideSnapshot ? `${tarifa.comisionOverrideSnapshot}%` : 'global' }})
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                      <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
+                        <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}
+                      </span>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-span-2 grid grid-cols-1 gap-3 border-t border-sky-100 pt-5">
                 <div>
                   <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">Modo Comercial</label>
                   <div class="relative">
@@ -4409,109 +4514,6 @@ store.$onAction(({ name, args }) => {
                 </details>
               </div>
             </div>
-
-            <div class="border-t border-sky-100 pt-5">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-[10px] font-black text-orange-600 uppercase tracking-widest">
-                  <span>Tarifas / Costos</span>
-                </h3>
-                <span v-if="store.isComponenteConAlerta(store.componenteActivo)" class="bg-red-100 text-red-600 px-2 py-1 rounded text-[9px] font-bold border border-red-200">
-                    <i class="fas fa-exclamation-circle mr-1"></i> Faltan Pax
-                </span>
-                <button @click="store.agregarTarifa(store.componenteActivo.id)" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm text-xs md:text-sm font-bold transition-colors">+ Añadir Tarifa</button>
-              </div>
-              <!-- Aquí, encima de las tarifas, porque es donde se decide el precio del hotel. Una
-                   línea y sin botón de cerrar: sólo existe mientras viajen peruanos, así que no
-                   hay un «ya lo sé» que guardar. -->
-              <p v-if="store.avisoIgvDe(store.componenteActivo)"
-                 class="mb-3 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 leading-snug">
-                <i class="fas fa-receipt mr-1"></i>{{ store.avisoIgvDe(store.componenteActivo) }}
-              </p>
-              <div class="space-y-3">
-                <div v-for="(tarifa, idx) in cottarifasOrdenadas" :key="tarifa.id || idx" @click="store.abrirNivel('tarifa', tarifa)"
-                     class="bg-white border-2 border-orange-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-orange-400 relative group overflow-hidden transition-all">
-                  <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="getRolTarifaUI(tarifa.rolSnapshot).bg.replace('bg-', 'bg-').replace('-50','-400')"></div>
-
-                  <button @click.stop="store.eliminarTarifa(store.componenteActivo.id, tarifa.id)" class="absolute right-3 top-3 text-slate-300 hover:text-red-500 transition-colors z-10 p-1 bg-slate-50 w-6 h-6 rounded-full flex items-center justify-center">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                  </button>
-
-                  <div class="flex justify-between items-start pr-8">
-                    <div>
-                      <span class="text-[10px] font-black text-slate-500 uppercase mb-0.5 block">
-                        {{ tarifa.nombreInternoSnapshot || '⚠️ Sin nombre' }}
-                      </span>
-                      <div class="flex gap-2 mt-1 flex-wrap">
-                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border flex items-center gap-1"
-                              :class="pintarModalidad(tarifa).operativa
-                                ? 'bg-violet-50 text-violet-600 border-violet-200'
-                                : 'bg-slate-100 text-slate-500 border-slate-200'">
-                           <i :class="pintarModalidad(tarifa).icono"></i>
-                           {{ pintarModalidad(tarifa).texto }}
-                        </span>
-
-                        <!-- Sólo la operativa lleva distintivo: es la excepción —se reparte entre
-                             todos y el cliente NO la ve— y marcar también las otras dos llenaría
-                             la tarjeta de insignias para decir lo normal. -->
-                        <span v-if="pintarModalidad(tarifa).operativa"
-                              class="text-[9px] font-black bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
-                          <i class="fas fa-eye-slash"></i> Operativa · no la ve el cliente
-                        </span>
-
-                        <span v-if="pintarModalidad(tarifa).operativa && tarifa.grupoTarifa == null"
-                              class="text-[9px] font-bold bg-slate-50 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
-                          <i class="fas fa-infinity text-slate-400"></i> Costo del viaje · suma siempre
-                        </span>
-                        <!-- ⚠️ **El rol no se enseña en una operativa, porque ahí no significa
-                             nada.** Una operativa no compite con ninguna línea —no es algo entre
-                             lo que el cliente elija—, así que su rol es `estandar` por obligación
-                             técnica y no por decisión. Enseñar «ESTÁNDAR» junto a «OPERATIVA ·
-                             NO LA VE EL CLIENTE» invitaba a la pregunta «¿y por qué no
-                             alternativa?», que es exactamente la confusión que la fase 5 vino a
-                             quitar al sacar `operativo` del enum de roles. -->
-                        <span v-if="!pintarModalidad(tarifa).operativa"
-                              class="text-[9px] font-black px-1.5 py-0.5 rounded border uppercase flex items-center gap-1"
-                              :class="[getRolTarifaUI(tarifa.rolSnapshot).bg, getRolTarifaUI(tarifa.rolSnapshot).text, getRolTarifaUI(tarifa.rolSnapshot).border]">
-                          <i class="fas" :class="getRolTarifaUI(tarifa.rolSnapshot).icon"></i>
-                          {{ getRolTarifaUI(tarifa.rolSnapshot).label }}
-                        </span>
-
-                        <!-- El mismo número quiere decir dos cosas distintas: en una tarifa normal
-                             es el grupo en el que COMPITE; en una operativa es la opción de la que
-                             DEPENDE. Se dice con palabras para no hacer adivinar. -->
-                        <span v-if="tarifa.grupoTarifa != null && pintarModalidad(tarifa).operativa"
-                              class="text-[9px] font-black bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded border border-violet-200 uppercase flex items-center gap-1">
-                          <i class="fas fa-link"></i> Sólo con «{{ store.etiquetaDelGrupoDe(tarifa) }}»
-                        </span>
-
-                        <span v-else-if="tarifa.grupoTarifa != null" class="text-[9px] font-black bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100 uppercase">
-                          Grupo {{ tarifa.grupoTarifa }}
-                        </span>
-
-                      </div>
-                    </div>
-                    <div class="text-right shrink-0">
-                      <span class="font-black text-orange-600 text-base block">{{ formatMoneda(costoMostradoDe(tarifa), tarifa.moneda) }}</span>
-                      <p class="text-xs font-black text-emerald-600 mt-0.5 flex items-center justify-end gap-1">
-                        <i class="fas fa-tag text-[9px]"></i>
-                        {{ formatMoneda(calcularVentaTarifa(tarifa), tarifa.moneda) }}
-                        <span class="text-slate-400 font-bold normal-case">
-                          ({{ tarifa.comisionOverrideSnapshot ? `${tarifa.comisionOverrideSnapshot}%` : 'global' }})
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div v-if="store.componenteActualDeTarifa?.prestadorNombreSnapshot" class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
-                      <i class="fas fa-truck-loading text-slate-400"></i> {{ store.componenteActualDeTarifa.prestadorNombreSnapshot }}
-                    </span>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
 
             <div class="border-t border-sky-100 pt-5 mt-4">
               <h3 class="text-[10px] font-black text-sky-700 uppercase tracking-widest mb-3 flex items-center justify-between">
