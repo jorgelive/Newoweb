@@ -118,4 +118,13 @@ final class AutoTranslationRutaTest extends TestCase
 
         self::assertSame($mapa, $this->sinOrigen($mapa, soloSellar: true));
     }
+
+    public function testUnTituloConCorchetesNoEsUnaEtiqueta(): void
+    {
+        $sinTexto = (new ReflectionClass(AutoTranslationService::class))->getMethod('sinTexto');
+
+        self::assertFalse($sinTexto->invoke(null, '<Hotel por confirmar>'));
+        self::assertTrue($sinTexto->invoke(null, "<p>&#xA0;\u{2003}</p>"));
+        self::assertTrue($sinTexto->invoke(null, '<div><br></div>'));
+    }
 }

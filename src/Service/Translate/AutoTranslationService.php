@@ -602,16 +602,26 @@ class AutoTranslationService
      *   traducciones, y el texto es el mismo: sin el formato en la huella, el hash cuadraría y no
      *   se rehacía nada.
      */
-    /** ¿Este contenido no dice nada? También el HTML sin texto (`<br>`, `<p>&nbsp;</p>`). */
+    /**
+     * ¿Este contenido no dice nada? También el HTML sin texto (`<br>`, `<p>&nbsp;</p>`).
+     *
+     * Sólo quita las etiquetas que produce el editor enriquecido: con `strip_tags`, un título de
+     * texto plano como «<Hotel por confirmar>» contaba como vacío y perdía sus traducciones
+     * (Fable, 23/10/2026).
+     *
+     * ⚠️ **Espejo de `sinTexto` en `dominio/texto/textoTraducible.ts`**: misma lista de etiquetas,
+     * mismas entidades y mismos espacios. Si cambia uno, cambia el otro.
+     */
     private static function sinTexto(mixed $contenido): bool
     {
         if (!is_string($contenido)) {
             return true;
         }
 
-        $texto = html_entity_decode(strip_tags($contenido), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $texto = (string) preg_replace('~</?(?:a|b|br|div|em|font|h[1-6]|i|li|ol|p|span|strong|u|ul)\b[^>]*>~i', '', $contenido);
+        $texto = (string) preg_replace('/&nbsp;|&#160;|&#x0*a0;/i', ' ', $texto);
 
-        return trim($texto, " \t\n\r\0\x0B\u{a0}") === '';
+        return (string) preg_replace('/[\s\x{a0}\x{2000}-\x{200b}\x{3000}\x{feff}]+/u', '', $texto) === '';
     }
 
     private static function hashDeOrigen(string $sourceText, string $mimeType): string

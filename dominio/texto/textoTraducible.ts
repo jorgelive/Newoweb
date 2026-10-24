@@ -30,14 +30,26 @@ export interface TextoEnIdioma {
 }
 
 /**
+ * Las etiquetas que produce el editor enriquecido (`WysiwygEditor.vue`: negrita, cursiva,
+ * subrayado, listas, párrafos y saltos) — y SÓLO ésas. Un título de texto plano escrito con
+ * corchetes, «<Hotel por confirmar>», no es una etiqueta y no se quita (Fable, 23/10/2026).
+ *
+ * ⚠️ **Espejo de `AutoTranslationService::sinTexto()` en PHP**: misma lista de etiquetas, mismas
+ * entidades de espacio y mismos espacios Unicode. Si cambia una, cambia la otra.
+ */
+const ETIQUETA_DE_FORMATO = /<\/?(?:a|b|br|div|em|font|h[1-6]|i|li|ol|p|span|strong|u|ul)\b[^>]*>/gi;
+const ENTIDAD_DE_ESPACIO = /&nbsp;|&#160;|&#x0*a0;/gi;
+const ESPACIOS = /[\s  -​　﻿]+/g;
+
+/**
  * ¿Este contenido no dice nada? También el HTML sin texto: el editor enriquecido deja `<br>` o
  * `<p><br></p>` al vaciar un párrafo, no una cadena vacía.
  */
 const sinTexto = (contenido: string | null | undefined): boolean =>
     (contenido ?? '')
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;|&#160;| /gi, ' ')
-        .trim() === '';
+        .replace(ETIQUETA_DE_FORMATO, '')
+        .replace(ENTIDAD_DE_ESPACIO, ' ')
+        .replace(ESPACIOS, '') === '';
 
 /** Una traducción hecha por la máquina a partir del español. */
 const esAutomatica = (t: TextoEnIdioma): boolean =>

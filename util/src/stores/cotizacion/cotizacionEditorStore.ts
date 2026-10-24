@@ -2001,7 +2001,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         ? (seg as CotSegmento).tituloSnapshot
                         : null;
 
-                    return Array.isArray(delSegmento) && delSegmento.length
+                    return Array.isArray(delSegmento) && !textoVacio(delSegmento as I18nContent[])
                         ? delSegmento as I18nContent[]
                         : componente.tituloSnapshot;
                 };

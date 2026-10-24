@@ -129,7 +129,11 @@ editor de cotizaciones hace lo mismo en su lado con la regla compartida de `domi
 Tres cosas que añadió la revisión de Fable el mismo día:
 
 - **El HTML sin texto cuenta como borrado** (`sinTexto()`): el editor enriquecido deja `<p><br></p>`
-  al vaciar un párrafo, no `''`, y la regla no saltaba en los textos largos.
+  al vaciar un párrafo, no `''`, y la regla no saltaba en los textos largos. ⚠️ Sólo quita las
+  etiquetas que produce ese editor (párrafos, saltos, negrita, listas…), no cualquier cosa entre
+  `<` y `>`: con `strip_tags`, un título de texto plano como «<Hotel por confirmar>» contaba como
+  vacío. Es un **espejo** del `sinTexto` de `dominio/texto` —misma lista, mismas entidades de
+  espacio, mismos espacios Unicode—: si cambia uno, cambia el otro.
 - **Ni con veto ni sellando**: el veto (`preventOverwriteIf`, plantillas aprobadas de WhatsApp)
   promete no pisar nunca lo existente, y `soloSellar` sólo estampa. Ninguno borra.
 - **En el editor, lo hecho a mano también sobrevive**: la primera versión vaciaba la lista entera al

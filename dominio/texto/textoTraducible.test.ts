@@ -9,6 +9,14 @@ describe('textoVacio', () => {
         expect(textoVacio([{ language: 'es', content: '   ' }])).toBe(true);
     });
 
+    it('un título con corchetes angulares NO es una etiqueta', () => {
+        expect(textoVacio([{ language: 'es', content: '<Hotel por confirmar>' }])).toBe(false);
+    });
+
+    it('espacios Unicode y entidades de espacio cuentan como nada', () => {
+        expect(textoVacio([{ language: 'es', content: '<p>&#xA0; </p>' }])).toBe(true);
+    });
+
     it('el HTML sin texto también: el editor enriquecido deja <br> al vaciar', () => {
         expect(textoVacio([{ language: 'es', content: '<p><br></p>' }, auto('en', '<p>Hi</p>')])).toBe(true);
         expect(textoVacio([{ language: 'es', content: '&nbsp;' }])).toBe(true);
