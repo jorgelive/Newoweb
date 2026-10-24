@@ -489,10 +489,11 @@ watch(catalogoAbierto, (abierto) => {
 const nombresServicioAbiertos = ref(false);
 
 /**
- * El nombre con el que el operador reconoce el servicio: el de la tarjeta de la lista y el de la
- * cabecera del panel, el mismo. El contenedor y el mono-segmento sin plantilla se nombran por sus
- * segmentos; el `nombreInternoSnapshot` del mono-segmento no se usa ni se puede editar, y la
- * cabecera llegó a enseñar un «VUELO» congelado de cuando el catálogo lo escribía así (23/10/2026).
+ * El nombre con el que el operador reconoce el servicio, el mismo en la tarjeta de la lista, la
+ * cabecera del panel, el catálogo plegado y el storytelling. El contenedor y el mono-segmento sin
+ * plantilla se nombran por sus segmentos; el `nombreInternoSnapshot` del mono-segmento no se usa
+ * ni se puede editar, y la cabecera llegó a enseñar un «VUELO» congelado de cuando el catálogo lo
+ * escribía así (23/10/2026).
  */
 const nombreDeServicio = (servicio: CotServicio): string => {
   const idioma = store.cotizacion?.idiomaEdicion || 'es';
@@ -3278,7 +3279,7 @@ store.$onAction(({ name, args }) => {
                      para saber de qué servicio se trata, y el atajo deja de serlo. -->
                 <span v-if="!catalogoAbierto && store.servicioActivo"
                       class="text-[10px] font-bold text-slate-400 truncate min-w-0 flex-1">
-                  {{ store.getI18nText(store.servicioActivo.nombreInternoSnapshot, 'es') }}
+                  {{ nombreDeServicio(store.servicioActivo) }}
                   <span v-if="store.servicioActivo.fechaInicioAbsoluta" class="text-slate-300">· {{ store.servicioActivo.fechaInicioAbsoluta }}</span>
                 </span>
                 <i class="fas ml-auto text-slate-400 text-xs shrink-0"
@@ -5355,9 +5356,7 @@ store.$onAction(({ name, args }) => {
           <header class="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <h2 class="font-black text-lg flex items-center gap-2"><i class="fas fa-book-open"></i> Constructor de Storytelling</h2>
-              <!-- `es` fijo, misma razón: el operativo no está traducido y esta cabecera se quedaba en
-                   «Servicio:» a secas en cuanto la cotización no se editaba en español. -->
-              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, 'es') }}</p>
+              <p class="text-[11px] font-bold text-teal-200 uppercase tracking-widest mt-1">Servicio: {{ store.servicioActivo ? nombreDeServicio(store.servicioActivo) : '' }}</p>
             </div>
             <button @click="store.cerrarEditorSegmentos()" class="w-8 h-8 rounded-full bg-teal-500 hover:bg-teal-400 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
           </header>
