@@ -495,6 +495,7 @@ los dos lados. Son los candidatos, por orden de lo que costaría equivocarse:
 | ~~`mandaElSegmento()`~~ | `dominio/cotizacion/componenteTipo.ts` ← `util` y `pax`; el enum sigue aparte | **De tres a dos** (07/09/2026) |
 | `resumenDeDuracion()` ↔ `Cotizacion::getResumenDuracion()` | `dominio/cotizacion/unidades.ts` y la entidad | Espejo asumido a sabiendas: PHP lo llama **una vez al emitir** y congela el número |
 | `unidadesEntre()` ↔ `UnidadDeConteoEnum::sumaElUltimoDia()` | idem | El `+1` de días vs noches |
+| `textoVacio()` ↔ `AutoTranslationService::translateAndCloneRows()` | `dominio/texto/` ← `util` (¿tiene nombre?) y `pax` (`traducir` no cae a otro idioma); el servidor aparte | **Nace compartido** (23/10/2026): un español BORRADO vacía el texto aunque queden traducciones. El lado PHP es otra pregunta —qué traducciones quitar al guardar— con la misma definición |
 | `PmsRedactorDeCobro::bloque()` ↔ `PmsReservaView.vue` | redacción del bloque de cobro | El texto que lee el huésped, escrito dos veces |
 
 **El patrón que los une**: el backend es la fuente de verdad al leer, pero el formulario necesita

@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { paxCotizacionService } from '@/services/paxCotizacionService';
 import { useMaestroStore } from '../maestroStore';
+import { textoVacio } from '@dominio/texto/index.ts';
 import type {
     PaxCotizacionFile,
     PaxComoReservar,
@@ -522,6 +523,10 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
      */
     const traducir = (contenido: I18n | undefined | null): string => {
         if (!contenido || !Array.isArray(contenido) || contenido.length === 0) return '';
+        // Un texto cuyo español se BORRÓ no tiene texto, aunque queden traducciones: son de lo
+        // borrado. Sin esto, el respaldo de abajo enseñaba el «1» en inglés de un nombre vaciado
+        // a un cliente en español (23/10/2026). Ver `@dominio/texto`.
+        if (textoVacio(contenido)) return '';
         const idioma = maestroStore.idiomaActual;
         const match = contenido.find(c => c.language === idioma);
         if (match?.content) return match.content;

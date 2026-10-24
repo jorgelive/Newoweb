@@ -1,6 +1,7 @@
 import { extractIdStr } from '@/utils/recurso';
 import { avisoIgvDeHotel, peruanosQueViajan } from './igvHoteleria';
 import { clonarServicio, type ServicioCopiado } from './clonarServicio';
+import { IDIOMA_ORIGEN, textoVacio } from '@dominio/texto/index.ts';
 import { fantasmasPorDia } from './fantasmasPorDia';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
@@ -605,27 +606,8 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return found ? found.content : '';
     };
 
-    /**
-     * El idioma del que salen las traducciones (`#[AutoTranslate(sourceLanguage: 'es')]`).
-     *
-     * ⚠️ **Vaciarlo vacía el texto entero.** Las otras seis son traducciones del español: si el
-     * español se borra, describen un texto que ya no existe. Se vació el «1» de prueba de un nombre
-     * público y el «Incluye: 1» siguió saliendo en la propuesta en inglés (Jorge, 23/10/2026).
-     */
-    const IDIOMA_ORIGEN = 'es';
-
-    /**
-     * ¿El texto está vacío? Sí si el español EXISTE y está vacío —lo borró alguien, y lo demás son
-     * traducciones de lo borrado— o si no hay texto en ningún idioma. Un español que FALTA no
-     * vacía nada: un nombre escrito editando en inglés es un nombre.
-     */
-    const textoVacio = (arrayI18n: I18nContent[] | undefined): boolean => {
-        const lista = Array.isArray(arrayI18n) ? arrayI18n : [];
-        const origen = lista.find((l) => l.language === IDIOMA_ORIGEN);
-
-        return origen ? (origen.content ?? '').trim() === '' : lista.every((l) => (l.content ?? '').trim() === '');
-    };
-
+    // ⚠️ Vaciar el ESPAÑOL vacía el texto entero: las otras seis son traducciones suyas. La regla
+    // —qué es un texto vacío— vive en `@dominio/texto` y la comparten el editor y la guía.
     const setI18nText = (arrayI18n: I18nContent[] | undefined, lang: string, text: string): void => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return;
         if (lang === IDIOMA_ORIGEN && text.trim() === '') {
