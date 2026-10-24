@@ -4838,7 +4838,9 @@ en la propuesta ya decidió la bandera del componente.
 **Y la tarjeta del día lo nombra** (`proveedorDeBloque()` en `PaxCotizacionGuiaView.vue`): hasta el
 23/10/2026 el nombre del prestador sólo salía dentro del detalle de lo incluido, así que la tarjeta
 decía «Alojamiento en Lima» y nunca en cuál. Ahora lleva una pastilla «🏨 Habitat Hotel →» que abre
-su ficha, con foto o sin ella, y la tarjeta compacta de la noche 2+ también lo nombra. En un no
+su ficha, con foto o sin ella, y la tarjeta compacta de la noche 2+ también lo nombra. Y la tarjeta
+GRANDE —la de la primera noche— dice ahora cuál es («🌙 Noche 1/4»), como ya lo decían las
+compactas de las siguientes; con una sola noche no se pone. En un no
 incluido dice «Su reserva: …», como el detalle; el `modo` no viaja en el componente público y se
 lee de las líneas de inclusiones.
 

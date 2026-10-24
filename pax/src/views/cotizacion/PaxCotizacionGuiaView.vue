@@ -3122,19 +3122,31 @@ const rotuloProcedencia = computed(() => {
                   {{ item.horaInicio }}<template v-if="item.horaFin && item.horaFin !== item.horaInicio"> – {{ item.horaFin }}</template>
                 </span>
 
+                <!-- La primera noche dice cuál es, como las siguientes («Noche 2/4», con su luna):
+                     hasta el 23/10/2026 sólo la decían las tarjetas compactas, y la grande —la del
+                     día de llegada— no (Jorge). Al lado, quién lo presta. -->
+                <div v-if="(item.esPeriodo && item.totalUnidades > 1) || proveedorDeBloque(item)" class="mb-3 flex flex-wrap items-center gap-2">
+                <span
+                    v-if="item.esPeriodo && item.totalUnidades > 1"
+                    class="inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 rounded-lg px-2.5 py-1.5"
+                >
+                  <i class="fas text-[11px]" :class="iconoDeUnidad(item)"></i>
+                  {{ etiquetaUnidad(item) }} {{ item.indiceUnidad }}/{{ item.totalUnidades }}
+                </span>
                 <!-- Quién lo presta —el hotel—, en la tarjeta y no sólo en el detalle. Ver
                      `proveedorDeBloque`. -->
                 <button
                     v-if="proveedorDeBloque(item)"
                     type="button"
                     @click="abrirProveedor(proveedorDeBloque(item)!.info)"
-                    class="mb-3 inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 hover:bg-[#376875]/12 border border-[#376875]/20 rounded-lg px-2.5 py-1.5 transition-colors"
+                    class="inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 hover:bg-[#376875]/12 border border-[#376875]/20 rounded-lg px-2.5 py-1.5 transition-colors"
                 >
                   <i class="fas fa-hotel text-[11px] text-[#E07845]"></i>
                   <span v-if="proveedorDeBloque(item)!.suReserva" class="text-slate-500 font-semibold">{{ maestroStore.t('cot_su_reserva') || 'Su reserva:' }}</span>
                   {{ store.traducir(proveedorDeBloque(item)!.info.titulo) }}
                   <i class="fas fa-circle-arrow-right text-[9px] text-[#E07845] no-imprimir"></i>
                 </button>
+                </div>
 
                 <!-- Estado de la actividad: «Incluye», o la excepción con nombre. Ver
                      `estadoPorActividad`. Va también en modo Resumen, que es donde más se lee. -->
