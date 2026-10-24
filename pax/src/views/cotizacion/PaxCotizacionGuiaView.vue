@@ -3434,10 +3434,13 @@ const rotuloProcedencia = computed(() => {
         </div>
       </main>
 
-      <!-- ═══ MODAL PROVEEDOR ═══ -->
+      <!-- ═══ MODAL PROVEEDOR ═══
+           ⚠️ `z-[60]`, una capa por ENCIMA del detalle de inclusiones (`z-50`): la ficha del hotel
+           se abre también desde dentro de ese detalle, y con la misma capa quedaba debajo porque
+           este bloque va antes en la página (Jorge, 23/10/2026). -->
       <div
           v-if="modalProveedor"
-          class="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
       >
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="modalProveedor = null"></div>
 
