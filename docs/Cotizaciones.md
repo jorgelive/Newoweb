@@ -4840,7 +4840,14 @@ en la propuesta ya decidió la bandera del componente.
 decía «Alojamiento en Lima» y nunca en cuál. Ahora lleva una pastilla «🏨 Habitat Hotel →» que abre
 su ficha, con foto o sin ella, y la tarjeta compacta de la noche 2+ también lo nombra. Y la tarjeta
 GRANDE —la de la primera noche— dice ahora cuál es («🌙 Noche 1/4»), como ya lo decían las
-compactas de las siguientes; con una sola noche no se pone. En un no
+compactas de las siguientes; con una sola noche no se pone.
+
+Y lo mismo en las **excursiones de varios días** —Camino Inca, Titicaca de dos días, Machu Picchu
+con noche—: su cabecera dice «☀ Día 1/2», «Día 2/2» (`diasPorServicio`, `diaDeExcursion`). Los días
+salen del reparto que pinta la guía (`itinerarioVista`), no de las fechas del servicio, así que el
+número es el que el cliente ve. Va en la cabecera del marco o, si ese día el servicio es una sola
+tarjeta, dentro de ella junto a «Noche N/M» (`diaEnTarjeta`). Fuera: las estancias, que ya tienen su
+noche, y los contenedores genéricos, cuyos segmentos no son un viaje de varios días. En un no
 incluido dice «Su reserva: …», como el detalle; el `modo` no viaja en el componente público y se
 lee de las líneas de inclusiones.
 

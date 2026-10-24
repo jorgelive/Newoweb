@@ -721,6 +721,40 @@ const etiquetaUnidad = (b: BloqueVista): string => {
 /** La luna es de dormir. Lo que se cuenta por días cubre la jornada: sol. */
 const iconoDeUnidad = (b: BloqueVista): string => (b.unidad === 'dias' ? 'fa-sun' : 'fa-moon');
 
+/**
+ * Los días en que sale cada servicio que NO es una estancia: el Camino Inca, el Titicaca de dos
+ * días, Machu Picchu con noche en el pueblo. De aquí sale «Día 1/2» en su cabecera, como la
+ * «Noche 1/4» de un hotel (Jorge, 23/10/2026).
+ *
+ * Del mismo reparto que pinta la guía (`itinerarioVista`), no de las fechas del servicio: así el
+ * número dice lo que el cliente ve. Las estancias se quedan fuera —ya tienen su «Noche»—, y los
+ * contenedores genéricos también: sus segmentos no son un viaje de varios días.
+ */
+const diasPorServicio = computed(() => {
+  const m = new Map<string, string[]>();
+  for (const dia of itinerarioVista.value) {
+    for (const b of dia.bloques) {
+      if (b.esPeriodo || b.contenedorGenerico) continue;
+      const fechas = m.get(b.servicio.id) ?? [];
+      if (!fechas.includes(dia.fecha)) fechas.push(dia.fecha);
+      m.set(b.servicio.id, fechas);
+    }
+  }
+  return m;
+});
+
+/** ¿El «Día N/M» va DENTRO de la tarjeta? Sí cuando ese día el servicio no tiene cabecera de marco. */
+const diaEnTarjeta = (grupo: GrupoDeServicio, b: BloqueVista, fecha: string): boolean =>
+    !grupo.enMarco && !tituloGrandeDeServicio(b) && esCabeceraDeServicio(b) && diaDeExcursion(b, fecha) !== null;
+
+/** «Día N/M» de una excursión de varios días, o null si dura uno. */
+const diaDeExcursion = (b: BloqueVista, fecha: string): { indice: number; total: number } | null => {
+  if (b.esPeriodo || b.contenedorGenerico) return null;
+  const fechas = diasPorServicio.value.get(b.servicio.id) ?? [];
+  if (fechas.length < 2) return null;
+  return { indice: [...fechas].sort().indexOf(fecha) + 1, total: fechas.length };
+};
+
 const horaRango = (c: PaxCotComponente) => {
   if (!compConHora(c)) return null;
   const hi = hhmm(c.fechaHoraInicio);
@@ -2965,6 +2999,17 @@ const rotuloProcedencia = computed(() => {
               <span>{{ store.traducir(item.servicio.tituloSnapshot) }}</span>
             </h3>
 
+            <!-- «Día 1/2» de una excursión de varios días, en la cabecera del marco. Si ese día el
+                 servicio es una sola tarjeta, va dentro de ella, junto a «Noche N/M». Ver
+                 `diaDeExcursion`. -->
+            <span
+                v-if="(grupo.enMarco || tituloGrandeDeServicio(item)) && esCabeceraDeServicio(item) && diaDeExcursion(item, dia.fecha)"
+                class="mb-3 inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 rounded-lg px-2.5 py-1.5"
+            >
+              <i class="fas fa-sun text-[11px]"></i>
+              {{ maestroStore.t('cot_dia') || 'Día' }} {{ diaDeExcursion(item, dia.fecha)!.indice }}/{{ diaDeExcursion(item, dia.fecha)!.total }}
+            </span>
+
             <!-- Horario global de la excursión (componente promovido a "servicio
                  completo"): abarca toda la experiencia, no un segmento puntual. -->
             <div
@@ -3125,7 +3170,14 @@ const rotuloProcedencia = computed(() => {
                 <!-- La primera noche dice cuál es, como las siguientes («Noche 2/4», con su luna):
                      hasta el 23/10/2026 sólo la decían las tarjetas compactas, y la grande —la del
                      día de llegada— no (Jorge). Al lado, quién lo presta. -->
-                <div v-if="(item.esPeriodo && item.totalUnidades > 1) || proveedorDeBloque(item)" class="mb-3 flex flex-wrap items-center gap-2">
+                <div v-if="(item.esPeriodo && item.totalUnidades > 1) || proveedorDeBloque(item) || diaEnTarjeta(grupo, item, dia.fecha)" class="mb-3 flex flex-wrap items-center gap-2">
+                <span
+                    v-if="diaEnTarjeta(grupo, item, dia.fecha)"
+                    class="inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 rounded-lg px-2.5 py-1.5"
+                >
+                  <i class="fas fa-sun text-[11px]"></i>
+                  {{ maestroStore.t('cot_dia') || 'Día' }} {{ diaDeExcursion(item, dia.fecha)!.indice }}/{{ diaDeExcursion(item, dia.fecha)!.total }}
+                </span>
                 <span
                     v-if="item.esPeriodo && item.totalUnidades > 1"
                     class="inline-flex items-center gap-1.5 text-[12px] font-black text-[#376875] bg-[#376875]/6 rounded-lg px-2.5 py-1.5"
