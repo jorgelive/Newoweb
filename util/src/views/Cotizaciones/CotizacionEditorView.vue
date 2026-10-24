@@ -488,6 +488,19 @@ watch(catalogoAbierto, (abierto) => {
  */
 const nombresServicioAbiertos = ref(false);
 
+/**
+ * El nombre con el que el operador reconoce el servicio: el de la tarjeta de la lista y el de la
+ * cabecera del panel, el mismo. El contenedor y el mono-segmento sin plantilla se nombran por sus
+ * segmentos; el `nombreInternoSnapshot` del mono-segmento no se usa ni se puede editar, y la
+ * cabecera llegó a enseñar un «VUELO» congelado de cuando el catálogo lo escribía así (23/10/2026).
+ */
+const nombreDeServicio = (servicio: CotServicio): string => {
+  const idioma = store.cotizacion?.idiomaEdicion || 'es';
+  if (store.esContenedorGenerico(servicio) && servicio.cotsegmentos?.length) return store.titulosDeSegmentos(servicio, idioma) || 'Sin nombre';
+  if (store.esMonoSegmentoSinPlantilla(servicio)) return store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, idioma) || 'Sin nombre';
+  return store.getI18nText(servicio.nombreInternoSnapshot, 'es') || store.getI18nText(servicio.tituloSnapshot, idioma) || 'Sin nombre';
+};
+
 const faltaNombreServicio = computed(() => {
   const servicio = store.servicioActivo;
   if (!servicio || store.esMonoSegmentoSinPlantilla(servicio)) return false;
@@ -2556,14 +2569,10 @@ store.$onAction(({ name, args }) => {
                          1) OPERATIVO (nombreInternoSnapshot) grande — el que tú usas y editas.
                          2) CLIENTE (tituloSnapshot) debajo — lo que ve el pasajero.
                          3) PLANTILLA (itinerarioNombreInternoSnapshot) como etiqueta de procedencia. -->
-                    <!-- Mono-segmento sin plantilla: el nombre del servicio es genérico y su público
-                         se descarta en la vista del cliente; el segmento es el que dice qué cosa es. -->
+                    <!-- El contenedor y el mono-segmento se nombran por sus segmentos: `nombreDeServicio`. -->
                     <div class="font-black text-lg text-slate-900 leading-tight">
                       <i v-if="store.isServicioConAlerta(servicio)" class="fas fa-exclamation-triangle text-red-500 mr-2" title="Faltan cuadrar tarifas"></i>
-                      <!-- Contenedor genérico: lo que el cliente lee son sus segmentos, no «Transporte en Cusco». -->
-                      <template v-if="store.esContenedorGenerico(servicio) && servicio.cotsegmentos?.length">{{ store.titulosDeSegmentos(servicio, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
-                      <template v-else-if="store.esMonoSegmentoSinPlantilla(servicio)">{{ store.getI18nText(servicio.cotsegmentos?.[0]?.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
-                      <template v-else>{{ store.getI18nText(servicio.nombreInternoSnapshot, 'es') || store.getI18nText(servicio.tituloSnapshot, store.cotizacion.idiomaEdicion) || 'Sin nombre' }}</template>
+                      {{ nombreDeServicio(servicio) }}
                     </div>
 
                     <!-- Contenedor: su nombre sólo lo ve el operador, y aquí se dice para qué sirve. -->
@@ -3231,7 +3240,7 @@ store.$onAction(({ name, args }) => {
                 Edición de Servicio
               </p>
               <h2 class="text-sm font-black truncate">
-                {{ store.getI18nText(store.servicioActivo?.nombreInternoSnapshot, 'es') || store.getI18nText(store.servicioActivo?.tituloSnapshot, store.cotizacion.idiomaEdicion) }}
+                {{ nombreDeServicio(store.servicioActivo) }}
               </h2>
               <p v-if="store.serviciosOrdenados.length > 1" class="text-[11px] font-bold text-emerald-600/70 mt-0.5">
                 Servicio {{ store.serviciosOrdenados.findIndex(s => s.id === store.servicioActivo?.id) + 1 }} de {{ store.serviciosOrdenados.length }}
