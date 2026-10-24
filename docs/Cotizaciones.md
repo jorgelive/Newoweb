@@ -836,7 +836,7 @@ que hoy se guardan, o la regla está mal o hay un problema de datos que arreglar
 | Grupo alternativo cuyo nº de pax no cuadra con el global ni con la base | un upgrade que cubre 3 de 5 pasajeros no se puede vender: si lo aceptan, ¿qué pasa con los otros 2? |
 | ~~Componente `incluido` **sin tarifa estándar**~~ | **Ya no bloquea (04/09/2026)** — ver abajo |
 | Componente `incluido` **sin ninguna tarifa publicable** | no genera ni una línea: desaparece de la propuesta |
-| Componente **sin título público y sin ítems, y con costo** | se cobra algo que el cliente no ve. ⚠️ **Sólo si cuesta (23/10/2026)**: a costo 0 no le cambia nada al cliente, y bloqueaba el «Segundo día …» del Titicaca, que existe sólo para darle hora al día 2 y cuyo «qué incluye» va en el componente principal. Un componente recién añadido sin nombre ya lo marca el asterisco del editor |
+| Componente **sin título público y sin ítems, y con costo** (en el editor, el asterisco de «Nombre público» sólo sale sin párrafo —`nombrePublicoObligatorio`—; con párrafo, una «i»: «si está vacío, no se muestra en Incluye») | se cobra algo que el cliente no ve. ⚠️ **Sólo si cuesta (23/10/2026)**: a costo 0 no le cambia nada al cliente, y bloqueaba el «Segundo día …» del Titicaca, que existe sólo para darle hora al día 2 y cuyo «qué incluye» va en el componente principal. Un componente recién añadido sin nombre ya lo marca el asterisco del editor |
 | Ítem con **modo desconocido** | `destino()` manda a «Incluye» todo lo que no reconoce: una errata regala lo que se quería cobrar aparte |
 
 Las cuatro últimas viven en `construirInclusiones()`, que recorre servicios→componentes

@@ -1322,6 +1322,13 @@ bien.** No las cuentes como deuda al medir.
 **La regla:** en un `pool`, el título público se rellena sólo si el segmento no basta para
 titular el bloque. Lo normal es que baste.
 
+⚠️ **Corrección (23/10/2026): hoy el título del componente NO sustituye al del segmento en la
+cabecera del bloque**, que lo pinta siempre el segmento (`item.segmento.tituloSnapshot`). Lo que
+hace es dos cosas: generar su línea en «Incluye» y, sólo si la tarjeta tiene dos o más horarios,
+rotular su hora en esa lista (`filasDeHorario` → `tituloDeComponente`). Vacío, el componente no
+sale en «Incluye» —lo dice el editor con una «i»— y no pasa nada más. Lo comprobó Jorge mirando
+la guía antes de que lo viera el código.
+
 ### Y una regla que no es de código: la jerarquía de fuentes
 
 El proveedor publicaba su web, un tarifario de agencias y un documento de itinerarios. Los tres

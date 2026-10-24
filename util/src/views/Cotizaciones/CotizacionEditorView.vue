@@ -1583,6 +1583,16 @@ const elComponenteSePublica = computed(
     () => !tieneParrafo.value || !mandaElSegmento(store.componenteActivo?.tipo)
 );
 
+/**
+ * ¿Es OBLIGATORIO? Sólo sin párrafo: ahí es lo único que nombra la línea en la propuesta.
+ *
+ * ⚠️ Con párrafo, el asterisco mentía (Jorge, 23/10/2026). El itinerario lo titula el SEGMENTO;
+ * el nombre público del componente sólo genera su línea en «Incluye» (y, si la tarjeta tiene
+ * varios horarios, el rótulo de su hora). El «Segundo día …» del Titicaca, que existe para darle
+ * hora al día 2, lo tiene vacío a propósito, y el asterisco empujaba a rellenarlo.
+ */
+const nombrePublicoObligatorio = computed(() => !tieneParrafo.value);
+
 const mostrandoComponente = computed(() => {
   if (!tieneParrafo.value) return true;
 
@@ -1678,7 +1688,7 @@ const nombreAjustadoAMano = computed(() => {
 
 const faltaNombrePublico = computed(() => {
   const comp = store.componenteActivo;
-  if (!comp || !elComponenteSePublica.value || isComponenteSoloItems(comp)) return false;
+  if (!comp || !nombrePublicoObligatorio.value || isComponenteSoloItems(comp)) return false;
 
   return store.getI18nText(comp.tituloSnapshot, store.cotizacion?.idiomaEdicion || 'es').trim() === '';
 });
@@ -4024,8 +4034,12 @@ store.$onAction(({ name, args }) => {
                          enseña. Sigue guardándose: es el último recurso de La Biblia si el nombre
                          interno quedara vacío. -->
                     <label class="block text-[10px] font-black text-slate-500 uppercase mb-1.5 ml-1">
-                      Nombre Público <span v-if="elComponenteSePublica">*</span>
-                      <span v-else class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
+                      Nombre Público <span v-if="nombrePublicoObligatorio">*</span>
+                      <span v-else-if="!elComponenteSePublica" class="text-slate-400 normal-case font-bold">— aquí no se publica: manda el párrafo</span>
+                      <span v-else class="text-slate-400 normal-case font-bold"
+                            title="El itinerario lo titula el párrafo. El nombre público sólo da la línea de este componente en «Incluye».">
+                        <i class="fas fa-circle-info"></i> si está vacío, no se muestra en «Incluye»
+                      </span>
                     </label>
 
                     <div class="flex gap-2" v-if="!isComponenteSoloItems(store.componenteActivo)">
