@@ -427,6 +427,21 @@ class AutoTranslationService
                 return $sourceRow !== null ? [$sourceLangNorm => $sourceRow] : [];
             }
 
+            // ⚠️ **Un origen que ESTÁ y está vacío no es uno que nunca se cargó: lo borró alguien.**
+            // Las traducciones que salieron de él —las que llevan `origenHash`— traducen un texto
+            // que ya no existe, y se quitan. Las que no lo llevan (escritas a mano, o anteriores
+            // al hash) y las curadas (`origenHash: 'manual'`, §3 de la doc) se respetan. Sin esto, vaciar el nombre público de un componente dejaba
+            // «1» en los otros seis idiomas y la propuesta seguía diciendo «Incluye: 1» (Jorge,
+            // 23/10/2026). Un origen que FALTA sigue sin tocar nada, que es lo que protege arriba.
+            if (is_array($sourceRow) && trim(is_string($sourceRow['content'] ?? null) ? $sourceRow['content'] : '') === '') {
+                return array_filter(
+                    $valuesMap,
+                    static fn (array $row, string $lang): bool => $lang === $sourceLangNorm
+                        || !isset($row['origenHash']) || $row['origenHash'] === 'manual',
+                    ARRAY_FILTER_USE_BOTH,
+                );
+            }
+
             return $valuesMap;
         }
 

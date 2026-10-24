@@ -49,4 +49,43 @@ final class AutoTranslationRutaTest extends TestCase
 
         self::assertSame(['es' => ['language' => 'ES', 'content' => '']], $mapa);
     }
+
+    /**
+     * Lo que deja el servicio de un texto, sin llamar al traductor: el origen no es utilizable.
+     *
+     * @param array<string, array<string, string>> $mapa
+     *
+     * @return array<string, mixed>
+     */
+    private function sinOrigen(array $mapa): array
+    {
+        $clase = new ReflectionClass(AutoTranslationService::class);
+        $servicio = $clase->newInstanceWithoutConstructor();
+        $clase->getProperty('validLanguageCodes')->setValue($servicio, ['es', 'en', 'fr']);
+
+        $resultado = $clase->getMethod('translateAndCloneRows')->invoke($servicio, $mapa, 'es', 'text', false);
+        self::assertIsArray($resultado);
+
+        /** @var array<string, mixed> $resultado */
+        return $resultado;
+    }
+
+    public function testUnEspanolBorradoSeLlevaLasTraduccionesQueSalieronDeEl(): void
+    {
+        $resultado = $this->sinOrigen([
+            'es' => ['language' => 'es', 'content' => ''],
+            'en' => ['language' => 'en', 'content' => '1', 'origenHash' => 'abc'],
+            'fr' => ['language' => 'fr', 'content' => 'Écrit à la main'],
+            'it' => ['language' => 'it', 'content' => 'Curata', 'origenHash' => 'manual'],
+        ]);
+
+        self::assertSame(['es', 'fr', 'it'], array_keys($resultado), 'la automática se va; la escrita a mano y la curada, no');
+    }
+
+    public function testUnEspanolQueFaltaNoTocaNada(): void
+    {
+        $mapa = ['en' => ['language' => 'en', 'content' => '1', 'origenHash' => 'abc']];
+
+        self::assertSame($mapa, $this->sinOrigen($mapa));
+    }
 }

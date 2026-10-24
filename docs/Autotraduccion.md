@@ -116,6 +116,15 @@ nunca, ni aunque cambie el español. El flag explícito **sí** la pisa: es una 
 deliberada sobre un campo concreto, y el centinela está para que nadie la retraduzca sin querer,
 no para blindarla contra su dueño.
 
+### Un español borrado se lleva lo que salió de él (23/10/2026)
+
+Si el español **falta**, no se toca nada: puede que ese texto nunca se haya cargado. Pero si
+**está y vacío**, lo borró alguien, y las traducciones con `origenHash` traducen un texto que ya
+no existe: se quitan (`translateAndCloneRows`). Se respetan las que no llevan hash (escritas a
+mano, anteriores al hash) y las curadas (`'manual'`). Sin esto, vaciar el nombre público de un
+componente dejó «1» en los otros seis idiomas y la propuesta siguió diciendo «Incluye: 1». El
+editor de cotizaciones hace lo mismo en su lado (`IDIOMA_ORIGEN`, `docs/Cotizaciones.md`).
+
 ## 4. El flag de sobrescritura
 
 `sobreescribirTraduccion` significa **«rehaz TODO ahora, cambie o no el origen»**. Es la
