@@ -89,9 +89,21 @@ const t18 = (arr?: { language?: string; content?: string }[] | null): string => 
   return m?.content || '';
 };
 
-/** Resumen HTML → texto plano corto para previews. */
-const resumenPreview = (arr?: { language?: string; content?: string }[] | null): string =>
-  t18(arr).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+/**
+ * Resumen HTML → texto plano para previews.
+ *
+ * ⚠️ Con `DOMParser` y no quitando etiquetas con una regex: la regex dejaba las ENTIDADES tal cual y
+ * el rótulo de la propuesta decía «Con una noche&nbsp; en el…» (Jorge, 23/10/2026). `textContent`
+ * de un documento parseado quita las etiquetas y traduce las entidades de una vez, y `DOMParser` no
+ * ejecuta nada de lo que parsea. Los saltos de párrafo se convierten en espacio antes de parsear,
+ * para que dos párrafos no queden pegados.
+ */
+const resumenPreview = (arr?: { language?: string; content?: string }[] | null): string => {
+  const html = t18(arr).replace(/<\/(p|div|li|h\d)>|<br\s*\/?>/gi, ' ');
+  const texto = new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
+
+  return texto.replace(/\s+/g, ' ').trim();
+};
 const idiomaFileDropdown = ref(false);
 const idiomasDisponibles = computed(() => fileStore.idiomasDisponibles);
 
@@ -4795,7 +4807,10 @@ const eliminarDocumento = async (iri?: string) => {
                         Sin operación
                       </span>
                     </div>
-                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 truncate max-w-35 sm:max-w-xs">
+                    <!-- Dos líneas, no una: cortado a 140 px no se sabía de qué propuesta se trataba.
+                         El texto entero, en el `title`. -->
+                    <p v-if="cot.resumen" class="text-[10px] text-slate-400 font-medium mt-1 line-clamp-2 leading-snug"
+                       :title="resumenPreview(cot.resumen)">
                       {{ resumenPreview(cot.resumen) }}
                     </p>
                   </div>
