@@ -57,13 +57,13 @@ final class AutoTranslationRutaTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private function sinOrigen(array $mapa): array
+    private function sinOrigen(array $mapa, bool $vetado = false, bool $soloSellar = false): array
     {
         $clase = new ReflectionClass(AutoTranslationService::class);
         $servicio = $clase->newInstanceWithoutConstructor();
         $clase->getProperty('validLanguageCodes')->setValue($servicio, ['es', 'en', 'fr']);
 
-        $resultado = $clase->getMethod('translateAndCloneRows')->invoke($servicio, $mapa, 'es', 'text', false);
+        $resultado = $clase->getMethod('translateAndCloneRows')->invoke($servicio, $mapa, 'es', 'text', false, $vetado, $soloSellar);
         self::assertIsArray($resultado);
 
         /** @var array<string, mixed> $resultado */
@@ -87,5 +87,35 @@ final class AutoTranslationRutaTest extends TestCase
         $mapa = ['en' => ['language' => 'en', 'content' => '1', 'origenHash' => 'abc']];
 
         self::assertSame($mapa, $this->sinOrigen($mapa));
+    }
+
+    public function testUnParrafoHtmlVaciadoCuentaComoBorrado(): void
+    {
+        $resultado = $this->sinOrigen([
+            'es' => ['language' => 'es', 'content' => '<p><br></p>'],
+            'en' => ['language' => 'en', 'content' => '<p>Hi</p>', 'origenHash' => 'abc'],
+        ]);
+
+        self::assertSame(['es'], array_keys($resultado));
+    }
+
+    public function testConVetoNoSeBorraNada(): void
+    {
+        $mapa = [
+            'es' => ['language' => 'es', 'content' => ''],
+            'en' => ['language' => 'en', 'content' => 'Hi', 'origenHash' => 'abc'],
+        ];
+
+        self::assertSame($mapa, $this->sinOrigen($mapa, vetado: true));
+    }
+
+    public function testSellandoNoSeBorraNada(): void
+    {
+        $mapa = [
+            'es' => ['language' => 'es', 'content' => ''],
+            'en' => ['language' => 'en', 'content' => 'Hi', 'origenHash' => 'abc'],
+        ];
+
+        self::assertSame($mapa, $this->sinOrigen($mapa, soloSellar: true));
     }
 }

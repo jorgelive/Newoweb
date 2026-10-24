@@ -416,7 +416,10 @@ class AutoTranslationService
         $valuesMap = $normalizado;
 
         $sourceRow = $valuesMap[$sourceLangNorm] ?? null;
-        $sourceIsUsable = is_array($sourceRow) && !empty($sourceRow['content']) && is_string($sourceRow['content']);
+        // Un origen PRESENTE sin texto —vacío, o HTML sin texto como el `<p><br></p>` que deja el
+        // editor enriquecido al vaciar un párrafo— no se traduce: se trata como borrado (abajo).
+        $origenSinTexto = is_array($sourceRow) && self::sinTexto($sourceRow['content'] ?? null);
+        $sourceIsUsable = !$origenSinTexto && is_array($sourceRow) && !empty($sourceRow['content']) && is_string($sourceRow['content']);
 
         if (!$sourceIsUsable) {
             // 🗑️ Solo limpiamos las traducciones huérfanas cuando el usuario pidió
@@ -430,10 +433,16 @@ class AutoTranslationService
             // ⚠️ **Un origen que ESTÁ y está vacío no es uno que nunca se cargó: lo borró alguien.**
             // Las traducciones que salieron de él —las que llevan `origenHash`— traducen un texto
             // que ya no existe, y se quitan. Las que no lo llevan (escritas a mano, o anteriores
-            // al hash) y las curadas (`origenHash: 'manual'`, §3 de la doc) se respetan. Sin esto, vaciar el nombre público de un componente dejaba
-            // «1» en los otros seis idiomas y la propuesta seguía diciendo «Incluye: 1» (Jorge,
-            // 23/10/2026). Un origen que FALTA sigue sin tocar nada, que es lo que protege arriba.
-            if (is_array($sourceRow) && trim(is_string($sourceRow['content'] ?? null) ? $sourceRow['content'] : '') === '') {
+            // al hash) y las curadas (`origenHash: 'manual'`, §3 de la doc) se respetan. Sin esto,
+            // vaciar el nombre público de un componente dejaba «1» en los otros seis idiomas y la
+            // propuesta seguía diciendo «Incluye: 1» (Jorge, 23/10/2026). Un origen que FALTA sigue
+            // sin tocar nada, que es lo que protege arriba. Misma regla que `@dominio/texto`
+            // (`sinTraduccionesDeLoBorrado`) en el editor: si cambia una, cambia la otra.
+            //
+            // ⚠️ **Ni con veto ni sellando** (Fable): el veto promete no pisar nunca una traducción
+            // existente (plantillas aprobadas de WhatsApp), y sellar «no llama a nadie», sólo
+            // estampa. Ninguno de los dos puede borrar.
+            if ($origenSinTexto && !$vetado && !$soloSellar) {
                 return array_filter(
                     $valuesMap,
                     static fn (array $row, string $lang): bool => $lang === $sourceLangNorm
@@ -593,6 +602,18 @@ class AutoTranslationService
      *   traducciones, y el texto es el mismo: sin el formato en la huella, el hash cuadraría y no
      *   se rehacía nada.
      */
+    /** ¿Este contenido no dice nada? También el HTML sin texto (`<br>`, `<p>&nbsp;</p>`). */
+    private static function sinTexto(mixed $contenido): bool
+    {
+        if (!is_string($contenido)) {
+            return true;
+        }
+
+        $texto = html_entity_decode(strip_tags($contenido), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim($texto, " \t\n\r\0\x0B\u{a0}") === '';
+    }
+
     private static function hashDeOrigen(string $sourceText, string $mimeType): string
     {
         $normalizado = trim((string) preg_replace('/\s+/u', ' ', $sourceText));

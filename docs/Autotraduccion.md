@@ -123,7 +123,17 @@ Si el español **falta**, no se toca nada: puede que ese texto nunca se haya car
 no existe: se quitan (`translateAndCloneRows`). Se respetan las que no llevan hash (escritas a
 mano, anteriores al hash) y las curadas (`'manual'`). Sin esto, vaciar el nombre público de un
 componente dejó «1» en los otros seis idiomas y la propuesta siguió diciendo «Incluye: 1». El
-editor de cotizaciones hace lo mismo en su lado (`IDIOMA_ORIGEN`, `docs/Cotizaciones.md`).
+editor de cotizaciones hace lo mismo en su lado con la regla compartida de `dominio/texto`
+(`textoVacio`, `sinTraduccionesDeLoBorrado`) — si cambia una, cambia la otra.
+
+Tres cosas que añadió la revisión de Fable el mismo día:
+
+- **El HTML sin texto cuenta como borrado** (`sinTexto()`): el editor enriquecido deja `<p><br></p>`
+  al vaciar un párrafo, no `''`, y la regla no saltaba en los textos largos.
+- **Ni con veto ni sellando**: el veto (`preventOverwriteIf`, plantillas aprobadas de WhatsApp)
+  promete no pisar nunca lo existente, y `soloSellar` sólo estampa. Ninguno borra.
+- **En el editor, lo hecho a mano también sobrevive**: la primera versión vaciaba la lista entera al
+  borrar el español, y bastaba borrar un campo para reescribirlo para perder una traducción curada.
 
 ## 4. El flag de sobrescritura
 

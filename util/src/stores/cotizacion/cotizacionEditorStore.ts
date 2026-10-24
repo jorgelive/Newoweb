@@ -1,7 +1,7 @@
 import { extractIdStr } from '@/utils/recurso';
 import { avisoIgvDeHotel, peruanosQueViajan } from './igvHoteleria';
 import { clonarServicio, type ServicioCopiado } from './clonarServicio';
-import { IDIOMA_ORIGEN, textoVacio } from '@dominio/texto/index.ts';
+import { IDIOMA_ORIGEN, sinTraduccionesDeLoBorrado, textoVacio } from '@dominio/texto/index.ts';
 import { fantasmasPorDia } from './fantasmasPorDia';
 import { mandaElSegmento } from '@/utils/componenteTipo';
 import { montoDeAdelanto, posicionDeServicio, sustantivoDeUnidad } from '@dominio/cotizacion/index.ts';
@@ -610,8 +610,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
     // —qué es un texto vacío— vive en `@dominio/texto` y la comparten el editor y la guía.
     const setI18nText = (arrayI18n: I18nContent[] | undefined, lang: string, text: string): void => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return;
-        if (lang === IDIOMA_ORIGEN && text.trim() === '') {
-            arrayI18n.splice(0);   // en sitio: quien tiene la referencia ve el cambio
+        if (lang === IDIOMA_ORIGEN && textoVacio([{ language: IDIOMA_ORIGEN, content: text }])) {
+            // El español borrado se lleva las traducciones AUTOMÁTICAS, no las hechas a mano
+            // (`@dominio/texto`). En sitio: quien tiene la referencia ve el cambio.
+            const origen = arrayI18n.find((item) => item.language === IDIOMA_ORIGEN);
+            if (origen) origen.content = text;
+            else arrayI18n.push({ language: IDIOMA_ORIGEN, content: text });
+            arrayI18n.splice(0, arrayI18n.length, ...sinTraduccionesDeLoBorrado(arrayI18n));
             return;
         }
         const found = arrayI18n.find((item) => item.language === lang);
@@ -824,7 +829,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
      * dejado dos paneles nombrando el mismo componente de dos maneras el día que una cambie.
      */
     const nombreDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
-        if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
+        if (!textoVacio(componente.tituloSnapshot)) return componente.tituloSnapshot;
         // Caso 1 (contenedor sin nombre): fallback al segmento
         const seg = componente.cotsegmento;
         if (seg && typeof seg === 'object' && Array.isArray((seg as CotSegmento).tituloSnapshot)) {
@@ -933,7 +938,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         // si no, se arma con los primeros 3 ítems INCLUIDOS unidos por " · ", por
         // idioma. Devuelve I18nContent[] para respetar traducciones.
         const tituloClienteDeComponente = (componente: ComponenteCompleto): I18nContent[] => {
-            if (componente.tituloSnapshot?.length) return componente.tituloSnapshot;
+            if (!textoVacio(componente.tituloSnapshot)) return componente.tituloSnapshot;
             const items = (componente.snapshotItems || [])
                 .filter((it) => (it.modo || '').toLowerCase() === 'incluido' || it.incluido)
                 .slice(0, 3);
@@ -999,7 +1004,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         cotizacion.value.cotservicios.forEach((servicio: CotServicio) => {
             const servicioId = extractIdStr(servicio.id);
-            const servicioNombre = servicio.tituloSnapshot?.length
+            const servicioNombre = !textoVacio(servicio.tituloSnapshot)
                 ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []);
             const servicioLabel = getI18nText(servicioNombre, idiomaEdicion) || 'Servicio';
             // El cliente lo verá como UNA opción con el precio sumado: ver `expurgarParaCliente()`.
@@ -1015,7 +1020,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Nombre propio del componente (sin fallback al segmento): en vistas
                 // internas las alternativas prefieren el nombreInterno de la tarifa
                 // antes que caer al título del segmento contenedor.
-                const compNombrePropio = componente.tituloSnapshot?.length ? componente.tituloSnapshot : [];
+                const compNombrePropio = !textoVacio(componente.tituloSnapshot) ? componente.tituloSnapshot : [];
                 const compNombreInterno = nombreInternoDeComponente(componente);
                 // Datos client-safe para el snapshot que consume la vista pax.
                 const compTituloCliente = tituloClienteDeComponente(componente);
@@ -1673,7 +1678,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
             informativas: [...informativas, ...tarifasSinNombre.value],
             publicable: !tieneConflictos && advertencias.length === 0,
             titulosPublicosDeServicio: Object.fromEntries(cotizacion.value.cotservicios.map((s: CotServicio) =>
-                [extractIdStr(s.id), s.tituloSnapshot?.length ? s.tituloSnapshot : []])),
+                [extractIdStr(s.id), !textoVacio(s.tituloSnapshot) ? s.tituloSnapshot : []])),
         };
     });
 
@@ -1712,7 +1717,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         cotizacion.value.cotservicios?.forEach((servicio: CotServicio) => {
             const servicioLabel = getI18nText(
-                servicio.tituloSnapshot?.length ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
+                !textoVacio(servicio.tituloSnapshot) ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
                 idioma
             ) || 'Servicio';
 
@@ -1916,7 +1921,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
         serviciosOrden.forEach((servicio) => {
             const servicioLabel = getI18nText(
-                servicio.tituloSnapshot?.length ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
+                !textoVacio(servicio.tituloSnapshot) ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
                 idiomaEdicion
             ) || 'Servicio';
 
@@ -1927,7 +1932,7 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
             const bloque: InclusionServicio = {
                 servicioId: extractIdStr(servicio.id),
-                servicioNombre: servicio.tituloSnapshot?.length
+                servicioNombre: !textoVacio(servicio.tituloSnapshot)
                     ? servicio.tituloSnapshot : (servicio.nombreInternoSnapshot || []),
                 servicioOpcional,
                 incluidos: [], noIncluidos: [], cortesias: [], opcionales: []
@@ -3240,12 +3245,10 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                         servicio.cotcomponentes.forEach((componente) => {
                             componente.cantidad = unidadesDe(componente.cantidad);
 
-                            // Un título con el español vacío se guarda vacío: lo que quede dentro
-                            // son traducciones de un texto borrado (ver `IDIOMA_ORIGEN`). Limpia
-                            // también lo que se guardó así antes del arreglo.
-                            if (textoVacio(componente.tituloSnapshot)) {
-                                componente.tituloSnapshot = [];
-                            }
+                            // Un título con el español borrado se guarda sin sus traducciones
+                            // automáticas (`@dominio/texto`). Limpia también lo guardado así antes
+                            // del arreglo.
+                            componente.tituloSnapshot = sinTraduccionesDeLoBorrado(componente.tituloSnapshot ?? []);
 
                             if (componente.componenteMaestroId) {
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);

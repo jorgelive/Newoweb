@@ -815,18 +815,27 @@ describe('un componente sin título ni ítems', () => {
 describe('un título con el español borrado', () => {
     beforeEach(() => setActivePinia(createPinia()));
 
+    // Las traducciones de la máquina llevan `origenHash`; las hechas a mano, no.
     const traducido = () => [
         { language: 'es', content: '1' },
-        { language: 'en', content: '1' },
-        { language: 'fr', content: '1' },
+        { language: 'en', content: '1', origenHash: 'abc' },
+        { language: 'fr', content: '1', origenHash: 'abc' },
     ];
 
-    it('vaciar el español vacía también las traducciones', () => {
+    it('vaciar el español se lleva las traducciones automáticas', () => {
         const store = useCotizacionEditorStore();
         const titulo = traducido();
         store.setI18nText(titulo, 'es', '');
 
-        expect(titulo).toEqual([]);
+        expect(titulo).toEqual([{ language: 'es', content: '' }]);
+    });
+
+    it('pero no las hechas a mano (Fable)', () => {
+        const store = useCotizacionEditorStore();
+        const titulo = [...traducido(), { language: 'it', content: 'Scritto a mano' }];
+        store.setI18nText(titulo, 'es', '');
+
+        expect(titulo.map((t) => t.language)).toEqual(['es', 'it']);
     });
 
     it('vaciar otro idioma sólo vacía ése', () => {
@@ -848,7 +857,7 @@ describe('un título con el español borrado', () => {
     };
 
     it('un español vacío con traducciones viejas dentro NO es un nombre', () => {
-        expect(avisosCon([{ language: 'es', content: '' }, { language: 'en', content: '1' }])).toHaveLength(1);
+        expect(avisosCon([{ language: 'es', content: '' }, { language: 'en', content: '1', origenHash: 'abc' } as { language: string; content: string }])).toHaveLength(1);
     });
 
     it('un nombre escrito sólo en inglés, sin español, SÍ lo es', () => {

@@ -1655,6 +1655,9 @@ const pedirBorrarSegmento = (segmentoId: string): void => {
  * simplemente un componente vacío, y se le puede escribir el nombre.
  */
 const isComponenteSoloItems = (componente: ComponenteCompleto) => {
+  // ⚠️ Por la LONGITUD a propósito, no por `textoVacio`: la pregunta es «¿nació sin título?», y
+  // de la respuesta depende que el campo se desactive. Con `textoVacio`, borrar el nombre de un
+  // componente con ítems lo desactivaba bajo el cursor. Borrar deja `[es: '']`, no `[]`.
   const sinNombre = !componente.tituloSnapshot || componente.tituloSnapshot.length === 0;
 
   return sinNombre && (componente.snapshotItems?.length ?? 0) > 0;
