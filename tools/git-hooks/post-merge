@@ -51,8 +51,11 @@ sudo supervisorctl start 'messenger-worker:*' || { echo '[post-merge] ⚠️ Alg
 # ⚠️ node vive en nvm y NO está en el PATH de un hook de git: hay que cargarlo a mano.
 CAMBIADOS="$(git diff --name-only "$DESDE" HEAD 2>/dev/null || true)"
 
+# ⚠️ **Y también si cambió `dominio/`**, que las dos apps importan (`@dominio/*`) y se empaqueta
+# DENTRO de cada bundle. Un cambio sólo ahí no reconstruía ninguna: el 23/10/2026 la regla de
+# `dominio/texto` cambió y `pax` siguió sirviendo la vieja porque su carpeta no se había tocado.
 for APP in util pax; do
-    if echo "$CAMBIADOS" | grep -q "^$APP/"; then
+    if echo "$CAMBIADOS" | grep -qE "^($APP|dominio)/"; then
         echo "[post-merge] Building $APP..."
         (
             export NVM_DIR="$HOME/.nvm"

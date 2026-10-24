@@ -790,11 +790,14 @@ Desde entonces lo hace el hook, **sólo para la app que cambió**:
 ```bash
 CAMBIADOS="$(git diff --name-only HEAD@{1} HEAD)"
 for APP in util pax; do
-    if echo "$CAMBIADOS" | grep -q "^$APP/"; then
+    if echo "$CAMBIADOS" | grep -qE "^($APP|dominio)/"; then
         ( export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; cd "$APP" && npm run build )
     fi
 done
 ```
+
+⚠️ **`dominio/` cuenta como cambio de las dos**: se empaqueta dentro de cada bundle, y un cambio
+sólo ahí no reconstruía ninguna (23/10/2026, la regla de `dominio/texto`).
 
 Sólo la que cambió por el mismo motivo que el `dump-autoload` no está: encarecer todos los
 despliegues por algo que pasa a veces no compensa. Aquí sí está en el hook porque **pasa casi
