@@ -781,3 +781,29 @@ describe('una tarifa con cantidad 0', () => {
         expect(opcionCon(10)?.deltaVentaPorPax).toBe(50);
     });
 });
+
+/**
+ * El componente que no se ve: sólo es conflicto si CUESTA (23/10/2026). Un «Segundo día …» a S/ 0,
+ * que existe para darle hora al día 2 de una excursión, bloqueaba el cambio de estado.
+ */
+describe('un componente sin título ni ítems', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const avisosDeInvisible = (tarifas: ReturnType<typeof tarifa>[]): string[] => {
+        const store = useCotizacionEditorStore();
+        const cot = cotizacionCon(1, tarifas);
+        cot.cotservicios[0].cotcomponentes[0].tituloSnapshot = [];
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cot;
+
+        return (store.resumenFinanciero?.advertencias ?? []).filter((a) => a.includes('no tiene título público ni ítems'));
+    };
+
+    it('con costo, es conflicto: el cliente pagaría algo que no ve', () => {
+        expect(avisosDeInvisible([tarifa(40, 1)])).toHaveLength(1);
+    });
+
+    it('a costo 0, no: no le cambia nada al cliente', () => {
+        expect(avisosDeInvisible([tarifa(0, 1)])).toHaveLength(0);
+    });
+});

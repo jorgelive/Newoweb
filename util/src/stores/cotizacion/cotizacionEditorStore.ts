@@ -2003,7 +2003,15 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                 // Sin nombre propio y sin ítems no se genera ni una línea: el componente
                 // desaparece de la propuesta. Si además lleva tarifa, es costo que el
                 // cliente paga sin ver a cambio de qué.
-                if (!tieneNombre && items.length === 0) {
+                //
+                // ⚠️ **Sólo si CUESTA.** El conflicto es de dinero —se cobra algo que no se ve—, y
+                // un componente a costo 0 que no se ve no le cambia nada al cliente. Avisaba igual,
+                // y como esto bloquea el cambio de estado, el «Segundo día …» del Titicaca —que
+                // existe sólo para darle hora al día 2, y cuyo «qué incluye» va en el componente
+                // principal— dejaba la propuesta sin poder enviarse (Jorge, 23/10/2026). Un
+                // componente recién añadido sin nombre ya lo marca el asterisco del editor.
+                const cuesta = (componente.cottarifas ?? []).some((t: TarifaSnapshot) => Number(t.montoCosto) > 0);
+                if (!tieneNombre && items.length === 0 && cuesta) {
                     avisar(servicioLabel, compLabel,
                         'no tiene título público ni ítems, así que no aparece en la propuesta. '
                         + 'Ponle un título o añádele ítems.');
