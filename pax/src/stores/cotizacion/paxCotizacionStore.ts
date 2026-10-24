@@ -449,8 +449,21 @@ const ordenarComponentesPorRelato = (data: PaxCotizacionFile | null): void => {
     const pasajeros = computed(() => file.value?.filepasajeros ?? []);
 
     /** Desglose incluye/no incluye por servicio (versión cliente, sin costos) */
-    const inclusiones = computed<PaxInclusionServicio[]>(
-        () => cotizacion.value?.clasificacionFinancieraCliente?.inclusiones ?? []
+    /**
+     * Las líneas del «qué incluye», sin las que no tienen texto.
+     *
+     * ⚠️ Una línea guardada cuando su nombre tenía el español borrado (`textoVacio`) no dice nada:
+     * pintarla dejaba «Incluye:» sin nombre detrás. Se quitan aquí, una vez, para el itinerario, las
+     * pastillas y el detalle. Re-guardar la propuesta ya no las genera (23/10/2026).
+     */
+    const inclusiones = computed<PaxInclusionServicio[]>(() =>
+        (cotizacion.value?.clasificacionFinancieraCliente?.inclusiones ?? []).map((srv) => ({
+            ...srv,
+            incluidos: (srv.incluidos ?? []).filter((l) => !textoVacio(l.nombre)),
+            noIncluidos: (srv.noIncluidos ?? []).filter((l) => !textoVacio(l.nombre)),
+            cortesias: (srv.cortesias ?? []).filter((l) => !textoVacio(l.nombre)),
+            opcionales: (srv.opcionales ?? []).filter((l) => !textoVacio(l.nombre)),
+        }))
     );
 
     /**
