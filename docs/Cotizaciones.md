@@ -10073,6 +10073,7 @@ segunda guarda del lado de operaciones: `docs/Operacion.md` §3.7.
 - **Que un dato más salga en la tarjeta del componente** → el bloque de pastillas junto a `prestadorNombreSnapshot` en `CotizacionEditorView.vue` (§6.d).
 - **En qué días sale el fantasma de un servicio de varios días** → `componerItinerario()` en `dominio/cotizacion/itinerarioVista.ts` (la regla, compartida con el cliente); `fantasmasPorDia.ts` sólo la consulta. **Cuánto hueco se rellena con días vacíos** → `MAX_HUECO_EN_DIAS` en el store (§6.j.8).
 - **Qué arregla la copia de un servicio al pegarla (ids, fechas, subgrupos)** → `clonarServicio()` en `util/src/stores/cotizacion/clonarServicio.ts`; el portapapeles, `copiarServicio`/`pegarServicio` en el store (§6.j.8).
+- **Cómo se ve el resumen de cada propuesta en el expediente** → `resumenPreview()` en `FileDetalle.vue`. ⚠️ Pasa el HTML por `DOMParser` (`textContent`), no por una regex que quite etiquetas: la regex dejaba las entidades y salía «noche&nbsp; en el…». Dos líneas (`line-clamp-2`) y el texto entero en el `title`.
 - **Cuándo se abren solos los nombres del servicio o del componente** → `faltaNombreServicio` / `faltaNombrePublico` en `CotizacionEditorView.vue`.
 - **Que el bloque «Catálogo Maestro» arranque cerrado** → `leerPreferencia()` en `CotizacionEditorView.vue`; hoy abre salvo que se haya cerrado antes (§6.d).
 - **Cómo se calcula costo/venta/markup/alternativas** → `resumenFinanciero` en `util/.../cotizacionEditorStore.ts`.
