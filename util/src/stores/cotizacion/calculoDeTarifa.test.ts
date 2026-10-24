@@ -807,3 +807,51 @@ describe('un componente sin título ni ítems', () => {
         expect(avisosDeInvisible([tarifa(0, 1)])).toHaveLength(0);
     });
 });
+
+/**
+ * Borrar el español borra el texto: lo demás son traducciones de lo borrado (23/10/2026). Se vació
+ * un «1» de prueba y la propuesta en inglés siguió diciendo «Incluye: 1».
+ */
+describe('un título con el español borrado', () => {
+    beforeEach(() => setActivePinia(createPinia()));
+
+    const traducido = () => [
+        { language: 'es', content: '1' },
+        { language: 'en', content: '1' },
+        { language: 'fr', content: '1' },
+    ];
+
+    it('vaciar el español vacía también las traducciones', () => {
+        const store = useCotizacionEditorStore();
+        const titulo = traducido();
+        store.setI18nText(titulo, 'es', '');
+
+        expect(titulo).toEqual([]);
+    });
+
+    it('vaciar otro idioma sólo vacía ése', () => {
+        const store = useCotizacionEditorStore();
+        const titulo = traducido();
+        store.setI18nText(titulo, 'en', '');
+
+        expect(titulo.map((t) => t.content)).toEqual(['1', '', '1']);
+    });
+
+    const avisosCon = (tituloSnapshot: { language: string; content: string }[]): string[] => {
+        const store = useCotizacionEditorStore();
+        const cot = cotizacionCon(1, [tarifa(40, 1)]);
+        cot.cotservicios[0].cotcomponentes[0].tituloSnapshot = tituloSnapshot;
+        // @ts-expect-error — fixture mínimo.
+        store.cotizacion = cot;
+
+        return (store.resumenFinanciero?.advertencias ?? []).filter((a) => a.includes('no tiene título público ni ítems'));
+    };
+
+    it('un español vacío con traducciones viejas dentro NO es un nombre', () => {
+        expect(avisosCon([{ language: 'es', content: '' }, { language: 'en', content: '1' }])).toHaveLength(1);
+    });
+
+    it('un nombre escrito sólo en inglés, sin español, SÍ lo es', () => {
+        expect(avisosCon([{ language: 'en', content: 'Breakfast' }])).toHaveLength(0);
+    });
+});

@@ -605,8 +605,33 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
         return found ? found.content : '';
     };
 
+    /**
+     * El idioma del que salen las traducciones (`#[AutoTranslate(sourceLanguage: 'es')]`).
+     *
+     * ⚠️ **Vaciarlo vacía el texto entero.** Las otras seis son traducciones del español: si el
+     * español se borra, describen un texto que ya no existe. Se vació el «1» de prueba de un nombre
+     * público y el «Incluye: 1» siguió saliendo en la propuesta en inglés (Jorge, 23/10/2026).
+     */
+    const IDIOMA_ORIGEN = 'es';
+
+    /**
+     * ¿El texto está vacío? Sí si el español EXISTE y está vacío —lo borró alguien, y lo demás son
+     * traducciones de lo borrado— o si no hay texto en ningún idioma. Un español que FALTA no
+     * vacía nada: un nombre escrito editando en inglés es un nombre.
+     */
+    const textoVacio = (arrayI18n: I18nContent[] | undefined): boolean => {
+        const lista = Array.isArray(arrayI18n) ? arrayI18n : [];
+        const origen = lista.find((l) => l.language === IDIOMA_ORIGEN);
+
+        return origen ? (origen.content ?? '').trim() === '' : lista.every((l) => (l.content ?? '').trim() === '');
+    };
+
     const setI18nText = (arrayI18n: I18nContent[] | undefined, lang: string, text: string): void => {
         if (!arrayI18n || !Array.isArray(arrayI18n)) return;
+        if (lang === IDIOMA_ORIGEN && text.trim() === '') {
+            arrayI18n.splice(0);   // en sitio: quien tiene la referencia ve el cambio
+            return;
+        }
         const found = arrayI18n.find((item) => item.language === lang);
         if (found) {
             if (found.content !== text) found.content = text;
@@ -1996,7 +2021,9 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
 
                 const fecha = getFechaLimpia(componente.fechaHoraInicio);
                 const cCant = unidadesDe(componente.cantidad);
-                const tieneNombre = !!componente.tituloSnapshot?.length;
+                // Por el texto en español, no por el tamaño de la lista: una lista con el español
+                // vacío y traducciones viejas dentro NO es un nombre (ver `IDIOMA_ORIGEN`).
+                const tieneNombre = !textoVacio(componente.tituloSnapshot);
                 const items = componente.snapshotItems || [];
                 const compLabel = getI18nText(componente.tituloSnapshot, idiomaEdicion) || 'Insumo Logístico';
 
@@ -3230,6 +3257,13 @@ export const useCotizacionEditorStore = defineStore('cotizacionEditorStore', () 
                     if (servicio.cotcomponentes && Array.isArray(servicio.cotcomponentes)) {
                         servicio.cotcomponentes.forEach((componente) => {
                             componente.cantidad = unidadesDe(componente.cantidad);
+
+                            // Un título con el español vacío se guarda vacío: lo que quede dentro
+                            // son traducciones de un texto borrado (ver `IDIOMA_ORIGEN`). Limpia
+                            // también lo que se guardó así antes del arreglo.
+                            if (textoVacio(componente.tituloSnapshot)) {
+                                componente.tituloSnapshot = [];
+                            }
 
                             if (componente.componenteMaestroId) {
                                 componente.componenteMaestroId = extractIdStr(componente.componenteMaestroId);
